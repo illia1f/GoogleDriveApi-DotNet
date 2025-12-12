@@ -1,19 +1,19 @@
 ﻿
 Microsoft Visual Studio Solution File, Format Version 12.00
-# Visual Studio Version 17
-VisualStudioVersion = 17.10.35027.167
+# Visual Studio Version 18
+VisualStudioVersion = 18.0.11222.15 d18.0
 MinimumVisualStudioVersion = 10.0.40219.1
-Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "GoogleDriveApi-DotNet", "GoogleDriveApi-DotNet.csproj", "{9288451F-7FC6-4343-B5DE-5C9C35FAE944}"
+Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "GoogleDriveApi-DotNet", ".\src\GoogleDriveApi-DotNet.csproj", "{9288451F-7FC6-4343-B5DE-5C9C35FAE944}"
 EndProject
-Project("{2150E333-8FDC-42A3-9474-1A3956D46DE8}") = "CodeSamples", "CodeSamples", "{51EC3CAB-9BE8-486E-A7EF-582DE5045414}"
+Project("{2150E333-8FDC-42A3-9474-1A3956D46DE8}") = "samples", "samples", "{51EC3CAB-9BE8-486E-A7EF-582DE5045414}"
 EndProject
-Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "FileUploader", "..\CodeSamples\FileUploader\FileUploader.csproj", "{2755D4E2-FF2B-4568-A499-7C7D03A7B321}"
+Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "FileUploader", ".\samples\FileUploader\FileUploader.csproj", "{2755D4E2-FF2B-4568-A499-7C7D03A7B321}"
 EndProject
-Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "FileDownloader", "..\CodeSamples\FileDownloader\FileDownloader.csproj", "{FCD7FB38-5AC8-491F-A8C0-EE9D1F9FF217}"
+Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "FileDownloader", ".\samples\FileDownloader\FileDownloader.csproj", "{FCD7FB38-5AC8-491F-A8C0-EE9D1F9FF217}"
 EndProject
-Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "FolderManagement", "..\CodeSamples\FolderManagement\FolderManagement.csproj", "{98C58FA3-F6F5-4B0F-B63F-6AABB32F4D29}"
+Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "FolderManagement", ".\samples\FolderManagement\FolderManagement.csproj", "{98C58FA3-F6F5-4B0F-B63F-6AABB32F4D29}"
 EndProject
-Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "RetrieveAllFolderHierarchy", "..\CodeSamples\RetrieveAllFolderHierarchy\RetrieveAllFolderHierarchy.csproj", "{CBCF3FC4-16B1-41E3-8AE7-34B3D4FB7460}"
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "RetrieveAllFolderHierarchy", ".\samples\RetrieveAllFolderHierarchy\RetrieveAllFolderHierarchy.csproj", "{CBCF3FC4-16B1-41E3-8AE7-34B3D4FB7460}"
 EndProject
 Global
 	GlobalSection(SolutionConfigurationPlatforms) = preSolution
