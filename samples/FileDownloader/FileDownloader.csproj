@@ -1,4 +1,4 @@
-﻿<Project Sdk="Microsoft.NET.Sdk">
+<Project Sdk="Microsoft.NET.Sdk">
 
   <PropertyGroup>
     <OutputType>Exe</OutputType>
@@ -8,7 +8,7 @@
   </PropertyGroup>
 
   <ItemGroup>
-    <ProjectReference Include="..\..\GoogleDriveApi-DotNet\GoogleDriveApi-DotNet.csproj" />
+    <ProjectReference Include="..\..\src\GoogleDriveApi-DotNet.csproj" />
   </ItemGroup>
 
   <ItemGroup>
