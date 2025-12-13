@@ -30,36 +30,11 @@ dotnet add package Google.Apis.Drive.v3
 
 ## Setup
 
-1. **Create a Google Cloud Project** and enable the Google Drive API.
-2. **Create OAuth 2.0 credentials** and download the JSON file.
-3. **Set up your application to use these credentials**.
+### Google Cloud Console (enable API + OAuth)
 
-[Example from the internet](https://medium.com/geekculture/upload-files-to-google-drive-with-c-c32d5c8a7abc)
+See [Google Cloud Console Setup](docs/GoogleCloudConsoleSetup.md).
 
-### Creating a Google Cloud Project and Enabling the Google Drive API
-
-1. Go to the [Google Cloud Console](https://console.cloud.google.com/).
-2. Click on the project dropdown at the top and select `New Project`.
-3. Enter a project name and click `Create`.
-4. Once the project is created, go to the `Navigation menu` > `APIs & Services` > `Library`.
-5. Search for "Google Drive API" and click on it.
-6. Click `Enable` to enable the Google Drive API for your project.
-
-### Creating OAuth 2.0 Credentials
-
-1. In the Google Cloud Console, go to `Navigation menu` > `APIs & Services` > `Credentials`.
-2. Click on `Create Credentials` and select `OAuth 2.0 Client IDs`.
-3. Configure the OAuth consent screen:
-   - Select `External` and click `Create`.
-   - Enter the necessary information (app name, user support email, etc.).
-   - Add scopes if needed (usually, you can proceed with the default scope).
-   - Click `Save and Continue` until the configuration is complete.
-4. On the `Create OAuth client ID` page:
-   - Select `Desktop app` or `Web app` as the application type.
-   - Click `Create`.
-   - Download the JSON file containing your credentials.
-
-### Setting Up Your Application
+### Application setup
 
 1. Place the downloaded `credentials.json` file in your project directory.
 2. Initialize the `GoogleDriveApi` class with your credentials.
@@ -82,7 +57,11 @@ Additional sample code snippets are available in the [Sample Code Snippets file]
 
 ## License
 
-This project is licensed under the MIT License.
+This project is licensed under the MIT License. See the [LICENSE](LICENSE) file for details.
+
+## Contributing
+
+We welcome contributions! Please read our [Contributing Guidelines](CONTRIBUTING.md) to get started.
 
 ## Acknowledgements
 
