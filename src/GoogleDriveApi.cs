@@ -1,4 +1,4 @@
-﻿using Google.Apis.Auth.OAuth2;
+using Google.Apis.Auth.OAuth2;
 using Google.Apis.Download;
 using Google.Apis.Drive.v3;
 using Google.Apis.Services;
@@ -13,7 +13,7 @@ namespace GoogleDriveApi_DotNet;
 public class GoogleDriveApi(
     string credentialsPath, 
     string tokenFolderPath, 
-    string applicationName) : IDisposable
+    string? applicationName) : IDisposable
 {
     public const int AuthorizationTimeOutInSec = 30;
     public const string RootFolderId = "root";
@@ -95,7 +95,7 @@ public class GoogleDriveApi(
     {
         private string _credentialsPath = "credentials.json";
         private string _tokenFolderPath = "_metadata";
-        private string _applicationName = "[Your App Name]";
+        private string? _applicationName = null;
 
         /// <summary>
         /// Sets the path to the credentials JSON file. Default value is "credentials.json".
