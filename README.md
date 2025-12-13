@@ -46,7 +46,7 @@ See [Google Cloud Console Setup](docs/GoogleCloudConsoleSetup.md).
 First, create an instance of the `GoogleDriveApi` class using the fluent builder pattern with your credentials and token paths:
 
 ```csharp
-GoogleDriveApi gDriveApi = await GoogleDriveApi.CreateBuilder()
+using GoogleDriveApi gDriveApi = await GoogleDriveApi.CreateBuilder()
 	.SetCredentialsPath("credentials.json")
 	.SetTokenFolderPath("_metadata")
 	.SetApplicationName("[Your App Name]")

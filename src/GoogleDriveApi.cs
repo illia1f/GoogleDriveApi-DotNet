@@ -10,26 +10,84 @@ using System.Diagnostics;
 
 namespace GoogleDriveApi_DotNet;
 
-public class GoogleDriveApi
+public class GoogleDriveApi(
+    string credentialsPath, 
+    string tokenFolderPath, 
+    string applicationName) : IDisposable
 {
     public const int AuthorizationTimeOutInSec = 30;
     public const string RootFolderId = "root";
-    private readonly string _credentialsPath;
-    private readonly string _tokenFolderPath;
-    private readonly string? _applicationName;
+    private readonly string _credentialsPath = credentialsPath;
+    private readonly string _tokenFolderPath = tokenFolderPath;
+    private readonly string? _applicationName = applicationName;
     private DriveService? _service;
     private UserCredential? _credential;
+    private bool _disposed;
 
-    public DriveService Provider => _service ?? throw new AuthorizationException("The GoogleDriveApi has not been authorized.");
-    public bool IsAuthorized => _service is not null;
-    public bool IsTokenShouldBeRefreshed => _credential?.Token?.IsStale ?? false;
-
-    private GoogleDriveApi(string credentialsPath, string tokenFolderPath, string applicationName)
+    public DriveService Provider
     {
-        _credentialsPath = credentialsPath;
-        _tokenFolderPath = tokenFolderPath;
-        _applicationName = applicationName;
+        get
+        {
+            ThrowIfDisposed();
+            return _service ?? throw new AuthorizationException("The GoogleDriveApi has not been authorized.");
+        }
     }
+
+    public bool IsAuthorized
+    {
+        get
+        {
+            ThrowIfDisposed();
+            return _service is not null;
+        }
+    }
+    public bool IsTokenShouldBeRefreshed
+    {
+        get
+        {
+            ThrowIfDisposed();
+            return _credential?.Token?.IsStale ?? false;
+        }
+    }
+
+    /// <summary>
+    /// Releases all resources used by the <see cref="GoogleDriveApi"/> instance.
+    /// <para>Documentation: https://learn.microsoft.com/en-us/dotnet/standard/design-guidelines/dispose-pattern</para>
+    /// </summary>
+    public void Dispose()
+    {
+        Dispose(disposing: true);
+        GC.SuppressFinalize(this);
+    }
+
+    /// <summary>
+    /// Releases the unmanaged resources and optionally releases the managed resources.
+    /// </summary>
+    /// <param name="disposing">
+    /// <c>true</c> to release both managed and unmanaged resources; 
+    /// <c>false</c> to release only unmanaged resources.
+    /// </param>
+    protected virtual void Dispose(bool disposing)
+    {
+        if (_disposed)
+        {
+            return;
+        }
+
+        _disposed = true;
+
+        if (disposing)
+        {
+            _service?.Dispose();
+            _service = null;
+            _credential = null;
+        }    
+    }
+
+    /// <summary>
+    /// Throws an <see cref="ObjectDisposedException"/> if the object has been disposed.
+    /// </summary>
+    private void ThrowIfDisposed() => ObjectDisposedException.ThrowIf(_disposed, this);
 
     public static GoogleDriveApiBuilder CreateBuilder() => new GoogleDriveApiBuilder();
 
@@ -115,6 +173,7 @@ public class GoogleDriveApi
     /// <inheritdoc cref="Internal_AuthorizeAsync"/>
     public void Authorize(int timeOutInSec = AuthorizationTimeOutInSec)
     {
+        ThrowIfDisposed();
         Internal_AuthorizeAsync(timeOutInSec)
             .ConfigureAwait(false)
             .GetAwaiter()
@@ -124,6 +183,7 @@ public class GoogleDriveApi
     /// <inheritdoc cref="Internal_AuthorizeAsync"/>
     public async Task AuthorizeAsync(int timeOutInSec = AuthorizationTimeOutInSec)
     {
+        ThrowIfDisposed();
         await Internal_AuthorizeAsync(timeOutInSec)
             .ConfigureAwait(false);
     }
@@ -162,6 +222,7 @@ public class GoogleDriveApi
     /// <inheritdoc cref="Internal_TryRefreshTokenAsync"/>
     public bool TryRefreshToken()
     {
+        ThrowIfDisposed();
         return Internal_TryRefreshTokenAsync()
             .ConfigureAwait(false)
             .GetAwaiter()
@@ -171,6 +232,7 @@ public class GoogleDriveApi
     /// <inheritdoc cref="Internal_TryRefreshTokenAsync"/>
     public Task<bool> TryRefreshTokenAsync()
     {
+        ThrowIfDisposed();
         return Internal_TryRefreshTokenAsync();
     }
 
@@ -298,6 +360,7 @@ public class GoogleDriveApi
     /// <inheritdoc cref="Internal_GetAllFoldersAsync"/>
     public List<GDriveFile> GetAllFolders()
     {
+        ThrowIfDisposed();
         return Internal_GetAllFoldersAsync()
             .ConfigureAwait(false)
             .GetAwaiter()
@@ -307,6 +370,7 @@ public class GoogleDriveApi
     /// <inheritdoc cref="Internal_GetAllFoldersAsync"/>
     public async Task<List<GDriveFile>> GetAllFoldersAsync()
     {
+        ThrowIfDisposed();
         return await Internal_GetAllFoldersAsync().ConfigureAwait(false);
     }
 
@@ -383,6 +447,7 @@ public class GoogleDriveApi
     /// <inheritdoc cref="Internal_DeleteFolderAsync"/>
     public bool DeleteFolder(string folderId)
     {
+        ThrowIfDisposed();
         return Internal_DeleteFolderAsync(folderId)
             .ConfigureAwait(false)
             .GetAwaiter()
@@ -469,6 +534,7 @@ public class GoogleDriveApi
     /// <param name="mimeType">The MIME type of the file.</param>
     public string UploadFilePath(string filePath, string mimeType)
     {
+        ThrowIfDisposed();
         ArgumentNullException.ThrowIfNullOrEmpty(filePath);
         if (!File.Exists(filePath))
         {
@@ -484,6 +550,7 @@ public class GoogleDriveApi
     /// <inheritdoc cref="Internal_UploadFileStream"/>
     public string UploadFileStream(Stream fileStream, string fileName, string mimeType)
     {
+        ThrowIfDisposed();
         return Internal_UploadFileStream(fileStream, fileName, mimeType);
     }
 

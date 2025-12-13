@@ -1,8 +1,8 @@
-﻿using GoogleDriveApi_DotNet;
+using GoogleDriveApi_DotNet;
 using GoogleDriveApi_DotNet.Exceptions;
 using MimeMapping;
 
-GoogleDriveApi gDriveApi = await GoogleDriveApi.CreateBuilder()
+using GoogleDriveApi gDriveApi = await GoogleDriveApi.CreateBuilder()
     .SetCredentialsPath("credentials.json")
     .SetTokenFolderPath("_metadata")
     .SetApplicationName("QuickFilesLoad")

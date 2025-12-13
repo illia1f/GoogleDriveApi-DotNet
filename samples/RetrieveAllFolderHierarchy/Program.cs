@@ -1,11 +1,11 @@
-﻿using GoogleDriveApi_DotNet;
+using GoogleDriveApi_DotNet;
 using GoogleDriveApi_DotNet.Models;
 using System.Text;
 
 Console.OutputEncoding = Encoding.UTF8; // Set the console encoding to UTF-8 for proper display of folder names
 
 // Initialize the Google Drive API with the specified credentials and token folder paths and authorize right away
-GoogleDriveApi gDriveApi = await GoogleDriveApi.CreateBuilder()
+using GoogleDriveApi gDriveApi = await GoogleDriveApi.CreateBuilder()
     .SetCredentialsPath("credentials.json")
     .SetTokenFolderPath("_metadata")
     .SetApplicationName("QuickFilesLoad")
