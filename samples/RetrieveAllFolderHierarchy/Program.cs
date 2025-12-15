@@ -4,14 +4,16 @@ using System.Text;
 
 Console.OutputEncoding = Encoding.UTF8; // Set the console encoding to UTF-8 for proper display of folder names
 
+using var cts = new CancellationTokenSource(TimeSpan.FromMinutes(2));
+
 // Initialize the Google Drive API with the specified credentials and token folder paths and authorize right away
 using GoogleDriveApi gDriveApi = await GoogleDriveApi.CreateBuilder()
     .SetCredentialsPath("credentials.json")
     .SetTokenFolderPath("_metadata")
     .SetApplicationName("QuickFilesLoad")
-    .BuildAsync(immediateAuthorization: true);
+    .BuildAsync(immediateAuthorization: true, cancellationToken: cts.Token);
 
-List<GDriveFile> folders = await gDriveApi.GetAllFoldersAsync();
+List<GDriveFile> folders = await gDriveApi.GetAllFoldersAsync(cts.Token);
 
 // Create a dictionary to map folder IDs to their corresponding GDriveFile objects
 Dictionary<string, GDriveFile> folderDic = folders.ToDictionary(f => f.Id);
