@@ -4,24 +4,45 @@ using Google.Apis.Drive.v3;
 using Google.Apis.Services;
 using Google.Apis.Util.Store;
 using GoogleDriveApi_DotNet.Exceptions;
+using GoogleDriveApi_DotNet.Extensions;
 using GoogleDriveApi_DotNet.Helpers;
 using GoogleDriveApi_DotNet.Models;
 using System.Diagnostics;
 
 namespace GoogleDriveApi_DotNet;
 
-public class GoogleDriveApi(
-    string credentialsPath, 
-    string tokenFolderPath, 
-    string? applicationName) : IDisposable
+public class GoogleDriveApi : IDisposable
 {
     public const string RootFolderId = "root";
-    private readonly string _credentialsPath = credentialsPath;
-    private readonly string _tokenFolderPath = tokenFolderPath;
-    private readonly string? _applicationName = applicationName;
+    private readonly string _credentialsPath;
+    private readonly string _tokenFolderPath;
+    private readonly string? _applicationName;
     private DriveService? _service;
     private UserCredential? _credential;
     private bool _disposed;
+
+    /// <summary>
+    /// Private constructor to prevent direct instantiation. Use <see cref="Create"/> method instead.
+    /// </summary>
+    private GoogleDriveApi(GoogleDriveApiOptions options)
+    {
+        _credentialsPath = options.CredentialsPath;
+        _tokenFolderPath = options.TokenFolderPath;
+        _applicationName = options.ApplicationName;
+    }
+
+    /// <summary>
+    /// Creates a new GoogleDriveApi instance using the provided options. This method is intended to be called by builders implementing <see cref="IGoogleDriveApiBuilder"/>.
+    /// </summary>
+    /// <param name="options">The configuration options for the GoogleDriveApi instance.</param>
+    /// <returns>A new GoogleDriveApi instance.</returns>
+    /// <exception cref="ArgumentNullException">Thrown when <paramref name="options"/> is null.</exception>
+    public static GoogleDriveApi Create(GoogleDriveApiOptions options)
+    {
+        ArgumentNullException.ThrowIfNull(options);
+
+        return new(options);
+    }
 
     public DriveService Provider
     {
@@ -80,7 +101,7 @@ public class GoogleDriveApi(
             _service?.Dispose();
             _service = null;
             _credential = null;
-        }    
+        }
     }
 
     /// <summary>
@@ -88,89 +109,10 @@ public class GoogleDriveApi(
     /// </summary>
     private void ThrowIfDisposed() => ObjectDisposedException.ThrowIf(_disposed, this);
 
-    public static GoogleDriveApiBuilder CreateBuilder() => new GoogleDriveApiBuilder();
+    public static IGoogleDriveApiBuilder CreateBuilder() => CreateBuilder<GoogleDriveApiBuilder>();
 
-    public class GoogleDriveApiBuilder
-    {
-        private string _credentialsPath = "credentials.json";
-        private string _tokenFolderPath = "_metadata";
-        private string? _applicationName = null;
-
-        /// <summary>
-        /// Sets the path to the credentials JSON file. Default value is "credentials.json".
-        /// **Note**: Place the downloaded JSON file in your project directory.
-        /// <para>Documentation: https://developers.google.com/identity/protocols/oauth2</para>
-        /// </summary>
-        /// <param name="path">The path to the credentials JSON file.</param>
-        /// <returns>The builder instance.</returns>
-        public GoogleDriveApiBuilder SetCredentialsPath(string path)
-        {
-            _credentialsPath = path;
-            return this;
-        }
-
-        /// <summary>
-        /// Sets the path to the token JSON file folder where it will store the token in a file. Default value is "_metadata".
-        /// <para>Documentation: https://developers.google.com/api-client-library/dotnet/guide/aaa_oauth</para>
-        /// </summary>
-        /// <param name="folderPath">The path to the token JSON file.</param>
-        /// <returns>The builder instance.</returns>
-        public GoogleDriveApiBuilder SetTokenFolderPath(string folderPath)
-        {
-            _tokenFolderPath = folderPath;
-            return this;
-        }
-
-        /// <summary>
-        /// Sets the name of the application. Default value is null.
-        /// <para>Documentation: https://cloud.google.com/dotnet/docs/reference/Google.Apis/latest/Google.Apis.Services.BaseClientService.Initializer#Google_Apis_Services_BaseClientService_Initializer_ApplicationName</para>
-        /// </summary>
-        /// <param name="name">The name of the application.</param>
-        /// <returns>The builder instance.</returns>
-        public GoogleDriveApiBuilder SetApplicationName(string name)
-        {
-            _applicationName = name;
-            return this;
-        }
-
-        ///<inheritdoc cref="Internal_BuildAsync"/>
-        public GoogleDriveApi Build(bool immediateAuthorization = true, CancellationToken cancellationToken = default)
-        {
-            return Internal_BuildAsync(immediateAuthorization, cancellationToken)
-                .ConfigureAwait(false)
-                .GetAwaiter()
-                .GetResult();
-        }
-
-        ///<inheritdoc cref="Internal_BuildAsync"/>
-        public async Task<GoogleDriveApi> BuildAsync(bool immediateAuthorization = true, CancellationToken cancellationToken = default)
-        {
-            return await Internal_BuildAsync(immediateAuthorization, cancellationToken)
-                .ConfigureAwait(false);
-        }
-
-        /// <summary>
-        /// Builds the GoogleDriveApi instance and attempts to authorize if <paramref name="immediateAuthorization"/> is true.
-        /// Use <paramref name="cancellationToken"/> to cancel the operation or set a timeout (e.g., <c>new CancellationTokenSource(TimeSpan.FromSeconds(30)).Token</c>).
-        /// <para>Documentation: https://cloud.google.com/dotnet/docs/reference/Google.Apis/latest/Google.Apis.Auth.OAuth2.GoogleWebAuthorizationBroker?hl=en#Google_Apis_Auth_OAuth2_GoogleWebAuthorizationBroker_AuthorizeAsync_Google_Apis_Auth_OAuth2_ClientSecrets_System_Collections_Generic_IEnumerable_System_String__System_String_System_Threading_CancellationToken_Google_Apis_Util_Store_IDataStore_Google_Apis_Auth_OAuth2_ICodeReceiver_</para>
-        /// </summary>
-        /// <param name="immediateAuthorization">Whether to authorize immediately after building.</param>
-        /// <param name="cancellationToken">Cancellation token to cancel the operation or set a timeout.</param>
-        /// <returns>A task representing the asynchronous operation. The result contains the authorized GoogleDriveApi instance.</returns>
-        /// <inheritdoc cref="Internal_AuthorizeAsync"/>
-        private async Task<GoogleDriveApi> Internal_BuildAsync(bool immediateAuthorization, CancellationToken cancellationToken)
-        {
-            var gDriveApi = new GoogleDriveApi(_credentialsPath, _tokenFolderPath, _applicationName);
-
-            if (immediateAuthorization)
-            {
-                await gDriveApi.Internal_AuthorizeAsync(cancellationToken)
-                    .ConfigureAwait(false);
-            }
-
-            return gDriveApi;
-        }
-    }
+    public static IGoogleDriveApiBuilder CreateBuilder<TBuilder>() where TBuilder : IGoogleDriveApiBuilder, new()
+        => new TBuilder();
 
     /// <inheritdoc cref="Internal_AuthorizeAsync"/>
     public void Authorize(CancellationToken cancellationToken = default)
@@ -196,7 +138,7 @@ public class GoogleDriveApi(
     /// </summary>
     /// <param name="cancellationToken">Cancellation token to cancel the operation or set a timeout.</param>
     /// <exception cref="OperationCanceledException">Thrown if the authorization process is cancelled or times out.</exception>
-    private async Task Internal_AuthorizeAsync(CancellationToken cancellationToken)
+    internal async Task Internal_AuthorizeAsync(CancellationToken cancellationToken)
     {
         if (IsAuthorized)
         {

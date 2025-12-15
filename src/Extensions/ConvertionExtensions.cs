@@ -1,6 +1,6 @@
 ﻿using GoogleDriveApi_DotNet.Models;
 
-namespace GoogleDriveApi_DotNet.Helpers
+namespace GoogleDriveApi_DotNet.Extensions
 {
     public static class ConvertionExtensions
     {
