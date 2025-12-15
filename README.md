@@ -47,9 +47,8 @@ First, create an instance of the `GoogleDriveApi` class using the fluent builder
 
 ```csharp
 using GoogleDriveApi gDriveApi = await GoogleDriveApi.CreateBuilder()
-	.SetCredentialsPath("credentials.json")
-	.SetTokenFolderPath("_metadata")
-	.SetApplicationName("[Your App Name]")
+	.SetCredentialsPath("credentials.json") // default value "credentials.json"
+	.SetTokenFolderPath("_metadata") // default value "_metadata"
 	.BuildAsync();
 ```
 
