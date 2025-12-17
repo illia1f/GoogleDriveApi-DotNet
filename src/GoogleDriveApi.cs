@@ -157,7 +157,7 @@ public class GoogleDriveApi : IDisposable
             _credential = await GoogleWebAuthorizationBroker.AuthorizeAsync(
                 clientSecrets: gcSecrets.Secrets,
                 scopes: [DriveService.Scope.Drive],
-                user: "user",
+                user: _options.UserId,
                 cancellationToken,
                 dataStore).ConfigureAwait(false);
         }

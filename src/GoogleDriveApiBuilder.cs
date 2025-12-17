@@ -1,12 +1,15 @@
+using GoogleDriveApi_DotNet.Types;
+
 namespace GoogleDriveApi_DotNet;
 
 /// <inheritdoc cref="IGoogleDriveApiBuilder"/>
 internal class GoogleDriveApiBuilder : IGoogleDriveApiBuilder
 {
-    private string _credentialsPath = "credentials.json";
-    private string _tokenFolderPath = "_metadata";
-    private string? _applicationName = null;
-    private string _rootFolderId = "root";
+    private string _rootFolderId = GoogleDriveApiOptions.DefaultRootFolderId;
+    private string _credentialsPath = GoogleDriveApiOptions.DefaultCredentialsPath;
+    private string _tokenFolderPath = GoogleDriveApiOptions.DefaultTokenFolderPath;
+    private string _userId = GoogleDriveApiOptions.DefaultUserId;
+    private string? _applicationName = null; 
 
     public IGoogleDriveApiBuilder SetCredentialsPath(string path)
     {
@@ -17,6 +20,12 @@ internal class GoogleDriveApiBuilder : IGoogleDriveApiBuilder
     public IGoogleDriveApiBuilder SetTokenFolderPath(string folderPath)
     {
         _tokenFolderPath = folderPath;
+        return this;
+    }
+
+    public IGoogleDriveApiBuilder SetUserId(string userId)
+    {
+        _userId = userId;
         return this;
     }
 
@@ -48,10 +57,11 @@ internal class GoogleDriveApiBuilder : IGoogleDriveApiBuilder
 
     private async Task<GoogleDriveApi> Internal_BuildAsync(bool immediateAuthorization, CancellationToken cancellationToken)
     {
-        var options = new Types.GoogleDriveApiOptions
+        var options = new GoogleDriveApiOptions
         {
             CredentialsPath = _credentialsPath,
             TokenFolderPath = _tokenFolderPath,
+            UserId = _userId,
             ApplicationName = _applicationName,
             RootFolderId = _rootFolderId
         };

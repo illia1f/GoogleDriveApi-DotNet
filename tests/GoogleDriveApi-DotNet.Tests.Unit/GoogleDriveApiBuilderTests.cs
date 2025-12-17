@@ -11,6 +11,7 @@ namespace GoogleDriveApi_DotNet.Tests.Unit
             IGoogleDriveApiBuilder result = _builder
                 .SetCredentialsPath("test-credentials.json")
                 .SetTokenFolderPath("test-tokens")
+                .SetUserId("test-user")
                 .SetApplicationName("TestApp")
                 .SetRootFolderId("test-root");
 
@@ -43,6 +44,7 @@ namespace GoogleDriveApi_DotNet.Tests.Unit
             {
                 CredentialsPath = "test-credentials.json",
                 TokenFolderPath = "test-tokens",
+                UserId = "test-user",
                 ApplicationName = "TestApplication",
                 RootFolderId = "test-root-123"
             };
@@ -50,6 +52,7 @@ namespace GoogleDriveApi_DotNet.Tests.Unit
             GoogleDriveApi api = _builder
                 .SetCredentialsPath(options.CredentialsPath)
                 .SetTokenFolderPath(options.TokenFolderPath)
+                .SetUserId(options.UserId)
                 .SetApplicationName(options.ApplicationName)
                 .SetRootFolderId(options.RootFolderId)
                 .Build(immediateAuthorization: false);
@@ -65,6 +68,7 @@ namespace GoogleDriveApi_DotNet.Tests.Unit
             {
                 CredentialsPath = "async-test-credentials.json",
                 TokenFolderPath = "async-test-tokens",
+                UserId = "async-test-user",
                 ApplicationName = "TestApplication",
                 RootFolderId = "async-test-root-folder"
             };
@@ -72,6 +76,7 @@ namespace GoogleDriveApi_DotNet.Tests.Unit
             GoogleDriveApi api = await _builder
                 .SetCredentialsPath(options.CredentialsPath)
                 .SetTokenFolderPath(options.TokenFolderPath)
+                .SetUserId(options.UserId)
                 .SetApplicationName(options.ApplicationName)
                 .SetRootFolderId(options.RootFolderId)
                 .BuildAsync(immediateAuthorization: false);
@@ -137,6 +142,8 @@ namespace GoogleDriveApi_DotNet.Tests.Unit
                 .SetApplicationName(string.Empty)
                 .SetCredentialsPath(string.Empty)
                 .SetTokenFolderPath(string.Empty)
+                .SetUserId(null!)
+                .SetUserId(string.Empty)
                 .SetRootFolderId(string.Empty)
                 .ShouldNotBeNull();
 
