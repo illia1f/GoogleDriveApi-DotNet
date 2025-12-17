@@ -1,6 +1,6 @@
 using GoogleDriveApi_DotNet.Abstractions;
 
-namespace GoogleDriveApi_DotNet.Models
+namespace GoogleDriveApi_DotNet.Types
 {
     /// <summary>
     /// Configuration options for creating a GoogleDriveApi instance.
