@@ -2,19 +2,25 @@
 
 This C# library simplifies interaction with the Google Drive API. While it doesn't cover the entire API, it includes the most commonly used endpoints for easier access to Google Drive.
 
-## Features
+## Status
 
-- Extract folder ID from a Google Drive folder URL.
-- Get the folder name by its ID.
-- Generate Google Drive folder URL by its id.
-- Obtain the full path of a folder starting from the root using its ID.
-- Retrieve all folders from Google Drive and print the folder hierarchy. Docs: [Understanding Google Drive Folders and Cycle Dependencies](docs/FolderHierarchyAndCycleDependencies.md)
-- Create/Delete folders in Google Drive.
-- Check if the access token is expired.
-- Refresh the access token if expired.
-- Download files from Google Drive. Docs: [Downloading Files from Google Drive](docs/DownloadingFiles.md)
-- Upload files to Google Drive.
-- Delete files and folders in Google Drive. (Not yet)
+🚧 **Pre-release** — The library is in active development approaching v1.0.0.
+
+| Category                             | Status         |
+| ------------------------------------ | -------------- |
+| Authentication                       | ✅ Complete    |
+| File Upload/Download                 | ✅ Complete    |
+| Folder Management                    | ✅ Complete    |
+| File Management (move, rename, copy) | 🔄 In Progress |
+| Trash Operations                     | 📋 Planned     |
+| Advanced Search                      | 📋 Planned     |
+
+See the full [Roadmap](ROADMAP.md) for detailed feature tracking.
+
+## Documentation
+
+- [Downloading Files from Google Drive](docs/DownloadingFiles.md)
+- [Understanding Folder Hierarchy and Cycle Dependencies](docs/FolderHierarchyAndCycleDependencies.md)
 
 > **Note:** This library is not a full reflection of the real Google Drive API but implements the most commonly used API endpoints to simplify interaction with Google Drive.
 
