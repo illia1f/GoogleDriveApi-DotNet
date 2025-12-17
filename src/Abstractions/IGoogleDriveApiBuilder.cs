@@ -23,6 +23,14 @@ public interface IGoogleDriveApiBuilder
     IGoogleDriveApiBuilder SetTokenFolderPath(string folderPath);
 
     /// <summary>
+    /// Sets the user identifier used to store and retrieve tokens in the token data store. Default value is "user".
+    /// Change it to avoid token collisions when authorizing multiple accounts while sharing the same token folder.
+    /// </summary>
+    /// <param name="userId">User identifier used as token cache key.</param>
+    /// <returns>The builder instance.</returns>
+    IGoogleDriveApiBuilder SetUserId(string userId);
+
+    /// <summary>
     /// Sets the name of the application. Default value is null.
     /// <para>Documentation: https://cloud.google.com/dotnet/docs/reference/Google.Apis/latest/Google.Apis.Services.BaseClientService.Initializer#Google_Apis_Services_BaseClientService_Initializer_ApplicationName</para>
     /// </summary>
