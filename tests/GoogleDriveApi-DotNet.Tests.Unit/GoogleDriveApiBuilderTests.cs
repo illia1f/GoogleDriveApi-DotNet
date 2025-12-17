@@ -1,4 +1,4 @@
-using GoogleDriveApi_DotNet.Models;
+using GoogleDriveApi_DotNet.Types;
 using Shouldly;
 
 namespace GoogleDriveApi_DotNet.Tests.Unit

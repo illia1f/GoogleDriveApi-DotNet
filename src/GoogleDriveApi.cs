@@ -6,7 +6,7 @@ using Google.Apis.Util.Store;
 using GoogleDriveApi_DotNet.Exceptions;
 using GoogleDriveApi_DotNet.Extensions;
 using GoogleDriveApi_DotNet.Helpers;
-using GoogleDriveApi_DotNet.Models;
+using GoogleDriveApi_DotNet.Types;
 using System.Diagnostics;
 
 namespace GoogleDriveApi_DotNet;
@@ -152,13 +152,14 @@ public class GoogleDriveApi : IDisposable
 
         using (var stream = new FileStream(_options.CredentialsPath, FileMode.Open, FileAccess.Read))
         {
+            var gcSecrets = await GoogleClientSecrets.FromStreamAsync(stream);
+            var dataStore = new FileDataStore(_options.TokenFolderPath, fullPath: true);
             _credential = await GoogleWebAuthorizationBroker.AuthorizeAsync(
-                GoogleClientSecrets.FromStream(stream).Secrets,
-                new[] { DriveService.Scope.Drive },
-                "user",
+                clientSecrets: gcSecrets.Secrets,
+                scopes: [DriveService.Scope.Drive],
+                user: "user",
                 cancellationToken,
-                new FileDataStore(_options.TokenFolderPath, true))
-                .ConfigureAwait(false);
+                dataStore).ConfigureAwait(false);
         }
 
         _service = new DriveService(new BaseClientService.Initializer()
@@ -238,7 +239,7 @@ public class GoogleDriveApi : IDisposable
         parentFolderId ??= _options.RootFolderId;
 
         var listRequest = Provider.Files.List();
-        listRequest.Q = $"mimeType='application/vnd.google-apps.folder' and name='{folderName}' and '{parentFolderId}' in parents and trashed=false";
+        listRequest.Q = $"mimeType='{GDriveMimeTypes.Folder}' and name='{folderName}' and '{parentFolderId}' in parents and trashed=false";
         listRequest.Fields = "files(id, name)";
         listRequest.PageSize = 1;
 
@@ -286,7 +287,7 @@ public class GoogleDriveApi : IDisposable
 
         var allFolders = new List<GoogleFile>();
         string? pageToken = null;
-        string qSelector = $"mimeType='application/vnd.google-apps.folder' and '{parentFolderId}' in parents and trashed=false";
+        string qSelector = $"mimeType='{GDriveMimeTypes.Folder}' and '{parentFolderId}' in parents and trashed=false";
         const string fields = "nextPageToken, files(id, name)";
         do
         {
@@ -337,7 +338,7 @@ public class GoogleDriveApi : IDisposable
     private async Task<List<GDriveFile>> Internal_GetAllFoldersAsync(CancellationToken cancellationToken)
     {
         var request = Provider.Files.List();
-        request.Q = "mimeType = 'application/vnd.google-apps.folder'";
+        request.Q = $"mimeType = '{GDriveMimeTypes.Folder}'";
         request.Fields = "nextPageToken, files(id, name, parents)";
         request.PageSize = 1000; // Set page size to maximum (1000)
 
@@ -391,7 +392,7 @@ public class GoogleDriveApi : IDisposable
         var driveFolder = new GoogleFile()
         {
             Name = folderName,
-            MimeType = "application/vnd.google-apps.folder",
+            MimeType = GDriveMimeTypes.Folder,
             Parents = [parentFolderId]
         };
 
@@ -431,7 +432,7 @@ public class GoogleDriveApi : IDisposable
         ArgumentNullException.ThrowIfNullOrEmpty(folderId);
 
         GoogleFile folder = await Provider.Files.Get(folderId).ExecuteAsync(cancellationToken).ConfigureAwait(false);
-        if (folder.MimeType != "application/vnd.google-apps.folder")
+        if (folder.MimeType != GDriveMimeTypes.Folder)
         {
             Console.WriteLine("The specified ID does not correspond to a folder.");
             return false;
@@ -474,7 +475,7 @@ public class GoogleDriveApi : IDisposable
     private async Task<string?> Internal_GetFileIdByAsync(string fullFileName, string? parentFolderId = null, CancellationToken cancellationToken = default)
     {
         ArgumentNullException.ThrowIfNullOrEmpty(fullFileName);
-        
+
         parentFolderId ??= _options.RootFolderId;
 
         var request = Provider.Files.List();
@@ -589,10 +590,10 @@ public class GoogleDriveApi : IDisposable
         string? fileMimeType = file.MimeType;
 
         // Check for a specific Google Workplace Mime Types
-        bool isGoogleSpecificMimeType = MimeTypeHelper.IsGDriveMimeType(fileMimeType);
+        bool isGoogleSpecificMimeType = GDriveMimeTypes.IsValid(fileMimeType);
         if (isGoogleSpecificMimeType)
         {
-            fileMimeType = MimeTypeHelper.GetExportMimeTypeBy(fileMimeType);
+            fileMimeType = GDriveMimeTypes.GetExportMimeTypeBy(fileMimeType);
             if (fileMimeType is null)
             {
                 throw new InvalidOperationException($"Unsupported mime type ({file.MimeType})");

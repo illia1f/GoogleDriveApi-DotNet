@@ -48,7 +48,7 @@ internal class GoogleDriveApiBuilder : IGoogleDriveApiBuilder
 
     private async Task<GoogleDriveApi> Internal_BuildAsync(bool immediateAuthorization, CancellationToken cancellationToken)
     {
-        var options = new Models.GoogleDriveApiOptions
+        var options = new Types.GoogleDriveApiOptions
         {
             CredentialsPath = _credentialsPath,
             TokenFolderPath = _tokenFolderPath,

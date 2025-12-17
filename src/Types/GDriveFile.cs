@@ -1,4 +1,4 @@
-﻿namespace GoogleDriveApi_DotNet.Models
+﻿namespace GoogleDriveApi_DotNet.Types
 {
     public record struct GDriveFile
     {
