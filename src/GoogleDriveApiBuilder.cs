@@ -6,6 +6,7 @@ internal class GoogleDriveApiBuilder : IGoogleDriveApiBuilder
     private string _credentialsPath = "credentials.json";
     private string _tokenFolderPath = "_metadata";
     private string? _applicationName = null;
+    private string _rootFolderId = "root";
 
     public IGoogleDriveApiBuilder SetCredentialsPath(string path)
     {
@@ -22,6 +23,12 @@ internal class GoogleDriveApiBuilder : IGoogleDriveApiBuilder
     public IGoogleDriveApiBuilder SetApplicationName(string name)
     {
         _applicationName = name;
+        return this;
+    }
+
+    public IGoogleDriveApiBuilder SetRootFolderId(string rootFolderId)
+    {
+        _rootFolderId = rootFolderId;
         return this;
     }
 
@@ -45,7 +52,8 @@ internal class GoogleDriveApiBuilder : IGoogleDriveApiBuilder
         {
             CredentialsPath = _credentialsPath,
             TokenFolderPath = _tokenFolderPath,
-            ApplicationName = _applicationName
+            ApplicationName = _applicationName,
+            RootFolderId = _rootFolderId
         };
 
         var gDriveApi = GoogleDriveApi.Create(options);

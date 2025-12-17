@@ -31,6 +31,13 @@ public interface IGoogleDriveApiBuilder
     IGoogleDriveApiBuilder SetApplicationName(string name);
 
     /// <summary>
+    /// Sets the root folder ID to use as default parent folder. Default value is "root".
+    /// </summary>
+    /// <param name="rootFolderId">The root folder ID to use as default parent folder.</param>
+    /// <returns>The builder instance.</returns>
+    IGoogleDriveApiBuilder SetRootFolderId(string rootFolderId);
+
+    /// <summary>
     /// Builds the GoogleDriveApi instance and attempts to authorize if <paramref name="immediateAuthorization"/> is true.
     /// Use <paramref name="cancellationToken"/> to cancel the operation or set a timeout (e.g., <c>new CancellationTokenSource(TimeSpan.FromSeconds(30)).Token</c>).
     /// </summary>

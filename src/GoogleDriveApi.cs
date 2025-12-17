@@ -13,22 +13,27 @@ namespace GoogleDriveApi_DotNet;
 
 public class GoogleDriveApi : IDisposable
 {
-    public const string RootFolderId = "root";
-    private readonly string _credentialsPath;
-    private readonly string _tokenFolderPath;
-    private readonly string? _applicationName;
+    private readonly GoogleDriveApiOptions _options;
     private DriveService? _service;
     private UserCredential? _credential;
     private bool _disposed;
+
+    /// <summary>
+    /// Gets the configured root folder ID from options. Default value is "root".
+    /// </summary>
+    public string RootFolderId => _options.RootFolderId;
+
+    /// <summary>
+    /// Gets the configured options for the GoogleDriveApi instance.
+    /// </summary>
+    public GoogleDriveApiOptions Options => _options;
 
     /// <summary>
     /// Private constructor to prevent direct instantiation. Use <see cref="Create"/> method instead.
     /// </summary>
     private GoogleDriveApi(GoogleDriveApiOptions options)
     {
-        _credentialsPath = options.CredentialsPath;
-        _tokenFolderPath = options.TokenFolderPath;
-        _applicationName = options.ApplicationName;
+        _options = options;
     }
 
     /// <summary>
@@ -145,21 +150,21 @@ public class GoogleDriveApi : IDisposable
             throw new AuthorizationException("The GoogleDriveApi has been already authorized.");
         }
 
-        using (var stream = new FileStream(_credentialsPath, FileMode.Open, FileAccess.Read))
+        using (var stream = new FileStream(_options.CredentialsPath, FileMode.Open, FileAccess.Read))
         {
             _credential = await GoogleWebAuthorizationBroker.AuthorizeAsync(
                 GoogleClientSecrets.FromStream(stream).Secrets,
                 new[] { DriveService.Scope.Drive },
                 "user",
                 cancellationToken,
-                new FileDataStore(_tokenFolderPath, true))
+                new FileDataStore(_options.TokenFolderPath, true))
                 .ConfigureAwait(false);
         }
 
         _service = new DriveService(new BaseClientService.Initializer()
         {
             HttpClientInitializer = _credential,
-            ApplicationName = _applicationName,
+            ApplicationName = _options.ApplicationName,
         });
     }
 
@@ -199,7 +204,7 @@ public class GoogleDriveApi : IDisposable
     }
 
     /// <inheritdoc cref="Internal_GetFolderIdByAsync"/>
-    public string? GetFolderIdBy(string folderName, string parentFolderId = RootFolderId, CancellationToken cancellationToken = default)
+    public string? GetFolderIdBy(string folderName, string? parentFolderId = null, CancellationToken cancellationToken = default)
     {
         TryRefreshToken(cancellationToken);
 
@@ -210,7 +215,7 @@ public class GoogleDriveApi : IDisposable
     }
 
     /// <inheritdoc cref="Internal_GetFolderIdByAsync"/>
-    public async Task<string?> GetFolderIdByAsync(string folderName, string parentFolderId = RootFolderId, CancellationToken cancellationToken = default)
+    public async Task<string?> GetFolderIdByAsync(string folderName, string? parentFolderId = null, CancellationToken cancellationToken = default)
     {
         await TryRefreshTokenAsync(cancellationToken).ConfigureAwait(false);
 
@@ -220,16 +225,17 @@ public class GoogleDriveApi : IDisposable
 
     /// <summary>
     /// Retrieves the ID of a folder by its name within a specified parent folder. 
-    /// Default value  for <paramref name="parentFolderId"/> is "root".
+    /// Default value  for <paramref name="parentFolderId"/> is <see cref="RootFolderId"/>.
     /// </summary>
     /// <param name="folderName">The name of the folder to search for.</param>
     /// <param name="parentFolderId">(optional) The ID of the parent folder to search within (default is "root").</param>
     /// <param name="cancellationToken">Cancellation token to cancel the operation.</param>
     /// <returns>The ID of the folder if found; otherwise, null.</returns>
-    private async Task<string?> Internal_GetFolderIdByAsync(string folderName, string parentFolderId, CancellationToken cancellationToken)
+    private async Task<string?> Internal_GetFolderIdByAsync(string folderName, string? parentFolderId = null, CancellationToken cancellationToken = default)
     {
         ArgumentNullException.ThrowIfNullOrEmpty(folderName);
-        ArgumentNullException.ThrowIfNullOrEmpty(parentFolderId);
+
+        parentFolderId ??= _options.RootFolderId;
 
         var listRequest = Provider.Files.List();
         listRequest.Q = $"mimeType='application/vnd.google-apps.folder' and name='{folderName}' and '{parentFolderId}' in parents and trashed=false";
@@ -349,7 +355,7 @@ public class GoogleDriveApi : IDisposable
     }
 
     /// <inheritdoc cref="Internal_CreateFolderAsync"/>
-    public string CreateFolder(string folderName, string parentFolderId = RootFolderId, CancellationToken cancellationToken = default)
+    public string CreateFolder(string folderName, string? parentFolderId = null, CancellationToken cancellationToken = default)
     {
         TryRefreshToken(cancellationToken);
 
@@ -360,7 +366,7 @@ public class GoogleDriveApi : IDisposable
     }
 
     /// <inheritdoc cref="Internal_CreateFolderAsync"/>
-    public async Task<string> CreateFolderAsync(string folderName, string parentFolderId = RootFolderId, CancellationToken cancellationToken = default)
+    public async Task<string> CreateFolderAsync(string folderName, string? parentFolderId = null, CancellationToken cancellationToken = default)
     {
         await TryRefreshTokenAsync(cancellationToken).ConfigureAwait(false);
 
@@ -370,21 +376,23 @@ public class GoogleDriveApi : IDisposable
 
     /// <summary>
     /// Creates a new folder in Google Drive.
+    /// Default value for <paramref name="parentFolderId"/> is <see cref="RootFolderId"/>.
     /// </summary>
     /// <param name="folderName">The name of the folder to create.</param>
     /// <param name="parentFolderId">(optional) The ID of the parent folder where the new folder will be created (default is "root").</param>
     /// <param name="cancellationToken">Cancellation token to cancel the operation.</param>
     /// <returns>The ID of the created folder.</returns>
-    private async Task<string> Internal_CreateFolderAsync(string folderName, string parentFolderId, CancellationToken cancellationToken)
+    private async Task<string> Internal_CreateFolderAsync(string folderName, string? parentFolderId = null, CancellationToken cancellationToken = default)
     {
         ArgumentNullException.ThrowIfNullOrEmpty(folderName);
-        ArgumentNullException.ThrowIfNullOrEmpty(parentFolderId);
+
+        parentFolderId ??= _options.RootFolderId;
 
         var driveFolder = new GoogleFile()
         {
             Name = folderName,
             MimeType = "application/vnd.google-apps.folder",
-            Parents = new[] { parentFolderId }
+            Parents = [parentFolderId]
         };
 
         var request = Provider.Files.Create(driveFolder);
@@ -435,7 +443,7 @@ public class GoogleDriveApi : IDisposable
     }
 
     /// <inheritdoc cref="Internal_GetFileIdByAsync"/>
-    public string? GetFileIdBy(string fullFileName, string parentFolderId = RootFolderId, CancellationToken cancellationToken = default)
+    public string? GetFileIdBy(string fullFileName, string? parentFolderId = null, CancellationToken cancellationToken = default)
     {
         TryRefreshToken(cancellationToken);
 
@@ -446,7 +454,7 @@ public class GoogleDriveApi : IDisposable
     }
 
     /// <inheritdoc cref="Internal_GetFileIdByAsync"/>
-    public async Task<string?> GetFileIdByAsync(string fullFileName, string parentFolderId = RootFolderId, CancellationToken cancellationToken = default)
+    public async Task<string?> GetFileIdByAsync(string fullFileName, string? parentFolderId = null, CancellationToken cancellationToken = default)
     {
         await TryRefreshTokenAsync(cancellationToken).ConfigureAwait(false);
 
@@ -456,16 +464,18 @@ public class GoogleDriveApi : IDisposable
 
     /// <summary>
     /// Gets the file ID by its name and parent folder ID.
+    /// Default value for <paramref name="parentFolderId"/> is <see cref="RootFolderId"/>.
     /// </summary>
     /// <param name="fullFileName">The name of the file with an extension to search for.</param>
     /// <param name="parentFolderId">The ID of the parent folder where the file is located. Use "root" for the root directory.</param>
     /// <param name="cancellationToken">Cancellation token to cancel the operation.</param>
     /// <returns>The file ID if found, otherwise null.</returns>
     /// <exception cref="AuthorizationException">Thrown if the GoogleDriveApi is not initialized and authorized.</exception>
-    private async Task<string?> Internal_GetFileIdByAsync(string fullFileName, string parentFolderId, CancellationToken cancellationToken)
+    private async Task<string?> Internal_GetFileIdByAsync(string fullFileName, string? parentFolderId = null, CancellationToken cancellationToken = default)
     {
         ArgumentNullException.ThrowIfNullOrEmpty(fullFileName);
-        ArgumentNullException.ThrowIfNullOrEmpty(parentFolderId);
+        
+        parentFolderId ??= _options.RootFolderId;
 
         var request = Provider.Files.List();
         request.Q = $"name = '{fullFileName}' and '{parentFolderId}' in parents and trashed = false";
