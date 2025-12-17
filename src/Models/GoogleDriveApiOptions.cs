@@ -24,5 +24,11 @@ namespace GoogleDriveApi_DotNet.Models
         /// Default value is null.
         /// </summary>
         public string? ApplicationName { get; init; }
+
+        /// <summary>
+        /// Gets or sets the root folder ID to use as default parent folder.
+        /// Default value is "root".
+        /// </summary>
+        public string RootFolderId { get; init; } = "root";
     }
 }
