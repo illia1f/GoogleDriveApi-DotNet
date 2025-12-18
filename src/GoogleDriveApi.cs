@@ -2,8 +2,8 @@ using Google.Apis.Auth.OAuth2;
 using Google.Apis.Download;
 using Google.Apis.Drive.v3;
 using Google.Apis.Services;
-using Google.Apis.Util.Store;
 using GoogleDriveApi_DotNet.Exceptions;
+using GoogleDriveApi_DotNet.Abstractions;
 using GoogleDriveApi_DotNet.Extensions;
 using GoogleDriveApi_DotNet.Helpers;
 using GoogleDriveApi_DotNet.Types;
@@ -14,6 +14,7 @@ namespace GoogleDriveApi_DotNet;
 public class GoogleDriveApi : IDisposable
 {
     private readonly GoogleDriveApiOptions _options;
+    private readonly IGoogleDriveAuthProvider _authProvider;
     private DriveService? _service;
     private UserCredential? _credential;
     private bool _disposed;
@@ -31,22 +32,26 @@ public class GoogleDriveApi : IDisposable
     /// <summary>
     /// Private constructor to prevent direct instantiation. Use <see cref="Create"/> method instead.
     /// </summary>
-    private GoogleDriveApi(GoogleDriveApiOptions options)
+    private GoogleDriveApi(GoogleDriveApiOptions options, IGoogleDriveAuthProvider authProvider)
     {
         _options = options;
+        _authProvider = authProvider;
     }
 
     /// <summary>
-    /// Creates a new GoogleDriveApi instance using the provided options. This method is intended to be called by builders implementing <see cref="IGoogleDriveApiBuilder"/>.
+    /// Creates a new GoogleDriveApi instance using the provided options and authentication provider. 
+    /// This method is intended to be called by builders implementing <see cref="IGoogleDriveApiBuilder"/>.
     /// </summary>
     /// <param name="options">The configuration options for the GoogleDriveApi instance.</param>
+    /// <param name="authProvider">The authentication provider to use for authorization.</param>
     /// <returns>A new GoogleDriveApi instance.</returns>
-    /// <exception cref="ArgumentNullException">Thrown when <paramref name="options"/> is null.</exception>
-    public static GoogleDriveApi Create(GoogleDriveApiOptions options)
+    /// <exception cref="ArgumentNullException">Thrown when <paramref name="options"/> or <paramref name="authProvider"/> is null.</exception>
+    public static GoogleDriveApi Create(GoogleDriveApiOptions options, IGoogleDriveAuthProvider authProvider)
     {
         ArgumentNullException.ThrowIfNull(options);
+        ArgumentNullException.ThrowIfNull(authProvider);
 
-        return new(options);
+        return new(options, authProvider);
     }
 
     public DriveService Provider
@@ -138,11 +143,12 @@ public class GoogleDriveApi : IDisposable
     }
 
     ///<summary>
-    /// Authorizes the user in Google Drive.
+    /// Authorizes the user in Google Drive using the configured authentication provider.
     /// Use <paramref name="cancellationToken"/> to cancel the operation or set a timeout (e.g., <c>new CancellationTokenSource(TimeSpan.FromSeconds(30)).Token</c>).
     /// </summary>
     /// <param name="cancellationToken">Cancellation token to cancel the operation or set a timeout.</param>
     /// <exception cref="OperationCanceledException">Thrown if the authorization process is cancelled or times out.</exception>
+    /// <exception cref="AuthorizationException">Thrown if already authorized.</exception>
     internal async Task Internal_AuthorizeAsync(CancellationToken cancellationToken)
     {
         if (IsAuthorized)
@@ -150,17 +156,8 @@ public class GoogleDriveApi : IDisposable
             throw new AuthorizationException("The GoogleDriveApi has been already authorized.");
         }
 
-        using (var stream = new FileStream(_options.CredentialsPath, FileMode.Open, FileAccess.Read))
-        {
-            var gcSecrets = await GoogleClientSecrets.FromStreamAsync(stream);
-            var dataStore = new FileDataStore(_options.TokenFolderPath, fullPath: true);
-            _credential = await GoogleWebAuthorizationBroker.AuthorizeAsync(
-                clientSecrets: gcSecrets.Secrets,
-                scopes: [DriveService.Scope.Drive],
-                user: _options.UserId,
-                cancellationToken,
-                dataStore).ConfigureAwait(false);
-        }
+        _credential = await _authProvider.AuthorizeAsync(cancellationToken)
+            .ConfigureAwait(false);
 
         _service = new DriveService(new BaseClientService.Initializer()
         {

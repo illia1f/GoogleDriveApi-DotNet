@@ -46,6 +46,14 @@ public interface IGoogleDriveApiBuilder
     IGoogleDriveApiBuilder SetRootFolderId(string rootFolderId);
 
     /// <summary>
+    /// Sets a custom authentication provider. If not set, a default <see cref="GoogleDriveAuthProvider"/> will be used.
+    /// This allows for custom authentication implementations or mocking during tests.
+    /// </summary>
+    /// <param name="authProvider">The authentication provider to use.</param>
+    /// <returns>The builder instance.</returns>
+    IGoogleDriveApiBuilder SetAuthProvider(Abstractions.IGoogleDriveAuthProvider authProvider);
+
+    /// <summary>
     /// Builds the GoogleDriveApi instance and attempts to authorize if <paramref name="immediateAuthorization"/> is true.
     /// Use <paramref name="cancellationToken"/> to cancel the operation or set a timeout (e.g., <c>new CancellationTokenSource(TimeSpan.FromSeconds(30)).Token</c>).
     /// </summary>

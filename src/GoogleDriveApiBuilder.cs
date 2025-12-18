@@ -1,3 +1,4 @@
+using GoogleDriveApi_DotNet.Abstractions;
 using GoogleDriveApi_DotNet.Types;
 
 namespace GoogleDriveApi_DotNet;
@@ -9,7 +10,8 @@ internal class GoogleDriveApiBuilder : IGoogleDriveApiBuilder
     private string _credentialsPath = GoogleDriveApiOptions.DefaultCredentialsPath;
     private string _tokenFolderPath = GoogleDriveApiOptions.DefaultTokenFolderPath;
     private string _userId = GoogleDriveApiOptions.DefaultUserId;
-    private string? _applicationName = null; 
+    private string? _applicationName = null;
+    private IGoogleDriveAuthProvider? _authProvider = null; 
 
     public IGoogleDriveApiBuilder SetCredentialsPath(string path)
     {
@@ -41,6 +43,12 @@ internal class GoogleDriveApiBuilder : IGoogleDriveApiBuilder
         return this;
     }
 
+    public IGoogleDriveApiBuilder SetAuthProvider(IGoogleDriveAuthProvider authProvider)
+    {
+        _authProvider = authProvider;
+        return this;
+    }
+
     public GoogleDriveApi Build(bool immediateAuthorization = true, CancellationToken cancellationToken = default)
     {
         return Internal_BuildAsync(immediateAuthorization, cancellationToken)
@@ -57,6 +65,12 @@ internal class GoogleDriveApiBuilder : IGoogleDriveApiBuilder
 
     private async Task<GoogleDriveApi> Internal_BuildAsync(bool immediateAuthorization, CancellationToken cancellationToken)
     {
+        // If no custom auth provider is set, create the default one
+        var authProvider = _authProvider ?? new GoogleDriveAuthProvider(
+            _credentialsPath,
+            _tokenFolderPath,
+            _userId);
+
         var options = new GoogleDriveApiOptions
         {
             CredentialsPath = _credentialsPath,
@@ -66,7 +80,7 @@ internal class GoogleDriveApiBuilder : IGoogleDriveApiBuilder
             RootFolderId = _rootFolderId
         };
 
-        var gDriveApi = GoogleDriveApi.Create(options);
+        var gDriveApi = GoogleDriveApi.Create(options, authProvider);
 
         if (immediateAuthorization)
         {
