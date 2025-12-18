@@ -7,6 +7,8 @@
 
 samples/SharedFiles/**
 !samples/SharedFiles/.gitkeep
+!samples/SharedFiles/README.md
+!samples/SharedFiles/*.example.json
 
 # User-specific files
 *.rsuser

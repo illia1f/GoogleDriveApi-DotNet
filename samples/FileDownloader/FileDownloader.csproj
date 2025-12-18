@@ -11,10 +11,4 @@
     <ProjectReference Include="..\..\src\GoogleDriveApi-DotNet.csproj" />
   </ItemGroup>
 
-  <ItemGroup>
-	<None Include="..\..\samples\SharedFiles\credentials.json">
-		<CopyToOutputDirectory>Always</CopyToOutputDirectory>
-		<Link>credentials.json</Link>
-	</None>
-  </ItemGroup>
 </Project>
