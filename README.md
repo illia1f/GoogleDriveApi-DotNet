@@ -45,6 +45,11 @@ See [Google Cloud Console Setup](docs/GoogleCloudConsoleSetup.md).
 1. Place the downloaded `credentials.json` file in your project directory.
 2. Initialize the `GoogleDriveApi` class with your credentials.
 
+## If you are developer
+
+> For testing samples just place downloaded `credentials.json` in samples/Shared directory.
+> If you want to share more files across sample project include them in `Directory.Build.targets` config file.
+
 ## Sample code snippets
 
 ### Creating an Instance of GoogleDriveApi
