@@ -17,7 +17,7 @@ if (sourceFolderId is null)
     return;
 }
 
-string fullFileNameToDownload = "Lesson_1.pdf";
+string fullFileNameToDownload = "Fine.jpg";
 
 string? fileId = gDriveApi.GetFileIdBy(fullFileNameToDownload, sourceFolderId, cts.Token);
 if (fileId is null)

@@ -12,9 +12,10 @@
   </ItemGroup>
 
   <ItemGroup>
-    <None Update="credentials.json">
-      <CopyToOutputDirectory>Always</CopyToOutputDirectory>
-    </None>
+	<None Include="..\..\samples\SharedFiles\credentials.json">
+	  <CopyToOutputDirectory>Always</CopyToOutputDirectory>
+	  <Link>credentials.json</Link>
+	</None>
     <None Update="Files\Escanor.jpg">
       <CopyToOutputDirectory>Always</CopyToOutputDirectory>
     </None>
