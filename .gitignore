@@ -5,10 +5,10 @@
 
 # Shared files
 
-samples/SharedFiles/**
-!samples/SharedFiles/.gitkeep
-!samples/SharedFiles/README.md
-!samples/SharedFiles/*.example.json
+samples/Shared/**
+!samples/Shared/.gitkeep
+!samples/Shared/README.md
+!samples/Shared/*.example.json
 
 # User-specific files
 *.rsuser

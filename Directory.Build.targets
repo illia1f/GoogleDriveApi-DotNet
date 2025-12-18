@@ -14,6 +14,6 @@
 
   <Target Name="WarnIfSharedCredsMissing" BeforeTargets="Build"
           Condition="!Exists('$(SharedDir)credentials.json')">
-    <Warning Text="Brak credentials.json. Umieść go w: $(SharedDir)" />
+    <Warning Text="Lack of credentials.json. Place this file inside: $(SharedDir)" />
   </Target>
 </Project>
