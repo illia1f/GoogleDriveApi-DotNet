@@ -1,8 +1,7 @@
 <Project>
   <PropertyGroup>
     <RepoRoot>$(MSBuildThisFileDirectory)</RepoRoot>
-
-    <SharedDir>$(RepoRoot)samples\Shared\</SharedDir>
+    <SharedDir>$(MSBuildThisFileDirectory)Shared\</SharedDir>
   </PropertyGroup>
 
   <ItemGroup Condition="Exists('$(SharedDir)credentials.json')">
