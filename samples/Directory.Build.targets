@@ -1,0 +1,18 @@
+<Project>
+  <PropertyGroup>
+    <RepoRoot>$(MSBuildThisFileDirectory)</RepoRoot>
+    <SharedDir>$(MSBuildThisFileDirectory)Shared\</SharedDir>
+  </PropertyGroup>
+
+  <ItemGroup Condition="Exists('$(SharedDir)credentials.json')">
+    <None Include="$(SharedDir)credentials.json">
+      <CopyToOutputDirectory>Always</CopyToOutputDirectory>
+      <Link>credentials.json</Link>
+    </None>
+  </ItemGroup>
+
+  <Target Name="WarnIfSharedCredsMissing" BeforeTargets="Build"
+          Condition="!Exists('$(SharedDir)credentials.json')">
+    <Warning Text="Lack of credentials.json. Place this file inside: $(SharedDir)" />
+  </Target>
+</Project>

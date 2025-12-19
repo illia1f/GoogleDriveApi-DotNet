@@ -224,6 +224,41 @@ public class GoogleDriveApi : IDisposable
             .ConfigureAwait(false);
     }
 
+    /// <inheritdoc cref="Internal_RenameFileAsync"/>
+    public async Task RenameFileAsync(string fileId, string newName, CancellationToken cancellationToken = default)
+    {
+        await TryRefreshTokenAsync(cancellationToken).ConfigureAwait(false);
+
+        await Internal_RenameFileAsync(fileId, newName, cancellationToken)
+            .ConfigureAwait(false);
+    }
+
+    /// <summary>
+    /// Renames a file in Google Drive by updating its metadata.
+    /// </summary>
+    /// <param name="fileName">The ID of the file to rename.</param>
+    /// <param name="newName">The new name to assign to the file.</param>
+    /// <param name="cancellationToken">Cancellation token to cancel the operation.</param>
+    /// <remarks>
+    /// This method performs a partial update of the file metadata.
+    /// Only the <c>Name</c> field is modified; all other properties remain unchanged.
+    /// </remarks>
+    private async Task Internal_RenameFileAsync(
+        string fileName,
+        string newName,
+        CancellationToken cancellationToken = default)
+    {
+        ArgumentNullException.ThrowIfNullOrEmpty(fileName);
+        ArgumentNullException.ThrowIfNullOrEmpty(newName);
+
+        var metadata = new GoogleFile { Name = newName };
+
+        var updateRequest = Provider.Files.Update(metadata, fileName);
+        updateRequest.Fields = "id,name";
+
+        await updateRequest.ExecuteAsync(cancellationToken).ConfigureAwait(false);
+    }
+
     /// <summary>
     /// Retrieves the ID of a folder by its name within a specified parent folder. 
     /// Default value  for <paramref name="parentFolderId"/> is <see cref="RootFolderId"/>.
