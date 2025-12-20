@@ -20,15 +20,6 @@ namespace GoogleDriveApi_DotNet.Tests.Unit
         }
 
         [Fact]
-        public void Build_WithDefaultValues_CreatesApiWithDefaultRootFolderId()
-        {
-            GoogleDriveApi api = _builder.Build(immediateAuthorization: false);
-
-            api.ShouldNotBeNull();
-            api.RootFolderId.ShouldBe("root");
-        }
-
-        [Fact]
         public async Task BuildAsync_WithDefaultValues_CreatesApiWithDefaultRootFolderId()
         {
             GoogleDriveApi api = await _builder.BuildAsync(immediateAuthorization: false);
@@ -38,7 +29,7 @@ namespace GoogleDriveApi_DotNet.Tests.Unit
         }
 
         [Fact]
-        public void Build_WithAllCustomValues_ConfiguresApiCorrectly()
+        public async Task BuildAsync_WithCustomValues_ConfiguresApiCorrectly()
         {
             GoogleDriveApiOptions options = new()
             {
@@ -47,30 +38,6 @@ namespace GoogleDriveApi_DotNet.Tests.Unit
                 UserId = "test-user",
                 ApplicationName = "TestApplication",
                 RootFolderId = "test-root-123"
-            };
-
-            GoogleDriveApi api = _builder
-                .SetCredentialsPath(options.CredentialsPath)
-                .SetTokenFolderPath(options.TokenFolderPath)
-                .SetUserId(options.UserId)
-                .SetApplicationName(options.ApplicationName)
-                .SetRootFolderId(options.RootFolderId)
-                .Build(immediateAuthorization: false);
-
-            api.ShouldNotBeNull();
-            api.Options.ShouldBe(options);
-        }
-
-        [Fact]
-        public async Task BuildAsync_WithCustomValues_ConfiguresApiCorrectly()
-        {
-            GoogleDriveApiOptions options = new()
-            {
-                CredentialsPath = "async-test-credentials.json",
-                TokenFolderPath = "async-test-tokens",
-                UserId = "async-test-user",
-                ApplicationName = "TestApplication",
-                RootFolderId = "async-test-root-folder"
             };
 
             GoogleDriveApi api = await _builder
@@ -83,23 +50,6 @@ namespace GoogleDriveApi_DotNet.Tests.Unit
 
             api.ShouldNotBeNull();
             api.Options.ShouldBe(options);
-        }
-
-        [Theory]
-        [InlineData(false)]
-        [InlineData(true)]
-        public void Build_WithCancellationToken_HandlesCorrectly(bool isCancelled)
-        {
-            using var cts = new CancellationTokenSource();
-            if (isCancelled)
-            {
-                cts.Cancel();
-            }
-
-            // Act - Since immediateAuthorization is false, cancellation shouldn't affect the build
-            GoogleDriveApi api = _builder.Build(immediateAuthorization: false, cts.Token);
-
-            api.ShouldNotBeNull();
         }
 
         [Theory]
@@ -120,12 +70,12 @@ namespace GoogleDriveApi_DotNet.Tests.Unit
         }
 
         [Fact]
-        public void Build_CalledMultipleTimes_CreatesDistinctInstancesWithSameConfiguration()
+        public async Task BuildAsync_CalledMultipleTimes_CreatesDistinctInstancesWithSameConfiguration()
         {
             _builder.SetRootFolderId("test-folder");
 
-            GoogleDriveApi api1 = _builder.Build(immediateAuthorization: false);
-            GoogleDriveApi api2 = _builder.Build(immediateAuthorization: false);
+            GoogleDriveApi api1 = await _builder.BuildAsync(immediateAuthorization: false);
+            GoogleDriveApi api2 = await _builder.BuildAsync(immediateAuthorization: false);
 
             api1.ShouldNotBeNull();
             api2.ShouldNotBeNull();
@@ -134,7 +84,7 @@ namespace GoogleDriveApi_DotNet.Tests.Unit
         }
 
         [Fact]
-        public void SetMethods_AcceptNullAndEmptyStrings()
+        public async Task SetMethods_AcceptNullAndEmptyStrings()
         {
             // Act & Assert - All set methods should accept null or empty without throwing
             _builder
@@ -147,19 +97,9 @@ namespace GoogleDriveApi_DotNet.Tests.Unit
                 .SetRootFolderId(string.Empty)
                 .ShouldNotBeNull();
 
-            var api = _builder.Build(immediateAuthorization: false);
+            var api = await _builder.BuildAsync(immediateAuthorization: false);
             api.ShouldNotBeNull();
             api.RootFolderId.ShouldBe(string.Empty);
-        }
-
-        [Fact]
-        public void Build_WithDefaultImmediateAuthorization_AttemptsAuthorization()
-        {
-            // This will attempt authorization, which will fail without credentials
-            Should.Throw<FileNotFoundException>(() =>
-            {
-                _builder.Build(); // Uses default immediateAuthorization = true
-            });
         }
 
         [Fact]

@@ -13,50 +13,29 @@ public class GoogleDriveApiAuthTests
 {
     #region Authorization Tests
 
-    [Theory]
-    [InlineData(true)]
-    [InlineData(false)]
-    public async Task Authorize_WithValidProvider_ShouldAuthorizeSuccessfully(bool useAsync)
+    [Fact]
+    public async Task AuthorizeAsync_WithValidProvider_ShouldAuthorizeSuccessfully()
     {
         var mockAuthProvider = CreateMockAuthProvider();
         var api = GoogleDriveApi.Create(_defaultOptions, mockAuthProvider);
 
-        if (useAsync)
-        {
-            await api.AuthorizeAsync();
-        }
-        else
-        {
-            api.Authorize();
-        }
+        await api.AuthorizeAsync();
 
         api.IsAuthorized.ShouldBeTrue();
         await mockAuthProvider.Received(1).AuthorizeAsync(Arg.Any<CancellationToken>());
     }
 
-    [Theory]
-    [InlineData(true)]
-    [InlineData(false)]
-    public async Task Authorize_WhenAlreadyAuthorized_ShouldThrowAuthorizationException(bool useAsync)
+    [Fact]
+    public async Task AuthorizeAsync_WhenAlreadyAuthorized_ShouldThrowAuthorizationException()
     {
         var mockAuthProvider = CreateMockAuthProvider();
         var api = GoogleDriveApi.Create(_defaultOptions, mockAuthProvider);
         await api.AuthorizeAsync();
 
-        if (useAsync)
+        await Should.ThrowAsync<AuthorizationException>(async () =>
         {
-            await Should.ThrowAsync<AuthorizationException>(async () =>
-            {
-                await api.AuthorizeAsync();
-            });
-        }
-        else
-        {
-            Should.Throw<AuthorizationException>(() =>
-            {
-                api.Authorize();
-            });
-        }
+            await api.AuthorizeAsync();
+        });
     }
 
     [Fact]
@@ -89,7 +68,7 @@ public class GoogleDriveApiAuthTests
     }
 
     [Fact]
-    public void Authorize_WhenProviderThrowsException_ShouldPropagateException()
+    public async Task AuthorizeAsync_WhenProviderThrowsException_ShouldPropagateException()
     {
         var mockAuthProvider = Substitute.For<IGoogleDriveAuthProvider>();
         mockAuthProvider.AuthorizeAsync(Arg.Any<CancellationToken>())
@@ -97,9 +76,9 @@ public class GoogleDriveApiAuthTests
 
         var api = GoogleDriveApi.Create(_defaultOptions, mockAuthProvider);
 
-        Should.Throw<InvalidOperationException>(() =>
+        await Should.ThrowAsync<InvalidOperationException>(async () =>
         {
-            api.Authorize();
+            await api.AuthorizeAsync();
         });
     }
 
@@ -127,15 +106,13 @@ public class GoogleDriveApiAuthTests
 
     #region Token Refresh Tests
 
-    [Theory]
-    [InlineData(true)]
-    [InlineData(false)]
-    public async Task TryRefreshToken_WhenNotAuthorized_ShouldReturnFalse(bool useAsync)
+    [Fact]
+    public async Task TryRefreshTokenAsync_WhenNotAuthorized_ShouldReturnFalse()
     {
         var mockAuthProvider = CreateMockAuthProvider();
         var api = GoogleDriveApi.Create(_defaultOptions, mockAuthProvider);
 
-        var result = useAsync ? await api.TryRefreshTokenAsync() : api.TryRefreshToken();
+        var result = await api.TryRefreshTokenAsync();
 
         result.ShouldBeFalse();
     }
@@ -157,10 +134,8 @@ public class GoogleDriveApiAuthTests
         result.ShouldBe(expectedResult);
     }
 
-    [Theory]
-    [InlineData(true)]
-    [InlineData(false)]
-    public async Task TryRefreshToken_WhenTokenIsStale_BothSyncAndAsyncShouldRefresh(bool useAsync)
+    [Fact]
+    public async Task TryRefreshTokenAsync_WhenTokenIsStale_ShouldRefresh()
     {
         var credential = CreateTestUserCredential(isStale: true);
         var mockAuthProvider = CreateMockAuthProvider(credential);
@@ -169,7 +144,7 @@ public class GoogleDriveApiAuthTests
 
         api.IsTokenShouldBeRefreshed.ShouldBeTrue();
 
-        var result = useAsync ? await api.TryRefreshTokenAsync() : api.TryRefreshToken();
+        var result = await api.TryRefreshTokenAsync();
 
         result.ShouldBeTrue();
     }

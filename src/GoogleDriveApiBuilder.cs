@@ -49,21 +49,7 @@ internal class GoogleDriveApiBuilder : IGoogleDriveApiBuilder
         return this;
     }
 
-    public GoogleDriveApi Build(bool immediateAuthorization = true, CancellationToken cancellationToken = default)
-    {
-        return Internal_BuildAsync(immediateAuthorization, cancellationToken)
-            .ConfigureAwait(false)
-            .GetAwaiter()
-            .GetResult();
-    }
-
     public async Task<GoogleDriveApi> BuildAsync(bool immediateAuthorization = true, CancellationToken cancellationToken = default)
-    {
-        return await Internal_BuildAsync(immediateAuthorization, cancellationToken)
-            .ConfigureAwait(false);
-    }
-
-    private async Task<GoogleDriveApi> Internal_BuildAsync(bool immediateAuthorization, CancellationToken cancellationToken)
     {
         // If no custom auth provider is set, create the default one
         var authProvider = _authProvider ?? new GoogleDriveAuthProvider(
