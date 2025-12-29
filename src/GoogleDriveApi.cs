@@ -8,6 +8,7 @@ using GoogleDriveApi_DotNet.Extensions;
 using GoogleDriveApi_DotNet.Helpers;
 using GoogleDriveApi_DotNet.Types;
 using System.Diagnostics;
+using System.Threading;
 
 namespace GoogleDriveApi_DotNet;
 
@@ -233,10 +234,50 @@ public class GoogleDriveApi : IDisposable
             .ConfigureAwait(false);
     }
 
+    /// <inheritdoc cref="Internal_MoveFileToAsync"/>
+    public async Task MoveFileToAsync(string fileId, string sourceFolderId, string destinationFolderId, CancellationToken cancellationToken = default)
+    {
+        await TryRefreshTokenAsync(cancellationToken).ConfigureAwait(false);
+
+        await Internal_MoveFileToAsync(fileId, sourceFolderId, destinationFolderId, cancellationToken);
+    }
+
+    /// <summary>
+    /// Moves a file to another folder in Google Drive by updating its parent references.
+    /// </summary>
+    /// <param name="fileId">The ID of the file to move.</param>
+    /// <param name="sourceFolderId">The ID of the folder from which the file will be moved.</param>
+    /// <param name="destinationFolderId">The ID of the folder to which the file will be moved.</param>
+    /// <param name="cancellationToken">A token that can be used to cancel the asynchronous operation.</param>
+    /// <remarks>
+    /// This method performs a partial update of the file metadata in Google Drive.
+    /// Only the file's parent folders are modified — the file is removed from
+    /// <paramref name="sourceFolderId"/> and added to <paramref name="destinationFolderId"/>.
+    /// The filename and all other metadata remain unchanged.
+    /// </remarks>
+    private async Task Internal_MoveFileToAsync(string fileId, string sourceFolderId, string destinationFolderId, CancellationToken cancellationToken = default)
+    {
+        ArgumentException.ThrowIfNullOrEmpty(fileId);
+        ArgumentException.ThrowIfNullOrEmpty(sourceFolderId);
+        ArgumentException.ThrowIfNullOrEmpty(destinationFolderId);
+
+        var metadata = new GoogleFile();
+
+        var updateRequest = Provider.Files.Update(metadata, fileId);
+
+        updateRequest.AddParents = destinationFolderId;
+
+        updateRequest.RemoveParents = sourceFolderId;
+
+        updateRequest.Fields = "id, parents";
+
+        await updateRequest.ExecuteAsync(cancellationToken).ConfigureAwait(false);
+    }
+
     /// <summary>
     /// Renames a file in Google Drive by updating its metadata.
     /// </summary>
-    /// <param name="fileName">The ID of the file to rename.</param>
+    /// <param name="fileId">The ID of the file to rename.</param>
     /// <param name="newName">The new name to assign to the file.</param>
     /// <param name="cancellationToken">Cancellation token to cancel the operation.</param>
     /// <remarks>
@@ -244,16 +285,16 @@ public class GoogleDriveApi : IDisposable
     /// Only the <c>Name</c> field is modified; all other properties remain unchanged.
     /// </remarks>
     private async Task Internal_RenameFileAsync(
-        string fileName,
+        string fileId,
         string newName,
         CancellationToken cancellationToken = default)
     {
-        ArgumentNullException.ThrowIfNullOrEmpty(fileName);
-        ArgumentNullException.ThrowIfNullOrEmpty(newName);
+        ArgumentException.ThrowIfNullOrEmpty(fileId);
+        ArgumentException.ThrowIfNullOrEmpty(newName);
 
         var metadata = new GoogleFile { Name = newName };
 
-        var updateRequest = Provider.Files.Update(metadata, fileName);
+        var updateRequest = Provider.Files.Update(metadata, fileId);
         updateRequest.Fields = "id,name";
 
         await updateRequest.ExecuteAsync(cancellationToken).ConfigureAwait(false);

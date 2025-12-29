@@ -17,15 +17,28 @@ if (sourceFolderId is null)
     return;
 }
 
-string fullFileNameToDownload = "Fine.jpg";
+/////////// Renaming File ///////////
 
-string? fileId = gDriveApi.GetFileIdBy(fullFileNameToDownload, sourceFolderId, cts.Token);
+string fileNameToDownload = "Fine";
+
+string? fileId = gDriveApi.GetFileIdBy(fileNameToDownload, sourceFolderId, cts.Token);
 if (fileId is null)
 {
-    Console.WriteLine($"Cannot find a file with a name {fullFileNameToDownload}.");
+    Console.WriteLine($"Cannot find a file with a name {fileNameToDownload}.");
     return;
 }
 
-string newFileName = "ItsFine";
+string newFileName = "ItsNotFine";
 
 await gDriveApi.RenameFileAsync(fileId, newFileName, cancellationToken: cts.Token);
+
+/////////// Moving File ///////////
+
+string destinationFolderName = "1";
+string? destinationFolderId = gDriveApi.GetFolderIdBy(destinationFolderName, sourceFolderId, cts.Token);
+if (destinationFolderId is null)
+{
+    Console.WriteLine($"Cannot find a file with a name {destinationFolderName}.");
+    return;
+}
+await gDriveApi.MoveFileToAsync(fileId, sourceFolderId, destinationFolderId, cts.Token);
