@@ -19,6 +19,7 @@ See the full [Roadmap](ROADMAP.md) for detailed feature tracking.
 
 ## Documentation
 
+- [Google.Apis.Drive.v3 Package Overview](docs/GoogleApisDrivePackage.md)
 - [Downloading Files from Google Drive](docs/DownloadingFiles.md)
 - [Understanding Folder Hierarchy and Cycle Dependencies](docs/FolderHierarchyAndCycleDependencies.md)
 
