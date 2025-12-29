@@ -11,9 +11,9 @@ using GoogleDriveApi gDriveApi = await GoogleDriveApi.CreateBuilder()
     .SetApplicationName("QuickFilesLoad")
     .BuildAsync(immediateAuthorization: false);
 
-// If immediateAuthorization is false, it is necessary to invoke the Authorize method.
+// If immediateAuthorization is false, it is necessary to invoke the AuthorizeAsync method.
 // Default value is true.
-gDriveApi.Authorize(cts.Token);
+await gDriveApi.AuthorizeAsync(cts.Token);
 
 string filePath = "Files/Escanor.jpg";
 

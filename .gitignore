@@ -3,6 +3,13 @@
 ##
 ## Get latest from https://github.com/github/gitignore/blob/master/VisualStudio.gitignore
 
+# Shared files
+
+samples/Shared/**
+!samples/Shared/.gitkeep
+!samples/Shared/README.md
+!samples/Shared/*.example.json
+
 # User-specific files
 *.rsuser
 *.suo
