@@ -242,6 +242,43 @@ public class GoogleDriveApi : IDisposable
         await Internal_MoveFileToAsync(fileId, sourceFolderId, destinationFolderId, cancellationToken);
     }
 
+    /// <inheritdoc cref="Internal_CopyFileToAsync"/>
+    public async Task<string?> CopyFileToAsync(string fileId, string destinationFolderId, string? newName = null, CancellationToken cancellationToken = default)
+    {
+        await TryRefreshTokenAsync(cancellationToken).ConfigureAwait(false);
+
+        return await Internal_CopyFileToAsync(fileId, destinationFolderId, newName, cancellationToken);
+    }
+
+    /// <summary>
+    /// Copies a file in Google Drive to the specified folder.
+    /// </summary>
+    /// <param name="fileId">ID of the file to copy.</param>
+    /// <param name="destinationFolderId">Target folder where the copy will be placed.</param>
+    /// <param name="newName">Optional new name for the copy. If null, original name is used.</param>
+    /// <param name="cancellationToken">Cancellation token.</param>
+    /// <returns>ID of the copied file, or null if failed.</returns>
+    private async Task<string?> Internal_CopyFileToAsync(string fileId, string destinationFolderId, string? newName = null, CancellationToken cancellationToken = default)
+    {
+        ArgumentException.ThrowIfNullOrEmpty(fileId);
+        ArgumentException.ThrowIfNullOrEmpty(destinationFolderId);
+
+        var metadata = new GoogleFile
+        {
+            Name = string.IsNullOrWhiteSpace(newName) ? null : newName,
+            Parents = new[] { destinationFolderId }
+        };
+
+        var copyRequest = Provider.Files.Copy(metadata, fileId);
+        copyRequest.Fields = "id, name, parents";
+
+        var copiedFile = await copyRequest
+            .ExecuteAsync(cancellationToken)
+            .ConfigureAwait(false);
+
+        return copiedFile?.Id;
+    }
+
     /// <summary>
     /// Moves a file to another folder in Google Drive by updating its parent references.
     /// </summary>

@@ -17,28 +17,37 @@ if (sourceFolderId is null)
     return;
 }
 
-/////////// Renaming File ///////////
+/////////// Creating a copy of file ///////////
 
-string fileNameToDownload = "Fine";
-
-string? fileId = gDriveApi.GetFileIdBy(fileNameToDownload, sourceFolderId, cts.Token);
+string fileToDownloadName = "Fine";
+string? fileId = gDriveApi.GetFileIdBy(fileToDownloadName, sourceFolderId, cts.Token);
 if (fileId is null)
 {
-    Console.WriteLine($"Cannot find a file with a name {fileNameToDownload}.");
+    Console.WriteLine($"Cannot find a file with a name {fileToDownloadName}.");
     return;
 }
 
+string? copyFileId = await gDriveApi.CopyFileToAsync(fileId, sourceFolderId, cancellationToken: cts.Token);
+if (copyFileId is null)
+{
+    Console.WriteLine($"Cannot create a copy of file with a name {fileToDownloadName}.");
+    return;
+}
+
+/////////// Renaming copy file ///////////
+
 string newFileName = "ItsNotFine";
 
-await gDriveApi.RenameFileAsync(fileId, newFileName, cancellationToken: cts.Token);
+await gDriveApi.RenameFileAsync(copyFileId, newFileName, cancellationToken: cts.Token);
 
-/////////// Moving File ///////////
+/////////// Moving copy file ///////////
 
 string destinationFolderName = "1";
 string? destinationFolderId = gDriveApi.GetFolderIdBy(destinationFolderName, sourceFolderId, cts.Token);
 if (destinationFolderId is null)
 {
-    Console.WriteLine($"Cannot find a file with a name {destinationFolderName}.");
+    Console.WriteLine($"Cannot find a folder with a name {destinationFolderName}.");
     return;
 }
-await gDriveApi.MoveFileToAsync(fileId, sourceFolderId, destinationFolderId, cts.Token);
+
+await gDriveApi.MoveFileToAsync(copyFileId, sourceFolderId, destinationFolderId, cts.Token);
