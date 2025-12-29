@@ -302,7 +302,6 @@ public class GoogleDriveApi : IDisposable
     /// <param name="cancellationToken">Cancellation token to cancel the operation.</param>
     /// <returns>The ID of the folder if found; otherwise, null.</returns>
     public async Task<string?> GetFolderIdByAsync(string folderName, string? parentFolderId = null, CancellationToken cancellationToken = default)
-    public async Task<string?> GetFolderIdByAsync(string folderName, string? parentFolderId = null, CancellationToken cancellationToken = default)
     {
         await TryRefreshTokenAsync(cancellationToken).ConfigureAwait(false);
 
