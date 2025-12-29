@@ -10,7 +10,7 @@ using GoogleDriveApi gDriveApi = await GoogleDriveApi.CreateBuilder()
 
 string parentFolderId = "root";
 string sourceFolderName = "FileDownloader Test Folder";
-string? sourceFolderId = gDriveApi.GetFolderIdBy(sourceFolderName, parentFolderId, cts.Token);
+string? sourceFolderId = await gDriveApi.GetFileIdByAsync(sourceFolderName, parentFolderId, cts.Token);
 if (sourceFolderId is null)
 {
     Console.WriteLine($"Cannot find a folder with a name {sourceFolderName}.");
@@ -20,7 +20,7 @@ if (sourceFolderId is null)
 /////////// Creating a copy of file ///////////
 
 string fileToDownloadName = "Fine";
-string? fileId = gDriveApi.GetFileIdBy(fileToDownloadName, sourceFolderId, cts.Token);
+string? fileId = await gDriveApi.GetFileIdByAsync(fileToDownloadName, sourceFolderId, cts.Token);
 if (fileId is null)
 {
     Console.WriteLine($"Cannot find a file with a name {fileToDownloadName}.");
@@ -43,7 +43,7 @@ await gDriveApi.RenameFileAsync(copyFileId, newFileName, cancellationToken: cts.
 /////////// Moving copy file ///////////
 
 string destinationFolderName = "1";
-string? destinationFolderId = gDriveApi.GetFolderIdBy(destinationFolderName, sourceFolderId, cts.Token);
+string? destinationFolderId = await gDriveApi.GetFolderIdByAsync(destinationFolderName, sourceFolderId, cts.Token);
 if (destinationFolderId is null)
 {
     Console.WriteLine($"Cannot find a folder with a name {destinationFolderName}.");
