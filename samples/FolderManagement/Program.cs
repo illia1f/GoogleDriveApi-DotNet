@@ -13,9 +13,9 @@ using GoogleDriveApi gDriveApi = await GoogleDriveApi.CreateBuilder()
  * named "NewFolderNameV2" inside the first folder.
  */
 {
-    string newFolderId = gDriveApi.CreateFolder(folderName: "NewFolderName", cancellationToken: cts.Token);
+    string newFolderId = await gDriveApi.CreateFolderAsync(folderName: "NewFolderName", cancellationToken: cts.Token);
 
-    string newFolderId2 = gDriveApi.CreateFolder(folderName: "NewFolderNameV2", parentFolderId: newFolderId, cancellationToken: cts.Token);
+    string newFolderId2 = await gDriveApi.CreateFolderAsync(folderName: "NewFolderNameV2", parentFolderId: newFolderId, cancellationToken: cts.Token);
 
     Console.WriteLine("New Folder ID: " + newFolderId);
     Console.WriteLine("New Folder ID2: " + newFolderId2);
@@ -28,7 +28,7 @@ Console.WriteLine(new string('-', 50));
  */
 {
     // Retrieves the folder ID of "Test Folder" in the root directory
-    string? folderId = gDriveApi.GetFolderIdBy("Test Folder", cancellationToken: cts.Token);
+    string? folderId = await gDriveApi.GetFolderIdByAsync("Test Folder", cancellationToken: cts.Token);
     if (folderId is null)
     {
         Console.WriteLine($"Cannot find a folder.");
@@ -47,7 +47,7 @@ Console.WriteLine(new string('-', 50));
  */
 {
     // Retrieves a list of folders in the root directory
-    var folders = gDriveApi.GetFoldersBy(parentFolderId: "root", cancellationToken: cts.Token);
+    var folders = await gDriveApi.GetFoldersByAsync(parentFolderId: "root", cancellationToken: cts.Token);
 
     for (int i = 0; i < folders.Count; i++)
     {
@@ -56,7 +56,7 @@ Console.WriteLine(new string('-', 50));
         Console.WriteLine($"{i + 1}. [{folder.name}] with ID({folder.id})");
 
         // Retrieves a list of subfolders within the current folder
-        var subFolders = gDriveApi.GetFoldersBy(folder.id, cancellationToken: cts.Token);
+        var subFolders = await gDriveApi.GetFoldersByAsync(folder.id, cancellationToken: cts.Token);
         for (int j = 0; j < subFolders.Count; j++)
         {
             var subFolder = subFolders[j];
@@ -74,12 +74,12 @@ Console.WriteLine(new string('-', 50));
 {
     try
     {
-        string? folderId = gDriveApi.GetFolderIdBy("Test Folder", cancellationToken: cts.Token);
+        string? folderId = await gDriveApi.GetFolderIdByAsync("Test Folder", cancellationToken: cts.Token);
         if (folderId is null)
         {
             Console.WriteLine("Cannot find the Test Folder.");
         }
-        else if (gDriveApi.DeleteFolder(folderId, cts.Token))
+        else if (await gDriveApi.DeleteFolderAsync(folderId, cts.Token))
         {
             Console.WriteLine("Test Folder has been deleted =)");
         }
