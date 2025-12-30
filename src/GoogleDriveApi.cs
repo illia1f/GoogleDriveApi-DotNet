@@ -180,7 +180,7 @@ public class GoogleDriveApi : IDisposable
         return false;
     }
 
-    /// <inheritdoc cref="Internal_RenameFileAsync"/>
+    /// <inheritdoc cref="Internal_MoveFileToTrashAsync"/>
     public async Task MoveFileToTrashAsync(string fileId, CancellationToken cancellationToken = default)
     {
         await TryRefreshTokenAsync(cancellationToken).ConfigureAwait(false);
@@ -217,11 +217,7 @@ public class GoogleDriveApi : IDisposable
         }
     }
 
-    /// <summary>
-    /// Restores a file from the Google Drive trash.
-    /// </summary>
-    /// <param name="fileId">The ID of the file to restore.</param>
-    /// <param name="cancellationToken">Cancellation token.</param>
+    /// <inheritdoc cref="Internal_RestoreFileFromTrashAsync"/>
     public async Task RestoreFileFromTrashAsync(string fileId, CancellationToken cancellationToken = default)
     {
         await TryRefreshTokenAsync(cancellationToken).ConfigureAwait(false);
