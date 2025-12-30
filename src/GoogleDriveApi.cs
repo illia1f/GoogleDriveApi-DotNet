@@ -217,6 +217,47 @@ public class GoogleDriveApi : IDisposable
         }
     }
 
+    /// <summary>
+    /// Restores a file from the Google Drive trash.
+    /// </summary>
+    /// <param name="fileId">The ID of the file to restore.</param>
+    /// <param name="cancellationToken">Cancellation token.</param>
+    public async Task RestoreFileFromTrashAsync(string fileId, CancellationToken cancellationToken = default)
+    {
+        await TryRefreshTokenAsync(cancellationToken).ConfigureAwait(false);
+
+        await Internal_RestoreFileFromTrashAsync(fileId, cancellationToken)
+            .ConfigureAwait(false);
+    }
+
+    /// <summary>
+    /// Restores a file from the Google Drive trash.
+    /// Marks a file as not trashed in Google Drive by updating its metadata.
+    /// </summary>
+    /// <param name="fileId">The ID of the file to restore.</param>
+    /// <param name="cancellationToken">Cancellation token.</param>
+    private async Task Internal_RestoreFileFromTrashAsync(string fileId, CancellationToken cancellationToken = default)
+    {
+        ArgumentException.ThrowIfNullOrEmpty(fileId);
+
+        var metadata = new GoogleFile
+        {
+            Trashed = false
+        };
+
+        var updateRequest = Provider.Files.Update(metadata, fileId);
+        updateRequest.Fields = "id, trashed";
+
+        var updated = await updateRequest
+            .ExecuteAsync(cancellationToken)
+            .ConfigureAwait(false);
+
+        if (updated is null || updated.Trashed != false)
+        {
+            throw new RestoreFileException($"Failed to restore file '{fileId}' from trash.");
+        }
+    }
+
     /// <inheritdoc cref="Internal_RenameFileAsync"/>
     public async Task RenameFileAsync(string fileId, string newName, CancellationToken cancellationToken = default)
     {
