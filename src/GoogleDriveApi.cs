@@ -217,7 +217,7 @@ public class GoogleDriveApi : IDisposable
     /// <param name="destinationFolderId">Target folder where the copy will be placed.</param>
     /// <param name="newName">Optional new name for the copy. If null, original name is used.</param>
     /// <param name="cancellationToken">Cancellation token.</param>
-    /// <returns>ID of the copied file, or null if failed.</returns>
+    /// <returns>ID of the copied file, or throw an exception.</returns>
     private async Task<string> Internal_CopyFileToAsync(string fileId, string destinationFolderId, string? newName = null, CancellationToken cancellationToken = default)
     {
         ArgumentException.ThrowIfNullOrEmpty(fileId);
