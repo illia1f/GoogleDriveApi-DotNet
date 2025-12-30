@@ -254,6 +254,35 @@ public class GoogleDriveApi : IDisposable
         }
     }
 
+    public async Task<bool> DeleteFileAsync(string fileId, CancellationToken cancellationToken = default)
+    {
+        await TryRefreshTokenAsync(cancellationToken).ConfigureAwait(false);
+
+        return await Internal_DeleteFileAsync(fileId, cancellationToken)
+            .ConfigureAwait(false);
+    }
+
+    private async Task<bool> Internal_DeleteFileAsync(string fileId, CancellationToken cancellationToken)
+    {
+        ArgumentNullException.ThrowIfNullOrEmpty(fileId);
+
+        GoogleFile file = await Provider.Files.Get(fileId)
+            .ExecuteAsync(cancellationToken)
+            .ConfigureAwait(false);
+
+        if (file.MimeType == GDriveMimeTypes.Folder)
+        {
+            Console.WriteLine("The specified ID corresponds to a folder. Use DeleteFolderAsync instead.");
+            return false;
+        }
+
+        await Provider.Files.Delete(fileId)
+            .ExecuteAsync(cancellationToken)
+            .ConfigureAwait(false);
+
+        return true;
+    }
+
     /// <inheritdoc cref="Internal_RenameFileAsync"/>
     public async Task RenameFileAsync(string fileId, string newName, CancellationToken cancellationToken = default)
     {
