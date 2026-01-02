@@ -27,8 +27,6 @@ if (fileToDeleteId is null)
     return;
 }
 
-// Move to trash bin
 await gDriveApi.MoveFileToTrashAsync(fileToDeleteId, cts.Token);
 
-// Restore from trash bin
 await gDriveApi.RestoreFileFromTrashAsync(fileToDeleteId, cts.Token);
