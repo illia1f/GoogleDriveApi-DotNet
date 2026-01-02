@@ -20,11 +20,11 @@ if (sourceFolderId is null)
 
 /////////// Creating a copy of file ///////////
 
-string fileToDownloadName = "Fine";
-string? fileId = await gDriveApi.GetFileIdByAsync(fileToDownloadName, sourceFolderId, cts.Token);
+string fileToCopyName = "Fine";
+string? fileId = await gDriveApi.GetFileIdByAsync(fileToCopyName, sourceFolderId, cts.Token);
 if (fileId is null)
 {
-    Console.WriteLine($"Cannot find a file with a name {fileToDownloadName}.");
+    Console.WriteLine($"Cannot find a file with a name {fileToCopyName}.");
     return;
 }
 
@@ -36,7 +36,7 @@ try
 }
 catch (CopyFileException ex)
 {
-    Console.WriteLine($"Cannot create a copy of file '{fileToDownloadName}'. Details: {ex.Message}");
+    Console.WriteLine($"Cannot create a copy of file '{fileToCopyName}'. Details: {ex.Message}");
     return;
 }
 

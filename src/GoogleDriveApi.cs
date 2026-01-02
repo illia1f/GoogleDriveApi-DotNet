@@ -180,6 +180,136 @@ public class GoogleDriveApi : IDisposable
         return false;
     }
 
+    /// <inheritdoc cref="Internal_MoveFileToTrashAsync"/>
+    public async Task MoveFileToTrashAsync(string fileId, CancellationToken cancellationToken = default)
+    {
+        await TryRefreshTokenAsync(cancellationToken).ConfigureAwait(false);
+
+        await Internal_MoveFileToTrashAsync(fileId, cancellationToken)
+            .ConfigureAwait(false);
+    }
+
+    /// <summary>
+    /// Moves a file to the Google Drive trash.
+    /// Marks the file as trashed by updating its metadata.
+    /// </summary>
+    /// <param name="fileId">The ID of the file to move to trash.</param>
+    /// <param name="cancellationToken">Cancellation token.</param>
+    /// <exception cref="ArgumentException">
+    /// Thrown when <paramref name="fileId"/> is <c>null</c> or empty.
+    /// </exception>
+    /// <exception cref="TrashFileException">
+    /// Thrown when the file could not be moved to the Google Drive trash.
+    /// </exception>
+    private async Task Internal_MoveFileToTrashAsync(string fileId, CancellationToken cancellationToken = default)
+    {
+        ArgumentException.ThrowIfNullOrEmpty(fileId);
+
+        var metadata = new GoogleFile
+        {
+            Trashed = true
+        };
+
+        var updateRequest = Provider.Files.Update(metadata, fileId);
+        updateRequest.Fields = "id, trashed";
+
+        var updated = await updateRequest
+            .ExecuteAsync(cancellationToken)
+            .ConfigureAwait(false);
+
+        if (updated is null || updated.Trashed != true)
+        {
+            throw new TrashFileException($"Failed to move file '{fileId}' to trash.");
+        }
+    }
+
+    /// <inheritdoc cref="Internal_RestoreFileFromTrashAsync"/>
+    public async Task RestoreFileFromTrashAsync(string fileId, CancellationToken cancellationToken = default)
+    {
+        await TryRefreshTokenAsync(cancellationToken).ConfigureAwait(false);
+
+        await Internal_RestoreFileFromTrashAsync(fileId, cancellationToken)
+            .ConfigureAwait(false);
+    }
+
+    /// <summary>
+    /// Restores a file from the Google Drive trash.
+    /// Marks the file as not trashed by updating its metadata.
+    /// </summary>
+    /// <param name="fileId">The ID of the file to restore.</param>
+    /// <param name="cancellationToken">Cancellation token.</param>
+    /// <exception cref="ArgumentException">
+    /// Thrown when <paramref name="fileId"/> is <c>null</c> or empty.
+    /// </exception>
+    /// <exception cref="RestoreFileException">
+    /// Thrown when the file could not be restored from the Google Drive trash.
+    /// </exception>
+    private async Task Internal_RestoreFileFromTrashAsync(string fileId, CancellationToken cancellationToken = default)
+    {
+        ArgumentException.ThrowIfNullOrEmpty(fileId);
+
+        var metadata = new GoogleFile
+        {
+            Trashed = false
+        };
+
+        var updateRequest = Provider.Files.Update(metadata, fileId);
+        updateRequest.Fields = "id, trashed";
+
+        var updated = await updateRequest
+            .ExecuteAsync(cancellationToken)
+            .ConfigureAwait(false);
+
+        if (updated is null || updated.Trashed != false)
+        {
+            throw new RestoreFileException($"Failed to restore file '{fileId}' from trash.");
+        }
+    }
+
+    /// <inheritdoc cref="Internal_DeleteFileAsync"/>
+    public async Task DeleteFileAsync(string fileId, CancellationToken cancellationToken = default)
+    {
+        await TryRefreshTokenAsync(cancellationToken).ConfigureAwait(false);
+
+        await Internal_DeleteFileAsync(fileId, cancellationToken)
+            .ConfigureAwait(false);
+    }
+
+    /// <summary>
+    /// Deletes a file from Google Drive.
+    /// Retrieves the file metadata to validate its type
+    /// and then permanently deletes the file.
+    /// </summary>
+    /// <param name="fileId">The ID of the file to delete.</param>
+    /// <param name="cancellationToken">Cancellation token.</param>
+    /// <returns>
+    /// <c>true</c> if the file was successfully deleted.
+    /// </returns>
+    /// <exception cref="ArgumentException">
+    /// Thrown when <paramref name="fileId"/> is <c>null</c> or empty.
+    /// </exception>
+    /// <exception cref="InvalidFileTypeException">
+    /// Thrown when the specified ID refers to an item
+    /// that is not a file (for example, a folder).
+    /// </exception>
+    private async Task Internal_DeleteFileAsync(string fileId, CancellationToken cancellationToken)
+    {
+        ArgumentException.ThrowIfNullOrEmpty(fileId);
+
+        GoogleFile file = await Provider.Files.Get(fileId)
+            .ExecuteAsync(cancellationToken)
+            .ConfigureAwait(false);
+
+        if (file.MimeType == GDriveMimeTypes.Folder)
+        {
+            throw new InvalidFileTypeException(fileId, file.MimeType);
+        }
+
+        await Provider.Files.Delete(fileId)
+            .ExecuteAsync(cancellationToken)
+            .ConfigureAwait(false);
+    }
+
     /// <inheritdoc cref="Internal_RenameFileAsync"/>
     public async Task RenameFileAsync(string fileId, string newName, CancellationToken cancellationToken = default)
     {
@@ -190,6 +320,35 @@ public class GoogleDriveApi : IDisposable
             .ConfigureAwait(false);
     }
 
+    /// <summary>
+    /// Renames a file in Google Drive by updating its metadata.
+    /// </summary>
+    /// <param name="fileId">The ID of the file to rename.</param>
+    /// <param name="newName">The new name to assign to the file.</param>
+    /// <param name="cancellationToken">Cancellation token to cancel the operation.</param>
+    /// <remarks>
+    /// This method performs a partial update of the file metadata.
+    /// Only the <c>Name</c> field is modified; all other properties remain unchanged.
+    /// </remarks>
+    /// <exception cref="ArgumentException">
+    /// Thrown when <paramref name="fileId"/> or <paramref name="newName"/> is <c>null</c> or empty.
+    /// </exception>
+    private async Task Internal_RenameFileAsync(
+        string fileId,
+        string newName,
+        CancellationToken cancellationToken = default)
+    {
+        ArgumentException.ThrowIfNullOrEmpty(fileId);
+        ArgumentException.ThrowIfNullOrEmpty(newName);
+
+        var metadata = new GoogleFile { Name = newName };
+
+        var updateRequest = Provider.Files.Update(metadata, fileId);
+        updateRequest.Fields = "id,name";
+
+        await updateRequest.ExecuteAsync(cancellationToken).ConfigureAwait(false);
+    }
+
     /// <inheritdoc cref="Internal_MoveFileToAsync"/>
     public async Task MoveFileToAsync(string fileId, string sourceFolderId, string destinationFolderId, CancellationToken cancellationToken = default)
     {
@@ -198,6 +357,42 @@ public class GoogleDriveApi : IDisposable
 
         await Internal_MoveFileToAsync(fileId, sourceFolderId, destinationFolderId, cancellationToken)
             .ConfigureAwait(false);
+    }
+
+    /// <summary>
+    /// Moves a file to another folder in Google Drive by updating its parent references.
+    /// </summary>
+    /// <param name="fileId">The ID of the file to move.</param>
+    /// <param name="sourceFolderId">The ID of the folder from which the file will be moved.</param>
+    /// <param name="destinationFolderId">The ID of the folder to which the file will be moved.</param>
+    /// <param name="cancellationToken">A token that can be used to cancel the asynchronous operation.</param>
+    /// <remarks>
+    /// This method performs a partial update of the file metadata in Google Drive.
+    /// Only the file's parent folders are modified — the file is removed from
+    /// <paramref name="sourceFolderId"/> and added to <paramref name="destinationFolderId"/>.
+    /// The file name and all other metadata remain unchanged.
+    /// </remarks>
+    /// <exception cref="ArgumentException">
+    /// Thrown when <paramref name="fileId"/>, <paramref name="sourceFolderId"/>,
+    /// or <paramref name="destinationFolderId"/> is <c>null</c> or empty.
+    /// </exception>
+    private async Task Internal_MoveFileToAsync(string fileId, string sourceFolderId, string destinationFolderId, CancellationToken cancellationToken = default)
+    {
+        ArgumentException.ThrowIfNullOrEmpty(fileId);
+        ArgumentException.ThrowIfNullOrEmpty(sourceFolderId);
+        ArgumentException.ThrowIfNullOrEmpty(destinationFolderId);
+
+        var metadata = new GoogleFile();
+
+        var updateRequest = Provider.Files.Update(metadata, fileId);
+
+        updateRequest.AddParents = destinationFolderId;
+
+        updateRequest.RemoveParents = sourceFolderId;
+
+        updateRequest.Fields = "id, parents";
+
+        await updateRequest.ExecuteAsync(cancellationToken).ConfigureAwait(false);
     }
 
     /// <inheritdoc cref="Internal_CopyFileToAsync"/>
@@ -211,13 +406,25 @@ public class GoogleDriveApi : IDisposable
     }
 
     /// <summary>
-    /// Copies a file in Google Drive to the specified folder.
+    /// Copies a file in Google Drive to the specified destination folder.
     /// </summary>
-    /// <param name="fileId">ID of the file to copy.</param>
-    /// <param name="destinationFolderId">Target folder where the copy will be placed.</param>
-    /// <param name="newName">Optional new name for the copy. If null, original name is used.</param>
+    /// <param name="fileId">The ID of the file to copy.</param>
+    /// <param name="destinationFolderId">The ID of the folder where the copied file will be placed.</param>
+    /// <param name="newName">
+    /// Optional new name for the copied file. If <c>null</c> or empty,
+    /// the original file name is preserved.
+    /// </param>
     /// <param name="cancellationToken">Cancellation token.</param>
-    /// <returns>ID of the copied file, or throw an exception.</returns>
+    /// <returns>
+    /// The ID of the newly created copied file.
+    /// </returns>
+    /// <exception cref="ArgumentException">
+    /// Thrown when <paramref name="fileId"/> or <paramref name="destinationFolderId"/> is
+    /// <c>null</c> or empty.
+    /// </exception>
+    /// <exception cref="CopyFileException">
+    /// Thrown when the file could not be copied to the specified destination folder.
+    /// </exception>
     private async Task<string> Internal_CopyFileToAsync(string fileId, string destinationFolderId, string? newName = null, CancellationToken cancellationToken = default)
     {
         ArgumentException.ThrowIfNullOrEmpty(fileId);
@@ -244,72 +451,7 @@ public class GoogleDriveApi : IDisposable
         return copiedFile.Id;
     }
 
-    /// <summary>
-    /// Moves a file to another folder in Google Drive by updating its parent references.
-    /// </summary>
-    /// <param name="fileId">The ID of the file to move.</param>
-    /// <param name="sourceFolderId">The ID of the folder from which the file will be moved.</param>
-    /// <param name="destinationFolderId">The ID of the folder to which the file will be moved.</param>
-    /// <param name="cancellationToken">A token that can be used to cancel the asynchronous operation.</param>
-    /// <remarks>
-    /// This method performs a partial update of the file metadata in Google Drive.
-    /// Only the file's parent folders are modified � the file is removed from
-    /// <paramref name="sourceFolderId"/> and added to <paramref name="destinationFolderId"/>.
-    /// The filename and all other metadata remain unchanged.
-    /// </remarks>
-    private async Task Internal_MoveFileToAsync(string fileId, string sourceFolderId, string destinationFolderId, CancellationToken cancellationToken = default)
-    {
-        ArgumentException.ThrowIfNullOrEmpty(fileId);
-        ArgumentException.ThrowIfNullOrEmpty(sourceFolderId);
-        ArgumentException.ThrowIfNullOrEmpty(destinationFolderId);
-
-        var metadata = new GoogleFile();
-
-        var updateRequest = Provider.Files.Update(metadata, fileId);
-
-        updateRequest.AddParents = destinationFolderId;
-
-        updateRequest.RemoveParents = sourceFolderId;
-
-        updateRequest.Fields = "id, parents";
-
-        await updateRequest.ExecuteAsync(cancellationToken).ConfigureAwait(false);
-    }
-
-    /// <summary>
-    /// Renames a file in Google Drive by updating its metadata.
-    /// </summary>
-    /// <param name="fileId">The ID of the file to rename.</param>
-    /// <param name="newName">The new name to assign to the file.</param>
-    /// <param name="cancellationToken">Cancellation token to cancel the operation.</param>
-    /// <remarks>
-    /// This method performs a partial update of the file metadata.
-    /// Only the <c>Name</c> field is modified; all other properties remain unchanged.
-    /// </remarks>
-    private async Task Internal_RenameFileAsync(
-        string fileId,
-        string newName,
-        CancellationToken cancellationToken = default)
-    {
-        ArgumentException.ThrowIfNullOrEmpty(fileId);
-        ArgumentException.ThrowIfNullOrEmpty(newName);
-
-        var metadata = new GoogleFile { Name = newName };
-
-        var updateRequest = Provider.Files.Update(metadata, fileId);
-        updateRequest.Fields = "id,name";
-
-        await updateRequest.ExecuteAsync(cancellationToken).ConfigureAwait(false);
-    }
-
-    /// <summary>
-    /// Retrieves the ID of a folder by its name within a specified parent folder. 
-    /// Default value  for <paramref name="parentFolderId"/> is <see cref="RootFolderId"/>.
-    /// </summary>
-    /// <param name="folderName">The name of the folder to search for.</param>
-    /// <param name="parentFolderId">(optional) The ID of the parent folder to search within (default is "root").</param>
-    /// <param name="cancellationToken">Cancellation token to cancel the operation.</param>
-    /// <returns>The ID of the folder if found; otherwise, null.</returns>
+    /// <inheritdoc cref="Internal_GetFolderIdByAsync(string, string?, CancellationToken)"/>
     public async Task<string?> GetFolderIdByAsync(string folderName, string? parentFolderId = null, CancellationToken cancellationToken = default)
     {
         await TryRefreshTokenAsync(cancellationToken).ConfigureAwait(false);
@@ -318,9 +460,29 @@ public class GoogleDriveApi : IDisposable
             .ConfigureAwait(false);
     }
 
+    /// <summary>
+    /// Retrieves the ID of a folder by its name within the specified parent folder.
+    /// </summary>
+    /// <param name="folderName">The name of the folder to search for.</param>
+    /// <param name="parentFolderId">
+    /// Optional ID of the parent folder to search within. If <c>null</c>,
+    /// <see cref="_options"/>.<c>RootFolderId</c> is used.
+    /// </param>
+    /// <param name="cancellationToken">Cancellation token.</param>
+    /// <returns>
+    /// The folder ID if a matching folder is found; otherwise, <c>null</c>.
+    /// </returns>
+    /// <remarks>
+    /// The search is limited to non-trashed items and returns at most one result.
+    /// If multiple folders with the same name exist in the same parent folder,
+    /// the returned folder is unspecified.
+    /// </remarks>
+    /// <exception cref="ArgumentException">
+    /// Thrown when <paramref name="folderName"/> is <c>null</c> or empty.
+    /// </exception>
     private async Task<string?> Internal_GetFolderIdByAsync(string folderName, string? parentFolderId = null, CancellationToken cancellationToken = default)
     {
-        ArgumentNullException.ThrowIfNullOrEmpty(folderName);
+        ArgumentException.ThrowIfNullOrEmpty(folderName);
 
         parentFolderId ??= _options.RootFolderId;
 
@@ -335,13 +497,7 @@ public class GoogleDriveApi : IDisposable
         return file?.Id;
     }
 
-    /// <summary>
-    /// Retrieves a list of folders within a specified parent folder.
-    /// </summary>
-    /// <param name="parentFolderId">The ID of the parent folder to search within.</param>
-    /// <param name="pageSize">(optional) The number of results to retrieve per page (default is 50).</param>
-    /// <param name="cancellationToken">Cancellation token to cancel the operation.</param>
-    /// <returns>A list of tuples, each containing the ID and name of a folder.</returns>
+    /// <inheritdoc cref="Internal_GetFoldersByAsync(string, int, CancellationToken)"/>
     public async Task<List<(string id, string name)>> GetFoldersByAsync(string parentFolderId, int pageSize = 50, CancellationToken cancellationToken = default)
     {
         await TryRefreshTokenAsync(cancellationToken).ConfigureAwait(false);
@@ -350,9 +506,29 @@ public class GoogleDriveApi : IDisposable
             .ConfigureAwait(false);
     }
 
+    /// <summary>
+    /// Retrieves a list of folders within the specified parent folder.
+    /// </summary>
+    /// <param name="parentFolderId">The ID of the parent folder to search within.</param>
+    /// <param name="pageSize">
+    /// The maximum number of folders to retrieve per page.
+    /// Must be greater than zero.
+    /// </param>
+    /// <param name="cancellationToken">Cancellation token.</param>
+    /// <returns>
+    /// A list of tuples containing the ID and name of each folder.
+    /// </returns>
+    /// <remarks>
+    /// Only non-trashed folders are returned.
+    /// The method retrieves all available pages until no more results remain.
+    /// </remarks>
+    /// <exception cref="ArgumentException">
+    /// Thrown when <paramref name="parentFolderId"/> is <c>null</c> or empty,
+    /// or when <paramref name="pageSize"/> is less than or equal to zero.
+    /// </exception>
     private async Task<List<(string id, string name)>> Internal_GetFoldersByAsync(string parentFolderId, int pageSize, CancellationToken cancellationToken)
     {
-        ArgumentNullException.ThrowIfNullOrEmpty(parentFolderId);
+        ArgumentException.ThrowIfNullOrEmpty(parentFolderId);
 
         if (pageSize <= 0)
         {
@@ -385,13 +561,7 @@ public class GoogleDriveApi : IDisposable
             .ToList();
     }
 
-    /// <summary>
-    /// Retrieves all folders from Google Drive.
-    /// This method sends multiple requests to ensure all folders are retrieved, with each request
-    /// fetching up to 1000 folders (the maximum page size).
-    /// </summary>
-    /// <param name="cancellationToken">Cancellation token to cancel the operation.</param>
-    /// <returns>A list of GDriveFile objects representing all folders in the Google Drive.</returns>
+    /// <inheritdoc cref="Internal_GetAllFoldersAsync(CancellationToken)"/>
     public async Task<List<GDriveFile>> GetAllFoldersAsync(CancellationToken cancellationToken = default)
     {
         await TryRefreshTokenAsync(cancellationToken).ConfigureAwait(false);
@@ -399,6 +569,17 @@ public class GoogleDriveApi : IDisposable
         return await Internal_GetAllFoldersAsync(cancellationToken).ConfigureAwait(false);
     }
 
+    /// <summary>
+    /// Retrieves all folders from Google Drive.
+    /// </summary>
+    /// <param name="cancellationToken">Cancellation token.</param>
+    /// <returns>
+    /// A list of <see cref="GDriveFile"/> objects representing all folders in Google Drive.
+    /// </returns>
+    /// <remarks>
+    /// This method retrieves folders using paginated requests.
+    /// Each request uses the maximum supported page size (1000) and continues until all pages are fetched.
+    /// </remarks>
     private async Task<List<GDriveFile>> Internal_GetAllFoldersAsync(CancellationToken cancellationToken)
     {
         var request = Provider.Files.List();
@@ -419,14 +600,7 @@ public class GoogleDriveApi : IDisposable
         return driveFolders;
     }
 
-    /// <summary>
-    /// Creates a new folder in Google Drive.
-    /// Default value for <paramref name="parentFolderId"/> is <see cref="RootFolderId"/>.
-    /// </summary>
-    /// <param name="folderName">The name of the folder to create.</param>
-    /// <param name="parentFolderId">(optional) The ID of the parent folder where the new folder will be created (default is "root").</param>
-    /// <param name="cancellationToken">Cancellation token to cancel the operation.</param>
-    /// <returns>The ID of the created folder.</returns>
+    /// <inheritdoc cref="Internal_CreateFolderAsync(string, string?, CancellationToken)"/>
     public async Task<string> CreateFolderAsync(string folderName, string? parentFolderId = null, CancellationToken cancellationToken = default)
     {
         await TryRefreshTokenAsync(cancellationToken).ConfigureAwait(false);
@@ -435,9 +609,28 @@ public class GoogleDriveApi : IDisposable
             .ConfigureAwait(false);
     }
 
+    /// <summary>
+    /// Creates a new folder in Google Drive.
+    /// </summary>
+    /// <param name="folderName">The name of the folder to create.</param>
+    /// <param name="parentFolderId">
+    /// Optional ID of the parent folder in which the new folder will be created.
+    /// If <c>null</c>, the root folder is used.
+    /// </param>
+    /// <param name="cancellationToken">Cancellation token.</param>
+    /// <returns>
+    /// The ID of the newly created folder.
+    /// </returns>
+    /// <exception cref="ArgumentException">
+    /// Thrown when <paramref name="folderName"/> is <c>null</c> or empty.
+    /// </exception>
+    /// <remarks>
+    /// The folder is created using a single Google Drive API request.
+    /// Only folder-specific metadata is set; no additional properties are modified.
+    /// </remarks>
     private async Task<string> Internal_CreateFolderAsync(string folderName, string? parentFolderId = null, CancellationToken cancellationToken = default)
     {
-        ArgumentNullException.ThrowIfNullOrEmpty(folderName);
+        ArgumentException.ThrowIfNullOrEmpty(folderName);
 
         parentFolderId ??= _options.RootFolderId;
 
@@ -454,12 +647,7 @@ public class GoogleDriveApi : IDisposable
         return file.Id;
     }
 
-    /// <summary>
-    /// Removes a folder from Google Drive using its folder ID.
-    /// </summary>
-    /// <param name="folderId">The ID of the folder to be removed.</param>
-    /// <param name="cancellationToken">Cancellation token to cancel the operation.</param>
-    /// <returns>A boolean indicating success or failure.</returns>
+    /// <inheritdoc cref="Internal_DeleteFolderAsync"/>
     public async Task<bool> DeleteFolderAsync(string folderId, CancellationToken cancellationToken = default)
     {
         await TryRefreshTokenAsync(cancellationToken).ConfigureAwait(false);
@@ -468,15 +656,28 @@ public class GoogleDriveApi : IDisposable
             .ConfigureAwait(false);
     }
 
+    /// <summary>
+    /// Deletes a folder from Google Drive after validating its type.
+    /// </summary>
+    /// <param name="folderId">The ID of the folder to delete.</param>
+    /// <param name="cancellationToken">Cancellation token.</param>
+    /// <returns>
+    /// <c>true</c> if the folder was successfully deleted.
+    /// </returns>
+    /// <exception cref="ArgumentException">
+    /// Thrown when <paramref name="folderId"/> is <c>null</c> or empty.
+    /// </exception>
+    /// <exception cref="InvalidFileTypeException">
+    /// Thrown when the specified ID refers to an item that is not a folder.
+    /// </exception>
     private async Task<bool> Internal_DeleteFolderAsync(string folderId, CancellationToken cancellationToken)
     {
-        ArgumentNullException.ThrowIfNullOrEmpty(folderId);
+        ArgumentException.ThrowIfNullOrEmpty(folderId);
 
         GoogleFile folder = await Provider.Files.Get(folderId).ExecuteAsync(cancellationToken).ConfigureAwait(false);
         if (folder.MimeType != GDriveMimeTypes.Folder)
         {
-            Console.WriteLine("The specified ID does not correspond to a folder.");
-            return false;
+            throw new InvalidFileTypeException(folderId, folder.MimeType);
         }
 
         await Provider.Files.Delete(folderId).ExecuteAsync(cancellationToken).ConfigureAwait(false);
@@ -484,15 +685,7 @@ public class GoogleDriveApi : IDisposable
         return true;
     }
 
-    /// <summary>
-    /// Gets the file ID by its name and parent folder ID.
-    /// Default value for <paramref name="parentFolderId"/> is <see cref="RootFolderId"/>.
-    /// </summary>
-    /// <param name="fullFileName">The name of the file with an extension to search for.</param>
-    /// <param name="parentFolderId">The ID of the parent folder where the file is located. Use "root" for the root directory.</param>
-    /// <param name="cancellationToken">Cancellation token to cancel the operation.</param>
-    /// <returns>The file ID if found, otherwise null.</returns>
-    /// <exception cref="AuthorizationException">Thrown if the GoogleDriveApi is not initialized and authorized.</exception>
+    /// <inheritdoc cref="Internal_GetFileIdByAsync(string, string?, CancellationToken)"/>
     public async Task<string?> GetFileIdByAsync(string fullFileName, string? parentFolderId = null, CancellationToken cancellationToken = default)
     {
         await TryRefreshTokenAsync(cancellationToken).ConfigureAwait(false);
@@ -501,9 +694,32 @@ public class GoogleDriveApi : IDisposable
             .ConfigureAwait(false);
     }
 
+    /// <summary>
+    /// Retrieves the file ID by its name within the specified parent folder.
+    /// </summary>
+    /// <param name="fullFileName">The file name (including extension) to search for.</param>
+    /// <param name="parentFolderId">
+    /// Optional ID of the parent folder to search within. If <c>null</c>,
+    /// <see cref="_options"/>.<c>RootFolderId</c> is used.
+    /// </param>
+    /// <param name="cancellationToken">Cancellation token.</param>
+    /// <returns>
+    /// The file ID if a matching file is found; otherwise, <c>null</c>.
+    /// </returns>
+    /// <remarks>
+    /// The search is limited to non-trashed items and returns at most one result.
+    /// If multiple files with the same name exist in the same parent folder,
+    /// the returned file is unspecified.
+    /// </remarks>
+    /// <exception cref="ArgumentException">
+    /// Thrown when <paramref name="fullFileName"/> is <c>null</c> or empty.
+    /// </exception>
+    /// <exception cref="AuthorizationException">
+    /// Thrown if the Google Drive API is not initialized or authorized.
+    /// </exception>
     private async Task<string?> Internal_GetFileIdByAsync(string fullFileName, string? parentFolderId = null, CancellationToken cancellationToken = default)
     {
-        ArgumentNullException.ThrowIfNullOrEmpty(fullFileName);
+        ArgumentException.ThrowIfNullOrEmpty(fullFileName);
 
         parentFolderId ??= _options.RootFolderId;
 
@@ -527,7 +743,7 @@ public class GoogleDriveApi : IDisposable
     public string UploadFilePath(string filePath, string mimeType, CancellationToken cancellationToken = default)
     {
         ThrowIfDisposed();
-        ArgumentNullException.ThrowIfNullOrEmpty(filePath);
+        ArgumentException.ThrowIfNullOrEmpty(filePath);
         if (!File.Exists(filePath))
         {
             throw new FileNotFoundException($"Cannot find the file at {filePath}.");
@@ -557,8 +773,8 @@ public class GoogleDriveApi : IDisposable
     /// <exception cref="CreateMediaUploadException">Thrown if the file upload failed.</exception>
     private string Internal_UploadFileStream(Stream fileStream, string fileName, string mimeType, CancellationToken cancellationToken)
     {
-        ArgumentNullException.ThrowIfNullOrEmpty(fileName);
-        ArgumentNullException.ThrowIfNullOrEmpty(mimeType);
+        ArgumentException.ThrowIfNullOrEmpty(fileName);
+        ArgumentException.ThrowIfNullOrEmpty(mimeType);
 
         cancellationToken.ThrowIfCancellationRequested();
 
@@ -605,8 +821,8 @@ public class GoogleDriveApi : IDisposable
     /// <inheritdoc cref="DownloadBinaryFileAsync"/>
     public async Task DownloadFileAsync(string fileId, string saveToPath = "Downloads", CancellationToken cancellationToken = default)
     {
-        ArgumentNullException.ThrowIfNullOrEmpty(fileId);
-        ArgumentNullException.ThrowIfNullOrEmpty(saveToPath);
+        ArgumentException.ThrowIfNullOrEmpty(fileId);
+        ArgumentException.ThrowIfNullOrEmpty(saveToPath);
 
         await TryRefreshTokenAsync(cancellationToken).ConfigureAwait(false);
 

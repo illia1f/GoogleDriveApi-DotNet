@@ -21,6 +21,8 @@ Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "GoogleDriveApi-DotNet.Tests
 EndProject
 Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "FileManagement", "samples\FileManagement\FileManagement.csproj", "{EA3F9217-0914-7908-3827-42285E46738E}"
 EndProject
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "TrashOperations", "samples\TrashOperations\TrashOperations.csproj", "{61A797B4-343C-2D8F-BFD9-FEDA8F48027F}"
+EndProject
 Global
 	GlobalSection(SolutionConfigurationPlatforms) = preSolution
 		Debug|Any CPU = Debug|Any CPU
@@ -55,6 +57,10 @@ Global
 		{EA3F9217-0914-7908-3827-42285E46738E}.Debug|Any CPU.Build.0 = Debug|Any CPU
 		{EA3F9217-0914-7908-3827-42285E46738E}.Release|Any CPU.ActiveCfg = Release|Any CPU
 		{EA3F9217-0914-7908-3827-42285E46738E}.Release|Any CPU.Build.0 = Release|Any CPU
+		{61A797B4-343C-2D8F-BFD9-FEDA8F48027F}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{61A797B4-343C-2D8F-BFD9-FEDA8F48027F}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{61A797B4-343C-2D8F-BFD9-FEDA8F48027F}.Release|Any CPU.ActiveCfg = Release|Any CPU
+		{61A797B4-343C-2D8F-BFD9-FEDA8F48027F}.Release|Any CPU.Build.0 = Release|Any CPU
 	EndGlobalSection
 	GlobalSection(SolutionProperties) = preSolution
 		HideSolutionNode = FALSE
@@ -66,6 +72,7 @@ Global
 		{CBCF3FC4-16B1-41E3-8AE7-34B3D4FB7460} = {51EC3CAB-9BE8-486E-A7EF-582DE5045414}
 		{56648DA1-9918-44CA-9FDF-C9432FF27EDC} = {21C6580E-7CBF-47E8-B08C-CC18E521FDB5}
 		{EA3F9217-0914-7908-3827-42285E46738E} = {51EC3CAB-9BE8-486E-A7EF-582DE5045414}
+		{61A797B4-343C-2D8F-BFD9-FEDA8F48027F} = {51EC3CAB-9BE8-486E-A7EF-582DE5045414}
 	EndGlobalSection
 	GlobalSection(ExtensibilityGlobals) = postSolution
 		SolutionGuid = {9B738F98-FBFD-4B03-B6C9-2BE4EBFFCDB3}
