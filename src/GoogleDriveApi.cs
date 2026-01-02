@@ -266,33 +266,33 @@ public class GoogleDriveApi : IDisposable
         }
     }
 
-    /// <inheritdoc cref="Internal_DeleteFolderAsync"/>
-    public async Task<bool> DeleteFileAsync(string fileId, CancellationToken cancellationToken = default)
+    /// <inheritdoc cref="Internal_DeleteFileAsync"/>
+    public async Task DeleteFileAsync(string fileId, CancellationToken cancellationToken = default)
     {
         await TryRefreshTokenAsync(cancellationToken).ConfigureAwait(false);
 
-        return await Internal_DeleteFileAsync(fileId, cancellationToken)
+        await Internal_DeleteFileAsync(fileId, cancellationToken)
             .ConfigureAwait(false);
     }
 
     /// <summary>
-    /// Usuwa plik z Google Drive.
-    /// Pobiera metadane pliku w celu weryfikacji jego typu,
-    /// a następnie wykonuje trwałe usunięcie pliku.
+    /// Deletes a file from Google Drive.
+    /// Retrieves the file metadata to validate its type
+    /// and then permanently deletes the file.
     /// </summary>
-    /// <param name="fileId">Identyfikator pliku do usunięcia.</param>
-    /// <param name="cancellationToken">Token anulowania operacji.</param>
+    /// <param name="fileId">The ID of the file to delete.</param>
+    /// <param name="cancellationToken">Cancellation token.</param>
     /// <returns>
-    /// Zwraca <c>true</c>, jeśli plik został pomyślnie usunięty.
+    /// <c>true</c> if the file was successfully deleted.
     /// </returns>
     /// <exception cref="ArgumentException">
-    /// Rzucany, gdy <paramref name="fileId"/> jest <c>null</c> lub pusty.
+    /// Thrown when <paramref name="fileId"/> is <c>null</c> or empty.
     /// </exception>
     /// <exception cref="InvalidFileTypeException">
-    /// Rzucany, gdy podany identyfikator odnosi się do elementu,
-    /// który nie jest plikiem (np. folderu).
+    /// Thrown when the specified ID refers to an item
+    /// that is not a file (for example, a folder).
     /// </exception>
-    private async Task<bool> Internal_DeleteFileAsync(string fileId, CancellationToken cancellationToken)
+    private async Task Internal_DeleteFileAsync(string fileId, CancellationToken cancellationToken)
     {
         ArgumentException.ThrowIfNullOrEmpty(fileId);
 
@@ -308,8 +308,6 @@ public class GoogleDriveApi : IDisposable
         await Provider.Files.Delete(fileId)
             .ExecuteAsync(cancellationToken)
             .ConfigureAwait(false);
-
-        return true;
     }
 
     /// <inheritdoc cref="Internal_RenameFileAsync"/>
