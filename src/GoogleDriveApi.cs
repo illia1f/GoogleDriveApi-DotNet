@@ -602,14 +602,7 @@ public class GoogleDriveApi : IDisposable
         return driveFolders;
     }
 
-    /// <summary>
-    /// Creates a new folder in Google Drive.
-    /// Default value for <paramref name="parentFolderId"/> is <see cref="RootFolderId"/>.
-    /// </summary>
-    /// <param name="folderName">The name of the folder to create.</param>
-    /// <param name="parentFolderId">(optional) The ID of the parent folder where the new folder will be created (default is "root").</param>
-    /// <param name="cancellationToken">Cancellation token to cancel the operation.</param>
-    /// <returns>The ID of the created folder.</returns>
+    /// <inheritdoc cref="Internal_CreateFolderAsync(string, string?, CancellationToken)"/>
     public async Task<string> CreateFolderAsync(string folderName, string? parentFolderId = null, CancellationToken cancellationToken = default)
     {
         await TryRefreshTokenAsync(cancellationToken).ConfigureAwait(false);
@@ -618,6 +611,25 @@ public class GoogleDriveApi : IDisposable
             .ConfigureAwait(false);
     }
 
+    /// <summary>
+    /// Creates a new folder in Google Drive.
+    /// </summary>
+    /// <param name="folderName">The name of the folder to create.</param>
+    /// <param name="parentFolderId">
+    /// Optional ID of the parent folder in which the new folder will be created.
+    /// If <c>null</c>, the root folder is used.
+    /// </param>
+    /// <param name="cancellationToken">Cancellation token.</param>
+    /// <returns>
+    /// The ID of the newly created folder.
+    /// </returns>
+    /// <exception cref="ArgumentException">
+    /// Thrown when <paramref name="folderName"/> is <c>null</c> or empty.
+    /// </exception>
+    /// <remarks>
+    /// The folder is created using a single Google Drive API request.
+    /// Only folder-specific metadata is set; no additional properties are modified.
+    /// </remarks>
     private async Task<string> Internal_CreateFolderAsync(string folderName, string? parentFolderId = null, CancellationToken cancellationToken = default)
     {
         ArgumentException.ThrowIfNullOrEmpty(folderName);
@@ -675,15 +687,7 @@ public class GoogleDriveApi : IDisposable
         return true;
     }
 
-    /// <summary>
-    /// Gets the file ID by its name and parent folder ID.
-    /// Default value for <paramref name="parentFolderId"/> is <see cref="RootFolderId"/>.
-    /// </summary>
-    /// <param name="fullFileName">The name of the file with an extension to search for.</param>
-    /// <param name="parentFolderId">The ID of the parent folder where the file is located. Use "root" for the root directory.</param>
-    /// <param name="cancellationToken">Cancellation token to cancel the operation.</param>
-    /// <returns>The file ID if found, otherwise null.</returns>
-    /// <exception cref="AuthorizationException">Thrown if the GoogleDriveApi is not initialized and authorized.</exception>
+    /// <inheritdoc cref="Internal_GetFileIdByAsync(string, string?, CancellationToken)"/>
     public async Task<string?> GetFileIdByAsync(string fullFileName, string? parentFolderId = null, CancellationToken cancellationToken = default)
     {
         await TryRefreshTokenAsync(cancellationToken).ConfigureAwait(false);
@@ -692,6 +696,29 @@ public class GoogleDriveApi : IDisposable
             .ConfigureAwait(false);
     }
 
+    /// <summary>
+    /// Retrieves the file ID by its name within the specified parent folder.
+    /// </summary>
+    /// <param name="fullFileName">The file name (including extension) to search for.</param>
+    /// <param name="parentFolderId">
+    /// Optional ID of the parent folder to search within. If <c>null</c>,
+    /// <see cref="_options"/>.<c>RootFolderId</c> is used.
+    /// </param>
+    /// <param name="cancellationToken">Cancellation token.</param>
+    /// <returns>
+    /// The file ID if a matching file is found; otherwise, <c>null</c>.
+    /// </returns>
+    /// <remarks>
+    /// The search is limited to non-trashed items and returns at most one result.
+    /// If multiple files with the same name exist in the same parent folder,
+    /// the returned file is unspecified.
+    /// </remarks>
+    /// <exception cref="ArgumentException">
+    /// Thrown when <paramref name="fullFileName"/> is <c>null</c> or empty.
+    /// </exception>
+    /// <exception cref="AuthorizationException">
+    /// Thrown if the Google Drive API is not initialized or authorized.
+    /// </exception>
     private async Task<string?> Internal_GetFileIdByAsync(string fullFileName, string? parentFolderId = null, CancellationToken cancellationToken = default)
     {
         ArgumentException.ThrowIfNullOrEmpty(fullFileName);
