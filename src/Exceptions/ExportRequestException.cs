@@ -1,9 +1,8 @@
-﻿namespace GoogleDriveApi_DotNet.Exceptions
+﻿namespace GoogleDriveApi_DotNet.Exceptions;
+
+public class ExportRequestException : GoogleDriveApiException
 {
-    public class ExportRequestException : GoogleDriveApiException
-    {
-        public ExportRequestException() { }
-        public ExportRequestException(string message) : base(message) { }
-        public ExportRequestException(string message, Exception inner) : base(message, inner) { }
-    }
+    public ExportRequestException() { }
+    public ExportRequestException(string message) : base(message) { }
+    public ExportRequestException(string message, Exception inner) : base(message, inner) { }
 }

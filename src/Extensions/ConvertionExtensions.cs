@@ -1,17 +1,16 @@
 ﻿using GoogleDriveApi_DotNet.Types;
 
-namespace GoogleDriveApi_DotNet.Extensions
+namespace GoogleDriveApi_DotNet.Extensions;
+
+public static class ConvertionExtensions
 {
-    public static class ConvertionExtensions
+    public static GDriveFile ToGDriveFile(this GoogleFile file)
     {
-        public static GDriveFile ToGDriveFile(this GoogleFile file)
+        return new GDriveFile
         {
-            return new GDriveFile
-            {
-                Id = file.Id,
-                Name = file.Name,
-                ParentIds = file.Parents?.ToList() ?? new List<string>(),
-            };
-        }
+            Id = file.Id,
+            Name = file.Name,
+            ParentIds = file.Parents?.ToList() ?? new List<string>(),
+        };
     }
 }

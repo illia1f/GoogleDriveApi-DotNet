@@ -282,9 +282,6 @@ public class GoogleDriveApi : IDisposable
     /// </summary>
     /// <param name="fileId">The ID of the file to delete.</param>
     /// <param name="cancellationToken">Cancellation token.</param>
-    /// <returns>
-    /// <c>true</c> if the file was successfully deleted.
-    /// </returns>
     /// <exception cref="ArgumentException">
     /// Thrown when <paramref name="fileId"/> is <c>null</c> or empty.
     /// </exception>
@@ -677,7 +674,7 @@ public class GoogleDriveApi : IDisposable
         GoogleFile folder = await Provider.Files.Get(folderId).ExecuteAsync(cancellationToken).ConfigureAwait(false);
         if (folder.MimeType != GDriveMimeTypes.Folder)
         {
-            throw new InvalidFileTypeException(folderId, folder.MimeType);
+            throw new InvalidFileTypeException(folderId, folder.MimeType, expectedMimeType: GDriveMimeTypes.Folder);
         }
 
         await Provider.Files.Delete(folderId).ExecuteAsync(cancellationToken).ConfigureAwait(false);

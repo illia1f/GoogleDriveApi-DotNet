@@ -1,5 +1,4 @@
-﻿namespace GoogleDriveApi_DotNet.Abstractions
-{
-    public interface IOptions
-    { }
-}
+﻿namespace GoogleDriveApi_DotNet.Abstractions;
+
+public interface IOptions
+{ }
