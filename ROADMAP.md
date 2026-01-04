@@ -24,27 +24,27 @@ The library is in **active development** and approaching its first stable releas
 - [x] Upload file from stream (`UploadFileStream`)
 - [x] Download binary files (`DownloadFileAsync`)
 - [x] Download/export Google Workspace files (Docs, Sheets, Slides)
-- [x] Get file ID by name (`GetFileIdBy`, `GetFileIdByAsync`)
-- [ ] Delete file
-- [ ] Move file to different folder
-- [ ] Rename file
-- [ ] Copy file
+- [x] Get file ID by name (`GetFileIdByAsync`)
+- [x] Delete file (`DeleteFileAsync`)
+- [x] Move file to different folder (`MoveFileToAsync`)
+- [x] Rename file (`RenameFileAsync`)
+- [x] Copy file (`CopyFileToAsync`)
 - [ ] Update existing file content
 
 ### Folder Operations
 
-- [x] Create folder (`CreateFolder`, `CreateFolderAsync`)
-- [x] Delete folder permanently (`DeleteFolder`, `DeleteFolderAsync`)
-- [x] Get folder ID by name (`GetFolderIdBy`, `GetFolderIdByAsync`)
-- [x] Get folders by parent (`GetFoldersBy`, `GetFoldersByAsync`)
-- [x] Get all folders (`GetAllFolders`, `GetAllFoldersAsync`)
+- [x] Create folder (`CreateFolderAsync`)
+- [x] Delete folder permanently (`DeleteFolderAsync`)
+- [x] Get folder ID by name (`GetFolderIdByAsync`)
+- [x] Get folders by parent (`GetFoldersByAsync`)
+- [x] Get all folders (`GetAllFoldersAsync`)
 - [ ] Move folder to different parent
 - [ ] Rename folder
 
 ### Trash Operations
 
-- [ ] Move file/folder to trash (soft delete)
-- [ ] Restore file/folder from trash
+- [x] Move file to trash (`MoveFileToTrashAsync`)
+- [x] Restore file from trash (`RestoreFileFromTrashAsync`)
 - [ ] Empty trash
 - [ ] List trashed items
 

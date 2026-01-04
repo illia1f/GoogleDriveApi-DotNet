@@ -18,7 +18,7 @@ using GoogleDriveApi gDriveApi = await GoogleDriveApi.CreateBuilder()
 
 // If immediateAuthorization is false, it is necessary to invoke the Authorize method.
 // Default value is true.
-gDriveApi.Authorize(); // Add: cts.Token for timeout control
+await gDriveApi.AuthorizeAsync(); // Add: cts.Token for timeout control
 ```
 
 ## Uploading files
@@ -70,9 +70,9 @@ Create folders in Google Drive. The `CancellationToken` parameter is optional fo
 ```csharp
 // Optional: using var cts = new CancellationTokenSource(TimeSpan.FromSeconds(30));
 
-string newFolderId = gDriveApi.CreateFolder(folderName: "NewFolderName"); // Add: cancellationToken: cts.Token
+string newFolderId = await gDriveApi.CreateFolderAsync(folderName: "NewFolderName"); // Add: cancellationToken: cts.Token
 
-string newFolderId2 = gDriveApi.CreateFolder(folderName: "NewFolderNameV2", parentFolderId: newFolderId); // Add: cancellationToken: cts.Token
+string newFolderId2 = await gDriveApi.CreateFolderAsync(folderName: "NewFolderNameV2", parentFolderId: newFolderId); // Add: cancellationToken: cts.Token
 
 Console.WriteLine("New Folder ID: " + newFolderId);
 Console.WriteLine("New Folder ID2: " + newFolderId2);
@@ -86,7 +86,7 @@ Retrieve and print all folders in the root directory and their children.
 // Optional: using var cts = new CancellationTokenSource(TimeSpan.FromSeconds(30));
 
 // Retrieves a list of folders in the root directory
-var folders = gDriveApi.GetFoldersBy(parentFolderId: "root"); // Add: cancellationToken: cts.Token
+var folders = await gDriveApi.GetFoldersByAsync(parentFolderId: "root"); // Add: cancellationToken: cts.Token
 
 for (int i = 0; i < folders.Count; i++)
 {
@@ -95,7 +95,7 @@ for (int i = 0; i < folders.Count; i++)
    Console.WriteLine($"{i + 1}. [{folder.name}] with ID({folder.id})");
 
    // Retrieves a list of subfolders within the current folder
-   var subFolders = gDriveApi.GetFoldersBy(folder.id); // Add: cancellationToken: cts.Token
+   var subFolders = await gDriveApi.GetFoldersByAsync(folder.id); // Add: cancellationToken: cts.Token
    for (int j = 0; j < subFolders.Count; j++)
    {
       var subFolder = subFolders[j];
@@ -114,7 +114,7 @@ Download files from Google Drive. For large files, consider using a `Cancellatio
 
 string parentFolderId = "root";
 string sourceFolderName = "FileDownloader Test Folder";
-string? sourceFolderId = gDriveApi.GetFolderIdBy(sourceFolderName, parentFolderId); // Add: cts.Token
+string? sourceFolderId = await gDriveApi.GetFolderIdByAsync(sourceFolderName, parentFolderId); // Add: cts.Token
 if (sourceFolderId is null)
 {
     Console.WriteLine($"Cannot find a folder with a name {sourceFolderName}.");
@@ -123,7 +123,7 @@ if (sourceFolderId is null)
 
 string fullFileNameToDownload = "Lesson_1.pdf";
 
-string? fileId = gDriveApi.GetFileIdBy(fullFileNameToDownload, sourceFolderId); // Add: cts.Token
+string? fileId = await gDriveApi.GetFileIdByAsync(fullFileNameToDownload, sourceFolderId); // Add: cts.Token
 if (fileId is null)
 {
     Console.WriteLine($"Cannot find a file with a name {fullFileNameToDownload}.");
@@ -137,5 +137,134 @@ try
 catch (OperationCanceledException)
 {
     Console.WriteLine("Download was cancelled or timed out.");
+}
+```
+
+## File Management Operations
+
+### Renaming a File
+
+Rename a file by updating its metadata.
+
+```csharp
+// Optional: using var cts = new CancellationTokenSource(TimeSpan.FromSeconds(30));
+
+string fileId = "your-file-id";
+string newName = "NewFileName.pdf";
+
+try
+{
+    await gDriveApi.RenameFileAsync(fileId, newName); // Add: cancellationToken: cts.Token
+    Console.WriteLine($"File renamed successfully to '{newName}'.");
+}
+catch (ArgumentException ex)
+{
+    Console.WriteLine($"Invalid arguments: {ex.Message}");
+}
+```
+
+### Moving a File
+
+Move a file from one folder to another.
+
+```csharp
+// Optional: using var cts = new CancellationTokenSource(TimeSpan.FromSeconds(30));
+
+string fileId = "your-file-id";
+string sourceFolderId = "source-folder-id";
+string destinationFolderId = "destination-folder-id";
+
+try
+{
+    await gDriveApi.MoveFileToAsync(fileId, sourceFolderId, destinationFolderId); // Add: cancellationToken: cts.Token
+    Console.WriteLine("File moved successfully.");
+}
+catch (ArgumentException ex)
+{
+    Console.WriteLine($"Invalid arguments: {ex.Message}");
+}
+```
+
+### Copying a File
+
+Copy a file to a different folder with an optional new name.
+
+```csharp
+// Optional: using var cts = new CancellationTokenSource(TimeSpan.FromSeconds(30));
+
+string fileId = "your-file-id";
+string destinationFolderId = "destination-folder-id";
+string? newName = "CopiedFile.pdf"; // Optional, null to keep original name
+
+try
+{
+    string copiedFileId = await gDriveApi.CopyFileToAsync(fileId, destinationFolderId, newName); // Add: cancellationToken: cts.Token
+    Console.WriteLine($"File copied successfully with new ID: {copiedFileId}");
+}
+catch (CopyFileException ex)
+{
+    Console.WriteLine($"Copy failed: {ex.Message}");
+}
+```
+
+### Deleting a File
+
+Permanently delete a file from Google Drive.
+
+```csharp
+// Optional: using var cts = new CancellationTokenSource(TimeSpan.FromSeconds(30));
+
+string fileId = "your-file-id";
+
+try
+{
+    await gDriveApi.DeleteFileAsync(fileId); // Add: cancellationToken: cts.Token
+    Console.WriteLine("File deleted successfully.");
+}
+catch (InvalidFileTypeException ex)
+{
+    Console.WriteLine($"Cannot delete: {ex.Message}");
+}
+```
+
+## Trash Operations
+
+### Moving a File to Trash
+
+Move a file to the Google Drive trash (soft delete).
+
+```csharp
+// Optional: using var cts = new CancellationTokenSource(TimeSpan.FromSeconds(30));
+
+string fileId = "your-file-id";
+
+try
+{
+    await gDriveApi.MoveFileToTrashAsync(fileId); // Add: cancellationToken: cts.Token
+    Console.WriteLine("File moved to trash successfully.");
+}
+catch (TrashFileException ex)
+{
+    Console.WriteLine($"Failed to trash file: {ex.Message}");
+}
+```
+
+### Restoring a File from Trash
+
+Restore a file from the Google Drive trash.
+
+```csharp
+// Optional: using var cts = new CancellationTokenSource(TimeSpan.FromSeconds(30));
+
+string fileId = "your-file-id";
+
+try
+{
+    await gDriveApi.RestoreFileFromTrashAsync(fileId); // Add: cancellationToken: cts.Token
+    Console.WriteLine("File restored from trash successfully.");
+}
+catch (RestoreFileException ex)
+{
+    Console.WriteLine($"Failed to restore file: {ex.Message}");
 }
 ```
