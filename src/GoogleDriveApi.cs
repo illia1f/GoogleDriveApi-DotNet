@@ -2,12 +2,13 @@ using Google.Apis.Auth.OAuth2;
 using Google.Apis.Download;
 using Google.Apis.Drive.v3;
 using Google.Apis.Services;
-using GoogleDriveApi_DotNet.Exceptions;
 using GoogleDriveApi_DotNet.Abstractions;
+using GoogleDriveApi_DotNet.Exceptions;
 using GoogleDriveApi_DotNet.Extensions;
 using GoogleDriveApi_DotNet.Helpers;
 using GoogleDriveApi_DotNet.Types;
 using System.Diagnostics;
+using System.Threading;
 
 namespace GoogleDriveApi_DotNet;
 
@@ -180,10 +181,32 @@ public class GoogleDriveApi : IDisposable
         return false;
     }
 
+    /// <inheritdoc cref="Internal_EmptyTrashAsync"/>
+    public async Task EmptyTrashAsync(CancellationToken cancellationToken = default)
+    {
+        await TryRefreshTokenAsync(cancellationToken)
+            .ConfigureAwait(false);
+
+        await Internal_EmptyTrashAsync(cancellationToken)
+            .ConfigureAwait(false);
+    }
+
+    /// <summary>
+    /// Permanently deletes all items from the Google Drive trash.
+    /// </summary>
+    /// <param name="cancellationToken">Cancellation token.</param>
+    private async Task Internal_EmptyTrashAsync(CancellationToken cancellationToken = default)
+    {
+        await Provider.Files.EmptyTrash()
+            .ExecuteAsync(cancellationToken)
+            .ConfigureAwait(false);
+    }
+
     /// <inheritdoc cref="Internal_MoveFileToTrashAsync"/>
     public async Task MoveFileToTrashAsync(string fileId, CancellationToken cancellationToken = default)
     {
-        await TryRefreshTokenAsync(cancellationToken).ConfigureAwait(false);
+        await TryRefreshTokenAsync(cancellationToken)
+            .ConfigureAwait(false);
 
         await Internal_MoveFileToTrashAsync(fileId, cancellationToken)
             .ConfigureAwait(false);
