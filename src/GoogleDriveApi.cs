@@ -7,6 +7,7 @@ using GoogleDriveApi_DotNet.Exceptions;
 using GoogleDriveApi_DotNet.Extensions;
 using GoogleDriveApi_DotNet.Helpers;
 using GoogleDriveApi_DotNet.Types;
+using System.Collections;
 using System.Diagnostics;
 using System.Threading;
 
@@ -200,6 +201,47 @@ public class GoogleDriveApi : IDisposable
         await Provider.Files.EmptyTrash()
             .ExecuteAsync(cancellationToken)
             .ConfigureAwait(false);
+    }
+
+    /// <inheritdoc cref="Internal_GetTrashedFilesAsync"/>
+    public async Task<List<GoogleFile>> GetTrashedFilesAsync(CancellationToken cancellationToken = default)
+    {
+        await TryRefreshTokenAsync(cancellationToken)
+            .ConfigureAwait(false);
+
+        return await Internal_GetTrashedFilesAsync(cancellationToken)
+            .ConfigureAwait(false);
+    }
+
+    /// <summary>
+    /// Retrieves all items currently located in the Google Drive trash.
+    /// </summary>
+    private async Task<List<GoogleFile>> Internal_GetTrashedFilesAsync(CancellationToken cancellationToken = default)
+    {
+        var trashed = new List<GoogleFile>();
+
+        string? pageToken = null;
+
+        do
+        {
+            var request = Provider.Files.List();
+            request.Q = "trashed = true";
+            request.Fields = "nextPageToken, files(id, name, mimeType, parents)";
+            request.PageSize = 1000;
+            request.PageToken = pageToken;
+
+            var result = await request.ExecuteAsync(cancellationToken).ConfigureAwait(false);
+
+            if (result.Files is not null)
+            {
+                trashed.AddRange(result.Files);
+            }
+
+            pageToken = result.NextPageToken;
+
+        } while (!string.IsNullOrEmpty(pageToken));
+
+        return trashed;
     }
 
     /// <inheritdoc cref="Internal_MoveFileToTrashAsync"/>
