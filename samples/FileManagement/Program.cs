@@ -10,6 +10,8 @@ using GoogleDriveApi gDriveApi = await GoogleDriveApi.CreateBuilder()
     .BuildAsync(cancellationToken: cts.Token);
 
 const string parentFolderId = "root";
+
+// Change to your folder name in Google Drive
 const string sourceFolderName = "FileDownloader Test Folder";
 string? sourceFolderId = await gDriveApi.GetFolderIdByAsync(sourceFolderName, parentFolderId, cts.Token);
 if (sourceFolderId is null)
@@ -20,6 +22,7 @@ if (sourceFolderId is null)
 
 /////////// Creating a copy of file ///////////
 
+// Adjust this file name
 string fileToCopyName = "TextFile";
 string? fileId = await gDriveApi.GetFileIdByAsync(fileToCopyName, sourceFolderId, cts.Token);
 if (fileId is null)
@@ -43,6 +46,7 @@ catch (CopyFileException ex)
 
 /////////// Renaming copy file ///////////
 
+// Adjust this file name as well
 const string newFileName = "MyCopyTextFile";
 
 await gDriveApi.RenameFileAsync(copyFileId, newFileName, cancellationToken: cts.Token);
@@ -65,6 +69,8 @@ Console.WriteLine($"File \"{newFileName}\" moved to folder \"{destinationFolderN
 
 /////////// Update copy file with new content ///////////
 
+// Add your file to samples/Shared folder and adjust below variables.
+// Also change file name in current project .csproj file.
 const string newContentFileName = "NewTextFileCopy.txt";
 const string contentType = "text/plain";
 
