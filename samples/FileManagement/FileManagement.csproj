@@ -11,4 +11,10 @@
     <ProjectReference Include="..\..\src\GoogleDriveApi-DotNet.csproj" />
   </ItemGroup>
 
+  <ItemGroup>
+	<None Include="..\Shared\NewTextFileCopy.txt">
+      <CopyToOutputDirectory>Always</CopyToOutputDirectory>
+    </None>
+  </ItemGroup>
+
 </Project>

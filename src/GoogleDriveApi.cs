@@ -815,12 +815,12 @@ public class GoogleDriveApi : IDisposable
     }
 
     /// <inheritdoc cref="Internal_UpdateFileContentAsync(string, Stream, string, CancellationToken)"/>
-    public async Task UpdateFileContentAsync(string fileId, Stream fileContent, string contentType, CancellationToken cancellationToken = default)
+    public async Task UpdateFileContentAsync(string fileId, Stream content, string contentType, CancellationToken cancellationToken = default)
     {
         await TryRefreshTokenAsync(cancellationToken)
             .ConfigureAwait(false);
 
-        await Internal_UpdateFileContentAsync(fileId, fileContent, contentType, cancellationToken)
+        await Internal_UpdateFileContentAsync(fileId, content, contentType, cancellationToken)
             .ConfigureAwait(false);
     }
 

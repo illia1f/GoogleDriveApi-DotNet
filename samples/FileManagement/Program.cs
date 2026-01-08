@@ -9,8 +9,8 @@ using GoogleDriveApi gDriveApi = await GoogleDriveApi.CreateBuilder()
     .SetApplicationName("QuickFilesLoad")
     .BuildAsync(cancellationToken: cts.Token);
 
-string parentFolderId = "root";
-string sourceFolderName = "FileDownloader Test Folder";
+const string parentFolderId = "root";
+const string sourceFolderName = "FileDownloader Test Folder";
 string? sourceFolderId = await gDriveApi.GetFolderIdByAsync(sourceFolderName, parentFolderId, cts.Token);
 if (sourceFolderId is null)
 {
@@ -20,7 +20,7 @@ if (sourceFolderId is null)
 
 /////////// Creating a copy of file ///////////
 
-string fileToCopyName = "Fine";
+string fileToCopyName = "TextFile";
 string? fileId = await gDriveApi.GetFileIdByAsync(fileToCopyName, sourceFolderId, cts.Token);
 if (fileId is null)
 {
@@ -42,13 +42,13 @@ catch (CopyFileException ex)
 
 /////////// Renaming copy file ///////////
 
-string newFileName = "ItsNotFine";
+const string newFileName = "MyCopyTextFile";
 
 await gDriveApi.RenameFileAsync(copyFileId, newFileName, cancellationToken: cts.Token);
 
 /////////// Moving copy file ///////////
 
-string destinationFolderName = "1";
+const string destinationFolderName = "1";
 string? destinationFolderId = await gDriveApi.GetFolderIdByAsync(destinationFolderName, sourceFolderId, cts.Token);
 if (destinationFolderId is null)
 {
@@ -57,3 +57,27 @@ if (destinationFolderId is null)
 }
 
 await gDriveApi.MoveFileToAsync(copyFileId, sourceFolderId, destinationFolderId, cts.Token);
+
+/////////// Update copy file with new content ///////////
+
+const string newContentFileName = "NewTextFileCopy.txt";
+const string contentType = "text/plain";
+
+if (!File.Exists(Path.Combine(AppContext.BaseDirectory, newContentFileName)))
+{
+    throw new FileNotFoundException("Content file not found.", newContentFileName);
+}
+
+using var stream = File.OpenRead(
+    Path.Combine(AppContext.BaseDirectory, newContentFileName));
+
+if (stream.Length == 0)
+{
+    throw new InvalidOperationException("Content file is empty.");
+}
+
+await gDriveApi.UpdateFileContentAsync(
+    fileId: copyFileId,
+    content: stream,
+    contentType: contentType,
+    cancellationToken: cts.Token);
