@@ -14,7 +14,7 @@ const string sourceFolderName = "FileDownloader Test Folder";
 string? sourceFolderId = await gDriveApi.GetFolderIdByAsync(sourceFolderName, parentFolderId, cts.Token);
 if (sourceFolderId is null)
 {
-    Console.WriteLine($"Cannot find a folder with a name {sourceFolderName}.");
+    Console.WriteLine($"Cannot find a folder with a name \"{sourceFolderName}\".");
     return;
 }
 
@@ -24,7 +24,7 @@ string fileToCopyName = "TextFile";
 string? fileId = await gDriveApi.GetFileIdByAsync(fileToCopyName, sourceFolderId, cts.Token);
 if (fileId is null)
 {
-    Console.WriteLine($"Cannot find a file with a name {fileToCopyName}.");
+    Console.WriteLine($"Cannot find a file with a name \"{fileToCopyName}\".");
     return;
 }
 
@@ -33,10 +33,11 @@ string copyFileId;
 try
 {
     copyFileId = await gDriveApi.CopyFileToAsync(fileId, sourceFolderId, cancellationToken: cts.Token);
+    Console.WriteLine($"Created a copy of file \"{fileToCopyName}\".");
 }
 catch (CopyFileException ex)
 {
-    Console.WriteLine($"Cannot create a copy of file '{fileToCopyName}'. Details: {ex.Message}");
+    Console.WriteLine($"Cannot create a copy of file \"{fileToCopyName}\". Details: {ex.Message}");
     return;
 }
 
@@ -46,17 +47,21 @@ const string newFileName = "MyCopyTextFile";
 
 await gDriveApi.RenameFileAsync(copyFileId, newFileName, cancellationToken: cts.Token);
 
+Console.WriteLine($"Renamed file \"{fileToCopyName}\" to \"{newFileName}\".");
+
 /////////// Moving copy file ///////////
 
 const string destinationFolderName = "1";
 string? destinationFolderId = await gDriveApi.GetFolderIdByAsync(destinationFolderName, sourceFolderId, cts.Token);
 if (destinationFolderId is null)
 {
-    Console.WriteLine($"Cannot find a folder with a name {destinationFolderName}.");
+    Console.WriteLine($"Cannot find a folder with a name \"{destinationFolderName}\".");
     return;
 }
 
 await gDriveApi.MoveFileToAsync(copyFileId, sourceFolderId, destinationFolderId, cts.Token);
+
+Console.WriteLine($"File \"{newFileName}\" moved to folder \"{destinationFolderName}\".");
 
 /////////// Update copy file with new content ///////////
 
@@ -81,3 +86,5 @@ await gDriveApi.UpdateFileContentAsync(
     content: stream,
     contentType: contentType,
     cancellationToken: cts.Token);
+
+Console.WriteLine($"File \"{newFileName}\" content updated.");
