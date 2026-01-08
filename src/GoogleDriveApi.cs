@@ -814,6 +814,56 @@ public class GoogleDriveApi : IDisposable
         return file?.Id;
     }
 
+    /// <inheritdoc cref="Internal_UpdateFileContentAsync(string, Stream, string, CancellationToken)"/>
+    public async Task UpdateFileContentAsync(string fileId, Stream fileContent, string contentType, CancellationToken cancellationToken = default)
+    {
+        await TryRefreshTokenAsync(cancellationToken)
+            .ConfigureAwait(false);
+
+        await Internal_UpdateFileContentAsync(fileId, fileContent, contentType, cancellationToken)
+            .ConfigureAwait(false);
+    }
+
+    /// <summary>
+    /// Updates the content (binary data) of an existing Google Drive file.
+    /// </summary>
+    /// <param name="fileId">The ID of the file to update.</param>
+    /// <param name="content">The new file content stream.</param>
+    /// <param name="contentType">The MIME type of the content (e.g. "application/pdf").</param>
+    /// <param name="cancellationToken">Cancellation token.</param>
+    /// <exception cref="ArgumentException">
+    /// Thrown when <paramref name="fileId"/> is <c>null</c> or empty.
+    /// </exception>
+    /// <exception cref="ArgumentNullException">
+    /// Thrown when <paramref name="content"/> is <c>null</c>.
+    /// </exception>
+    /// <exception cref="UpdateFileContentException">
+    /// Thrown when updating the file content fails.
+    /// </exception>
+    private async Task Internal_UpdateFileContentAsync(string fileId, Stream content, string contentType, CancellationToken cancellationToken = default)
+    {
+        ArgumentException.ThrowIfNullOrEmpty(fileId);
+        ArgumentNullException.ThrowIfNull(content);
+        ArgumentException.ThrowIfNullOrEmpty(contentType);
+
+        if (content.CanSeek)
+        {
+            content.Position = 0;
+        }
+
+        var metadata = new GoogleFile();
+
+        var request = Provider.Files.Update(metadata, fileId, content, contentType);
+        request.Fields = "id, md5Checksum, size";
+
+        var upload = await request.UploadAsync(cancellationToken).ConfigureAwait(false);
+
+        if (upload.Status != Google.Apis.Upload.UploadStatus.Completed || request.ResponseBody is null)
+        {
+            throw new UpdateFileContentException($"Failed to update content for file '{fileId}'. Status: {upload.Status}.");
+        }
+    }
+
     /// <summary>
     /// Uploads a file to Google Drive using a file path.
     /// </summary>
