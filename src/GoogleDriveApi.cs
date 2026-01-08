@@ -2,8 +2,8 @@ using Google.Apis.Auth.OAuth2;
 using Google.Apis.Download;
 using Google.Apis.Drive.v3;
 using Google.Apis.Services;
-using GoogleDriveApi_DotNet.Exceptions;
 using GoogleDriveApi_DotNet.Abstractions;
+using GoogleDriveApi_DotNet.Exceptions;
 using GoogleDriveApi_DotNet.Extensions;
 using GoogleDriveApi_DotNet.Helpers;
 using GoogleDriveApi_DotNet.Types;
@@ -180,10 +180,93 @@ public class GoogleDriveApi : IDisposable
         return false;
     }
 
+    /// <inheritdoc cref="Internal_EmptyTrashAsync"/>
+    public async Task EmptyTrashAsync(CancellationToken cancellationToken = default)
+    {
+        await TryRefreshTokenAsync(cancellationToken)
+            .ConfigureAwait(false);
+
+        await Internal_EmptyTrashAsync(cancellationToken)
+            .ConfigureAwait(false);
+    }
+
+    /// <summary>
+    /// Permanently deletes all items from the Google Drive trash.
+    /// </summary>
+    /// <param name="cancellationToken">Cancellation token.</param>
+    private async Task Internal_EmptyTrashAsync(CancellationToken cancellationToken = default)
+    {
+        await Provider.Files.EmptyTrash()
+            .ExecuteAsync(cancellationToken)
+            .ConfigureAwait(false);
+    }
+
+    /// <inheritdoc cref="Internal_GetTrashedFilesAsync(int, CancellationToken)"/>
+    public async Task<List<GoogleFile>> GetTrashedFilesAsync(int pageSize = 50, CancellationToken cancellationToken = default)
+    {
+        await TryRefreshTokenAsync(cancellationToken)
+            .ConfigureAwait(false);
+
+        return await Internal_GetTrashedFilesAsync(pageSize, cancellationToken)
+            .ConfigureAwait(false);
+    }
+
+    /// <summary>
+    /// Retrieves all items currently located in the Google Drive trash.
+    /// </summary>
+    /// <param name="pageSize">
+    /// The maximum number of items to retrieve per page.
+    /// Must be greater than zero.
+    /// </param>
+    /// <param name="cancellationToken">Cancellation token.</param>
+    /// <returns>
+    /// A list of <see cref="GoogleFile"/> objects representing trashed items.
+    /// </returns>
+    /// <remarks>
+    /// Only items marked as trashed are returned.
+    /// The method retrieves all available pages until no more results remain.
+    /// </remarks>
+    /// <exception cref="ArgumentException">
+    /// Thrown when <paramref name="pageSize"/> is less than or equal to zero.
+    /// </exception>
+    private async Task<List<GoogleFile>> Internal_GetTrashedFilesAsync(int pageSize, CancellationToken cancellationToken = default)
+    {
+        if (pageSize <= 0)
+        {
+            throw new ArgumentException("PageSize cannot be smaller than 1.");
+        }
+
+        var trashed = new List<GoogleFile>();
+
+        string? pageToken = null;
+
+        do
+        {
+            var request = Provider.Files.List();
+            request.Q = "trashed = true";
+            request.Fields = "nextPageToken, files(id, name, mimeType, parents)";
+            request.PageSize = pageSize;
+            request.PageToken = pageToken;
+
+            var result = await request.ExecuteAsync(cancellationToken).ConfigureAwait(false);
+
+            if (result.Files is not null)
+            {
+                trashed.AddRange(result.Files);
+            }
+
+            pageToken = result.NextPageToken;
+
+        } while (!string.IsNullOrEmpty(pageToken));
+
+        return trashed;
+    }
+
     /// <inheritdoc cref="Internal_MoveFileToTrashAsync"/>
     public async Task MoveFileToTrashAsync(string fileId, CancellationToken cancellationToken = default)
     {
-        await TryRefreshTokenAsync(cancellationToken).ConfigureAwait(false);
+        await TryRefreshTokenAsync(cancellationToken)
+            .ConfigureAwait(false);
 
         await Internal_MoveFileToTrashAsync(fileId, cancellationToken)
             .ConfigureAwait(false);

@@ -29,4 +29,8 @@ if (fileToDeleteId is null)
 
 await gDriveApi.MoveFileToTrashAsync(fileToDeleteId, cts.Token);
 
+var trashedFiles = await gDriveApi.GetTrashedFilesAsync(cancellationToken: cts.Token);
+
+Console.WriteLine($"Files in trash: {trashedFiles.Count}");
+
 await gDriveApi.RestoreFileFromTrashAsync(fileToDeleteId, cts.Token);
