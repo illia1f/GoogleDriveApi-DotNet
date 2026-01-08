@@ -7,9 +7,7 @@ using GoogleDriveApi_DotNet.Exceptions;
 using GoogleDriveApi_DotNet.Extensions;
 using GoogleDriveApi_DotNet.Helpers;
 using GoogleDriveApi_DotNet.Types;
-using System.Collections;
 using System.Diagnostics;
-using System.Threading;
 
 namespace GoogleDriveApi_DotNet;
 
@@ -203,21 +201,41 @@ public class GoogleDriveApi : IDisposable
             .ConfigureAwait(false);
     }
 
-    /// <inheritdoc cref="Internal_GetTrashedFilesAsync"/>
-    public async Task<List<GoogleFile>> GetTrashedFilesAsync(CancellationToken cancellationToken = default)
+    /// <inheritdoc cref="Internal_GetTrashedFilesAsync(int, CancellationToken)"/>
+    public async Task<List<GoogleFile>> GetTrashedFilesAsync(int pageSize = 50, CancellationToken cancellationToken = default)
     {
         await TryRefreshTokenAsync(cancellationToken)
             .ConfigureAwait(false);
 
-        return await Internal_GetTrashedFilesAsync(cancellationToken)
+        return await Internal_GetTrashedFilesAsync(pageSize, cancellationToken)
             .ConfigureAwait(false);
     }
 
     /// <summary>
     /// Retrieves all items currently located in the Google Drive trash.
     /// </summary>
-    private async Task<List<GoogleFile>> Internal_GetTrashedFilesAsync(CancellationToken cancellationToken = default)
+    /// <param name="pageSize">
+    /// The maximum number of items to retrieve per page.
+    /// Must be greater than zero.
+    /// </param>
+    /// <param name="cancellationToken">Cancellation token.</param>
+    /// <returns>
+    /// A list of <see cref="GoogleFile"/> objects representing trashed items.
+    /// </returns>
+    /// <remarks>
+    /// Only items marked as trashed are returned.
+    /// The method retrieves all available pages until no more results remain.
+    /// </remarks>
+    /// <exception cref="ArgumentException">
+    /// Thrown when <paramref name="pageSize"/> is less than or equal to zero.
+    /// </exception>
+    private async Task<List<GoogleFile>> Internal_GetTrashedFilesAsync(int pageSize, CancellationToken cancellationToken = default)
     {
+        if (pageSize <= 0)
+        {
+            throw new ArgumentException("PageSize cannot be smaller than 1.");
+        }
+
         var trashed = new List<GoogleFile>();
 
         string? pageToken = null;
@@ -227,7 +245,7 @@ public class GoogleDriveApi : IDisposable
             var request = Provider.Files.List();
             request.Q = "trashed = true";
             request.Fields = "nextPageToken, files(id, name, mimeType, parents)";
-            request.PageSize = 1000;
+            request.PageSize = pageSize;
             request.PageToken = pageToken;
 
             var result = await request.ExecuteAsync(cancellationToken).ConfigureAwait(false);
