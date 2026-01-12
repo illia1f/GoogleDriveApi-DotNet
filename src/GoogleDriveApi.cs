@@ -2,12 +2,15 @@ using Google.Apis.Auth.OAuth2;
 using Google.Apis.Download;
 using Google.Apis.Drive.v3;
 using Google.Apis.Services;
+using Google.Apis.Upload;
 using GoogleDriveApi_DotNet.Abstractions;
 using GoogleDriveApi_DotNet.Exceptions;
 using GoogleDriveApi_DotNet.Extensions;
 using GoogleDriveApi_DotNet.Helpers;
 using GoogleDriveApi_DotNet.Types;
 using System.Diagnostics;
+using System.IO;
+using static Google.Apis.Drive.v3.FilesResource;
 
 namespace GoogleDriveApi_DotNet;
 
@@ -814,63 +817,38 @@ public class GoogleDriveApi : IDisposable
         return file?.Id;
     }
 
-    /// <inheritdoc cref="Internal_UpdateFileContentAsync(string, Stream, string, CancellationToken)"/>
     public async Task UpdateFileContentAsync(string fileId, Stream content, string contentType, CancellationToken cancellationToken = default)
     {
         await TryRefreshTokenAsync(cancellationToken)
             .ConfigureAwait(false);
 
-        await Internal_UpdateFileContentAsync(fileId, content, contentType, cancellationToken)
-            .ConfigureAwait(false);
-    }
-
-    /// <summary>
-    /// Updates the content (binary data) of an existing Google Drive file.
-    /// </summary>
-    /// <param name="fileId">The ID of the file to update.</param>
-    /// <param name="content">The new file content stream.</param>
-    /// <param name="contentType">The MIME type of the content (e.g. "application/pdf").</param>
-    /// <param name="cancellationToken">Cancellation token.</param>
-    /// <exception cref="ArgumentException">
-    /// Thrown when <paramref name="fileId"/> is <c>null</c> or empty.
-    /// </exception>
-    /// <exception cref="ArgumentNullException">
-    /// Thrown when <paramref name="content"/> is <c>null</c>.
-    /// </exception>
-    /// <exception cref="UpdateFileContentException">
-    /// Thrown when updating the file content fails.
-    /// </exception>
-    private async Task Internal_UpdateFileContentAsync(string fileId, Stream content, string contentType, CancellationToken cancellationToken = default)
-    {
         ArgumentException.ThrowIfNullOrEmpty(fileId);
         ArgumentNullException.ThrowIfNull(content);
         ArgumentException.ThrowIfNullOrEmpty(contentType);
 
-        if (content.CanSeek)
-        {
-            content.Position = 0;
-        }
+        StreamHelper.ResetIfSeekable(content);
 
         var metadata = new GoogleFile();
-
-        var request = Provider.Files.Update(metadata, fileId, content, contentType);
+        UpdateMediaUpload request = Provider.Files.Update(metadata, fileId, content, contentType);
         request.Fields = "id, md5Checksum, size";
 
-        var upload = await request.UploadAsync(cancellationToken).ConfigureAwait(false);
-
-        if (upload.Status != Google.Apis.Upload.UploadStatus.Completed || request.ResponseBody is null)
+        try
         {
-            throw new UpdateFileContentException($"Failed to update content for file '{fileId}'. Status: {upload.Status}.");
+            _ = await Internal_UploadAsync(
+                request,
+                () => null,
+                $"Failed to update content for file '{fileId}'.",
+                cancellationToken)
+                .ConfigureAwait(false);
+        }
+        catch (Exception ex) when (ex is not OperationCanceledException)
+        {
+            throw new UpdateFileContentException(
+                $"Failed to update content for file '{fileId}'.", ex);
         }
     }
 
-    /// <summary>
-    /// Uploads a file to Google Drive using a file path.
-    /// </summary>
-    /// <param name="filePath">The path of the file to be uploaded.</param>
-    /// <param name="mimeType">The MIME type of the file.</param>
-    /// <param name="cancellationToken">Cancellation token to cancel the operation.</param>
-    public string UploadFilePath(string filePath, string mimeType, CancellationToken cancellationToken = default)
+    public async Task<string> UploadFilePathAsync(string filePath, string mimeType, CancellationToken cancellationToken = default)
     {
         ThrowIfDisposed();
         ArgumentException.ThrowIfNullOrEmpty(filePath);
@@ -880,63 +858,125 @@ public class GoogleDriveApi : IDisposable
         }
 
         string fileName = Path.GetFileName(filePath);
-        using var stream = new FileStream(filePath, FileMode.Open);
+        using var stream = new FileStream(
+            filePath,
+            FileMode.Open,
+            FileAccess.Read,
+            FileShare.Read);
 
-        return Internal_UploadFileStream(stream, fileName, mimeType, cancellationToken);
-    }
-
-    /// <inheritdoc cref="Internal_UploadFileStream"/>
-    public string UploadFileStream(Stream fileStream, string fileName, string mimeType, CancellationToken cancellationToken = default)
-    {
         ThrowIfDisposed();
-        return Internal_UploadFileStream(fileStream, fileName, mimeType, cancellationToken);
-    }
-
-    /// <summary>
-    /// Uploads a file to Google Drive using a Stream.
-    /// Note: The Google API's Upload() method does not directly support CancellationToken, but cancellation will be checked before and after the upload operation.
-    /// </summary>
-    /// <param name="fileStream">The file stream to be uploaded.</param>
-    /// <param name="fileName">The name of the file on Google Drive.</param>
-    /// <param name="mimeType">The MIME type of the file.</param>
-    /// <param name="cancellationToken">Cancellation token to cancel the operation.</param>
-    /// <exception cref="CreateMediaUploadException">Thrown if the file upload failed.</exception>
-    private string Internal_UploadFileStream(Stream fileStream, string fileName, string mimeType, CancellationToken cancellationToken)
-    {
+        ArgumentNullException.ThrowIfNull(stream);
         ArgumentException.ThrowIfNullOrEmpty(fileName);
         ArgumentException.ThrowIfNullOrEmpty(mimeType);
 
         cancellationToken.ThrowIfCancellationRequested();
+
+        StreamHelper.ResetIfSeekable(stream);
+
+        var fileMetadata = new GoogleFile
+        {
+            Name = fileName
+        };
+
+        CreateMediaUpload request = Provider.Files.Create(fileMetadata, stream, mimeType);
+        request.Fields = "id";
+
+        try
+        {
+            GoogleFile result = await Internal_UploadAsync(
+                    request,
+                    () => request.ResponseBody,
+                    $"Failed to upload file '{fileName}'.",
+                    cancellationToken)
+                .ConfigureAwait(false);
+
+            if (string.IsNullOrWhiteSpace(result.Id))
+                throw new UploadException($"Failed to upload file '{fileName}' (no file id returned).");
+
+            return result.Id;
+        }
+        catch (Exception ex) when (ex is not OperationCanceledException)
+        {
+            throw new UploadFileException($"Failed to upload file '{fileName}'.", ex);
+        }
+    }
+
+    public async Task<string> UploadFileStreamAsync(Stream fileStream, string fileName, string mimeType, CancellationToken cancellationToken = default)
+    {
+        ThrowIfDisposed();
+        ArgumentNullException.ThrowIfNull(fileStream);
+        ArgumentException.ThrowIfNullOrEmpty(fileName);
+        ArgumentException.ThrowIfNullOrEmpty(mimeType);
+
+        cancellationToken.ThrowIfCancellationRequested();
+
+        StreamHelper.ResetIfSeekable(fileStream);
 
         var fileMetadata = new GoogleFile()
         {
             Name = fileName
         };
 
-        FilesResource.CreateMediaUpload request =
-            Provider.Files.Create(fileMetadata, fileStream, mimeType);
-
+        CreateMediaUpload request = Provider.Files.Create(fileMetadata, fileStream, mimeType);
         request.Fields = "id";
 
-        var uploadProgress = request.Upload();
-
-        cancellationToken.ThrowIfCancellationRequested();
-
-        if (uploadProgress.Status == Google.Apis.Upload.UploadStatus.Failed)
+        try
         {
-            Debug.WriteLine("File upload failed.");
-            throw new CreateMediaUploadException("File upload failed", uploadProgress.Exception);
+            GoogleFile result = await Internal_UploadAsync(
+                request,
+                () => request.ResponseBody,
+                $"Failed to upload file '{fileName}'.",
+                cancellationToken)
+            .ConfigureAwait(false);
+
+            if (string.IsNullOrWhiteSpace(result.Id))
+                throw new UploadException($"Failed to upload file '{fileName}' (no file id returned).");
+
+            return result.Id;
         }
-
-        GoogleFile file = request.ResponseBody;
-
-        if (file is null)
+        catch (Exception ex) when (ex is not OperationCanceledException)
         {
-            Debug.WriteLine("File upload failed, no response body received.");
-            throw new CreateMediaUploadException("File upload failed, no response body received.");
+            throw new UploadFileException($"Failed to upload file '{fileName}'.", ex);
         }
+    }
 
-        return file.Id;
+    private async Task<TResponse> Internal_UploadAsync<TResponse>(
+        ResumableUpload<TResponse> upload,
+        Func<TResponse?> responseAccessor,
+        string errorMessage,
+        CancellationToken ct = default,
+        Action<IUploadProgress>? onProgress = null)
+    {
+        ArgumentNullException.ThrowIfNull(upload);
+        ArgumentNullException.ThrowIfNull(responseAccessor);
+        ArgumentException.ThrowIfNullOrWhiteSpace(errorMessage);
+
+        ct.ThrowIfCancellationRequested();
+
+        if (onProgress != null)
+            upload.ProgressChanged += onProgress;
+
+        try
+        {
+            var progress = await upload.UploadAsync(ct).ConfigureAwait(false);
+
+            ct.ThrowIfCancellationRequested();
+
+            if (progress.Status == UploadStatus.Failed)
+                throw new UploadException(errorMessage, progress.Exception);
+
+            if (progress.Status != UploadStatus.Completed)
+                throw new UploadException($"{errorMessage} Status: {progress.Status}.");
+
+            var response = responseAccessor();
+
+            return response!;
+        }
+        finally
+        {
+            if (onProgress != null)
+                upload.ProgressChanged -= onProgress;
+        }
     }
 
     /// <summary>

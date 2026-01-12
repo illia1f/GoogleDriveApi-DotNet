@@ -1,6 +1,4 @@
-﻿using GoogleDriveApi_DotNet.Types;
-
-namespace GoogleDriveApi_DotNet.Helpers;
+﻿namespace GoogleDriveApi_DotNet.Helpers;
 
 public static class MimeTypeHelper
 {

@@ -20,7 +20,7 @@ string filePath = "Files/Escanor.jpg";
 try
 {
     // Uploads a file to Google Drive using a file path.
-    string fileId = gDriveApi.UploadFilePath(filePath, KnownMimeTypes.Jpeg, cts.Token);
+    string fileId = await gDriveApi.UploadFilePathAsync(filePath, KnownMimeTypes.Jpeg, cts.Token);
 
     Console.WriteLine($"File has been successfuly uploded with ID({fileId})");
 
@@ -29,7 +29,7 @@ try
     string fileName = Path.GetFileName(filePath);
 
     // Uploads a file to Google Drive using a Stream.
-    gDriveApi.UploadFileStream(stream, fileName, KnownMimeTypes.Jpeg, cts.Token);
+    await gDriveApi.UploadFileStreamAsync(stream, fileName, KnownMimeTypes.Jpeg, cts.Token);
 
     Console.WriteLine($"File has been successfuly uploded with ID({fileId})");
 }
@@ -37,7 +37,7 @@ catch (OperationCanceledException)
 {
     Console.WriteLine("Operation was cancelled or timed out.");
 }
-catch (CreateMediaUploadException ex)
+catch (UploadFileException ex)
 {
     Console.WriteLine(ex.Message);
 }
