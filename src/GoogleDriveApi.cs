@@ -9,7 +9,6 @@ using GoogleDriveApi_DotNet.Extensions;
 using GoogleDriveApi_DotNet.Helpers;
 using GoogleDriveApi_DotNet.Types;
 using System.Diagnostics;
-using System.IO;
 using static Google.Apis.Drive.v3.FilesResource;
 
 namespace GoogleDriveApi_DotNet;
@@ -817,6 +816,21 @@ public class GoogleDriveApi : IDisposable
         return file?.Id;
     }
 
+    /// <summary>
+    /// Updates the binary content of an existing Google Drive file using a resumable upload.
+    /// </summary>
+    /// <param name="fileId">The identifier of the file whose content should be updated.</param>
+    /// <param name="content">A stream containing the new file content.</param>
+    /// <param name="contentType">The MIME type of the content (for example <c>application/pdf</c> or <c>image/png</c>).</param>
+    /// <param name="cancellationToken">A token that can be used to cancel the upload operation.</param>
+    /// <remarks>
+    /// This method replaces the existing file content while preserving the file metadata and validates that the upload completes successfully.
+    /// If the provided <paramref name="content"/> stream is seekable, its position is reset before the upload begins.
+    /// </remarks>
+    /// <exception cref="ArgumentException">Thrown when <paramref name="fileId"/> or <paramref name="contentType"/> is null or empty.</exception>
+    /// <exception cref="ArgumentNullException">Thrown when <paramref name="content"/> is null.</exception>
+    /// <exception cref="OperationCanceledException">Thrown if the operation is canceled.</exception>
+    /// <exception cref="UpdateFileContentException">Thrown when the upload fails or does not complete successfully.</exception>
     public async Task UpdateFileContentAsync(string fileId, Stream content, string contentType, CancellationToken cancellationToken = default)
     {
         await TryRefreshTokenAsync(cancellationToken)
@@ -848,6 +862,22 @@ public class GoogleDriveApi : IDisposable
         }
     }
 
+    /// <summary>
+    /// Uploads a file from the specified file system path to Google Drive using a resumable upload.
+    /// </summary>
+    /// <param name="filePath">The full path to the file to be uploaded.</param>
+    /// <param name="mimeType">The MIME type of the file content (for example <c>application/pdf</c> or <c>image/png</c>).</param>
+    /// <param name="cancellationToken">A token that can be used to cancel the upload operation.</param>
+    /// <returns>The identifier of the newly created Google Drive file.</returns>
+    /// <remarks>
+    /// The file is opened for read-only access and uploaded using a resumable upload.
+    /// If the upload completes successfully but no file identifier is returned by the API, an <see cref="UploadException"/> is thrown.
+    /// </remarks>
+    /// <exception cref="ArgumentException">Thrown when <paramref name="filePath"/> or <paramref name="mimeType"/> is null or empty.</exception>
+    /// <exception cref="FileNotFoundException">Thrown when the file specified by <paramref name="filePath"/> does not exist.</exception>
+    /// <exception cref="OperationCanceledException">Thrown if the operation is canceled.</exception>
+    /// <exception cref="UploadException">Thrown when the upload completes without returning a valid file identifier.</exception>
+    /// <exception cref="UploadFileException">Thrown when the upload fails for any reason other than cancellation.</exception>
     public async Task<string> UploadFilePathAsync(string filePath, string mimeType, CancellationToken cancellationToken = default)
     {
         ThrowIfDisposed();
@@ -901,6 +931,19 @@ public class GoogleDriveApi : IDisposable
         }
     }
 
+    /// <summary>
+    /// Uploads a file to Google Drive from the provided stream using a resumable upload.
+    /// </summary>
+    /// <param name="fileStream">A stream containing the file content to be uploaded.</param>
+    /// <param name="fileName">The name of the file to be created in Google Drive.</param>
+    /// <param name="mimeType">The MIME type of the file content.</param>
+    /// <param name="cancellationToken">A token that can be used to cancel the upload operation.</param>
+    /// <returns>The identifier of the newly created Google Drive file.</returns>
+    /// <exception cref="ArgumentNullException">Thrown when <paramref name="fileStream"/> is null.</exception>
+    /// <exception cref="ArgumentException">Thrown when <paramref name="fileName"/> or <paramref name="mimeType"/> is null or empty.</exception>
+    /// <exception cref="OperationCanceledException">Thrown if the operation is canceled.</exception>
+    /// <exception cref="UploadException">Thrown when the upload completes without returning a file identifier.</exception>
+    /// <exception cref="UploadFileException">Thrown when the upload fails for any reason other than cancellation.</exception>
     public async Task<string> UploadFileStreamAsync(Stream fileStream, string fileName, string mimeType, CancellationToken cancellationToken = default)
     {
         ThrowIfDisposed();
@@ -940,6 +983,20 @@ public class GoogleDriveApi : IDisposable
         }
     }
 
+    /// <summary>
+    /// Executes a resumable upload and validates that it completes successfully.
+    /// </summary>
+    /// <typeparam name="TResponse">The type of the response returned by the upload.</typeparam>
+    /// <param name="upload">The resumable upload request to execute.</param>
+    /// <param name="responseAccessor">A delegate used to retrieve the response after a successful upload.</param>
+    /// <param name="errorMessage">The base error message used when the upload fails.</param>
+    /// <param name="ct">A token that can be used to cancel the upload operation.</param>
+    /// <param name="onProgress">An optional callback invoked when upload progress changes.</param>
+    /// <returns>The response returned by the upload.</returns>
+    /// <exception cref="ArgumentNullException">Thrown when <paramref name="upload"/> or <paramref name="responseAccessor"/> is null.</exception>
+    /// <exception cref="ArgumentException">Thrown when <paramref name="errorMessage"/> is null or empty.</exception>
+    /// <exception cref="OperationCanceledException">Thrown if the operation is canceled.</exception>
+    /// <exception cref="UploadException">Thrown when the upload fails or does not complete successfully.</exception>
     private async Task<TResponse> Internal_UploadAsync<TResponse>(
         ResumableUpload<TResponse> upload,
         Func<TResponse?> responseAccessor,
