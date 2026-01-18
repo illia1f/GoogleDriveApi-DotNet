@@ -133,7 +133,7 @@ public class GoogleDriveApi : IDisposable
     /// <param name="cancellationToken">Cancellation token to cancel the operation or set a timeout.</param>
     /// <exception cref="OperationCanceledException">Thrown if the authorization process is cancelled or times out.</exception>
     /// <exception cref="AuthorizationException">Thrown if already authorized.</exception>
-    internal async Task AuthorizeAsync(CancellationToken cancellationToken = default)
+    public async Task AuthorizeAsync(CancellationToken cancellationToken = default)
     {
         ThrowIfDisposed();
 

@@ -25,6 +25,8 @@ await gDriveApi.AuthorizeAsync(); // Add: cts.Token for timeout control
 
 Upload files to Google Drive using either a file path or a stream.
 
+> **Note:** `KnownMimeTypes` is from the external [MimeMapping](https://www.nuget.org/packages/MimeMapping) NuGet package. You can also use standard MIME type strings directly (e.g., `"image/jpeg"`, `"application/pdf"`, `"text/plain"`). For Google Drive-specific types like folders or Google Docs, use the `GDriveMimeTypes` class from this library.
+
 ```csharp
 using GoogleDriveApi gDriveApi = await GoogleDriveApi.CreateBuilder()
     .SetCredentialsPath("credentials.json")
@@ -37,23 +39,23 @@ string filePath = "Files/Escanor.jpg";
 try
 {
     // Uploads a file to Google Drive using a file path.
-    string fileId = gDriveApi.UploadFilePath(filePath, KnownMimeTypes.Jpeg); // Add: cts.Token
+    string fileId = await gDriveApi.UploadFilePathAsync(filePath, KnownMimeTypes.Jpeg); // Add: cts.Token
 
-    Console.WriteLine($"File has been successfuly uploded with ID({fileId})");
+    Console.WriteLine($"File has been successfully uploaded with ID({fileId})");
 
     using var stream = new FileStream(filePath, FileMode.Open);
     string fileName = Path.GetFileName(filePath);
 
     // Uploads a file to Google Drive using a Stream.
-    gDriveApi.UploadFileStream(stream, fileName, KnownMimeTypes.Jpeg); // Add: cts.Token
+    string fileId2 = await gDriveApi.UploadFileStreamAsync(stream, fileName, KnownMimeTypes.Jpeg); // Add: cts.Token
 
-    Console.WriteLine($"File has been successfuly uploded with ID({fileId})");
+    Console.WriteLine($"File has been successfully uploaded with ID({fileId2})");
 }
 catch (OperationCanceledException)
 {
     Console.WriteLine("Operation was cancelled or timed out.");
 }
-catch (CreateMediaUploadException ex)
+catch (UploadFileException ex)
 {
     Console.WriteLine(ex.Message);
 }
