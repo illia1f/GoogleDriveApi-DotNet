@@ -12,7 +12,7 @@ This C# library simplifies interaction with the Google Drive API. While it doesn
 | File Upload/Download                 | ✅ Complete    |
 | Folder Management                    | ✅ Complete    |
 | File Management (move, rename, copy) | ✅ Complete    |
-| Trash Operations                     | 🔄 In Progress |
+| Trash Operations                     | ✅ Complete    |
 | Advanced Search                      | 📋 Planned     |
 
 See the full [Roadmap](ROADMAP.md) for detailed feature tracking.

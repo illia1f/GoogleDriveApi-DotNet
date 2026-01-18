@@ -22,7 +22,7 @@ The library is in **active development** and approaching its first stable releas
 - [x] Move file to different folder (`MoveFileToAsync`)
 - [x] Rename file (`RenameFileAsync`)
 - [x] Copy file (`CopyFileToAsync`)
-- [ ] Update existing file content
+- [x] Update existing file content (`UpdateFileContentAsync`)
 
 ### Folder Operations
 
@@ -38,8 +38,8 @@ The library is in **active development** and approaching its first stable releas
 
 - [x] Move file/folder to trash (`MoveFileToTrashAsync`)
 - [x] Restore file/folder from trash (`RestoreFileFromTrashAsync`)
-- [ ] Empty trash (`EmptyTrashAsync`)
-- [ ] List trashed items (`GetTrashedFilesAsync`)
+- [x] Empty trash (`EmptyTrashAsync`)
+- [x] List trashed items (`GetTrashedFilesAsync`)
 
 ### Helpers & Utilities
 
