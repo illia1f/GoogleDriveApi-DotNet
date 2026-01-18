@@ -70,7 +70,7 @@ internal class GoogleDriveApiBuilder : IGoogleDriveApiBuilder
 
         if (immediateAuthorization)
         {
-            await gDriveApi.Internal_AuthorizeAsync(cancellationToken)
+            await gDriveApi.AuthorizeAsync(cancellationToken)
                 .ConfigureAwait(false);
         }
 

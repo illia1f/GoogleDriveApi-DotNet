@@ -41,7 +41,7 @@ public class GoogleDriveApi : IDisposable
     }
 
     /// <summary>
-    /// Creates a new GoogleDriveApi instance using the provided options and authentication provider. 
+    /// Creates a new GoogleDriveApi instance using the provided options and authentication provider.
     /// This method is intended to be called by builders implementing <see cref="IGoogleDriveApiBuilder"/>.
     /// </summary>
     /// <param name="options">The configuration options for the GoogleDriveApi instance.</param>
@@ -96,7 +96,7 @@ public class GoogleDriveApi : IDisposable
     /// Releases the unmanaged resources and optionally releases the managed resources.
     /// </summary>
     /// <param name="disposing">
-    /// <c>true</c> to release both managed and unmanaged resources; 
+    /// <c>true</c> to release both managed and unmanaged resources;
     /// <c>false</c> to release only unmanaged resources.
     /// </param>
     protected virtual void Dispose(bool disposing)
@@ -133,15 +133,10 @@ public class GoogleDriveApi : IDisposable
     /// <param name="cancellationToken">Cancellation token to cancel the operation or set a timeout.</param>
     /// <exception cref="OperationCanceledException">Thrown if the authorization process is cancelled or times out.</exception>
     /// <exception cref="AuthorizationException">Thrown if already authorized.</exception>
-    public async Task AuthorizeAsync(CancellationToken cancellationToken = default)
+    internal async Task AuthorizeAsync(CancellationToken cancellationToken = default)
     {
         ThrowIfDisposed();
-        await Internal_AuthorizeAsync(cancellationToken)
-            .ConfigureAwait(false);
-    }
 
-    internal async Task Internal_AuthorizeAsync(CancellationToken cancellationToken)
-    {
         if (IsAuthorized)
         {
             throw new AuthorizationException("The GoogleDriveApi has been already authorized.");
@@ -158,19 +153,20 @@ public class GoogleDriveApi : IDisposable
     }
 
     /// <summary>
-    /// Refreshes the token if it is stale.
+    /// Manually refreshes the token if it is stale.
+    /// <para>
+    /// <b>Note:</b> This method is optional. The Google.Apis library automatically refreshes tokens
+    /// before each API request via <see cref="UserCredential.InterceptAsync"/>. Use this method only
+    /// if you need to proactively refresh tokens (e.g., before a batch of operations).
+    /// </para>
     /// <para>Documentation: https://cloud.google.com/dotnet/docs/reference/Google.Apis/latest/Google.Apis.Auth.OAuth2.UserCredential?hl=en#Google_Apis_Auth_OAuth2_UserCredential_RefreshTokenAsync_System_Threading_CancellationToken_</para>
     /// </summary>
     /// <param name="cancellationToken">Cancellation token to cancel the operation.</param>
     /// <returns>True if the token was refreshed, false otherwise.</returns>
-    public Task<bool> TryRefreshTokenAsync(CancellationToken cancellationToken = default)
+    public async Task<bool> TryRefreshTokenAsync(CancellationToken cancellationToken = default)
     {
         ThrowIfDisposed();
-        return Internal_TryRefreshTokenAsync(cancellationToken);
-    }
 
-    private async Task<bool> Internal_TryRefreshTokenAsync(CancellationToken cancellationToken)
-    {
         if (_credential is not null && IsTokenShouldBeRefreshed)
         {
             await _credential.RefreshTokenAsync(cancellationToken)
@@ -182,34 +178,14 @@ public class GoogleDriveApi : IDisposable
         return false;
     }
 
-    /// <inheritdoc cref="Internal_EmptyTrashAsync"/>
-    public async Task EmptyTrashAsync(CancellationToken cancellationToken = default)
-    {
-        await TryRefreshTokenAsync(cancellationToken)
-            .ConfigureAwait(false);
-
-        await Internal_EmptyTrashAsync(cancellationToken)
-            .ConfigureAwait(false);
-    }
-
     /// <summary>
     /// Permanently deletes all items from the Google Drive trash.
     /// </summary>
     /// <param name="cancellationToken">Cancellation token.</param>
-    private async Task Internal_EmptyTrashAsync(CancellationToken cancellationToken = default)
+    public async Task EmptyTrashAsync(CancellationToken cancellationToken = default)
     {
         await Provider.Files.EmptyTrash()
             .ExecuteAsync(cancellationToken)
-            .ConfigureAwait(false);
-    }
-
-    /// <inheritdoc cref="Internal_GetTrashedFilesAsync(int, CancellationToken)"/>
-    public async Task<List<GoogleFile>> GetTrashedFilesAsync(int pageSize = 50, CancellationToken cancellationToken = default)
-    {
-        await TryRefreshTokenAsync(cancellationToken)
-            .ConfigureAwait(false);
-
-        return await Internal_GetTrashedFilesAsync(pageSize, cancellationToken)
             .ConfigureAwait(false);
     }
 
@@ -231,7 +207,7 @@ public class GoogleDriveApi : IDisposable
     /// <exception cref="ArgumentException">
     /// Thrown when <paramref name="pageSize"/> is less than or equal to zero.
     /// </exception>
-    private async Task<List<GoogleFile>> Internal_GetTrashedFilesAsync(int pageSize, CancellationToken cancellationToken = default)
+    public async Task<List<GoogleFile>> GetTrashedFilesAsync(int pageSize = 50, CancellationToken cancellationToken = default)
     {
         if (pageSize <= 0)
         {
@@ -264,16 +240,6 @@ public class GoogleDriveApi : IDisposable
         return trashed;
     }
 
-    /// <inheritdoc cref="Internal_MoveFileToTrashAsync"/>
-    public async Task MoveFileToTrashAsync(string fileId, CancellationToken cancellationToken = default)
-    {
-        await TryRefreshTokenAsync(cancellationToken)
-            .ConfigureAwait(false);
-
-        await Internal_MoveFileToTrashAsync(fileId, cancellationToken)
-            .ConfigureAwait(false);
-    }
-
     /// <summary>
     /// Moves a file to the Google Drive trash.
     /// Marks the file as trashed by updating its metadata.
@@ -286,7 +252,7 @@ public class GoogleDriveApi : IDisposable
     /// <exception cref="TrashFileException">
     /// Thrown when the file could not be moved to the Google Drive trash.
     /// </exception>
-    private async Task Internal_MoveFileToTrashAsync(string fileId, CancellationToken cancellationToken = default)
+    public async Task MoveFileToTrashAsync(string fileId, CancellationToken cancellationToken = default)
     {
         ArgumentException.ThrowIfNullOrEmpty(fileId);
 
@@ -308,15 +274,6 @@ public class GoogleDriveApi : IDisposable
         }
     }
 
-    /// <inheritdoc cref="Internal_RestoreFileFromTrashAsync"/>
-    public async Task RestoreFileFromTrashAsync(string fileId, CancellationToken cancellationToken = default)
-    {
-        await TryRefreshTokenAsync(cancellationToken).ConfigureAwait(false);
-
-        await Internal_RestoreFileFromTrashAsync(fileId, cancellationToken)
-            .ConfigureAwait(false);
-    }
-
     /// <summary>
     /// Restores a file from the Google Drive trash.
     /// Marks the file as not trashed by updating its metadata.
@@ -329,7 +286,7 @@ public class GoogleDriveApi : IDisposable
     /// <exception cref="RestoreFileException">
     /// Thrown when the file could not be restored from the Google Drive trash.
     /// </exception>
-    private async Task Internal_RestoreFileFromTrashAsync(string fileId, CancellationToken cancellationToken = default)
+    public async Task RestoreFileFromTrashAsync(string fileId, CancellationToken cancellationToken = default)
     {
         ArgumentException.ThrowIfNullOrEmpty(fileId);
 
@@ -351,15 +308,6 @@ public class GoogleDriveApi : IDisposable
         }
     }
 
-    /// <inheritdoc cref="Internal_DeleteFileAsync"/>
-    public async Task DeleteFileAsync(string fileId, CancellationToken cancellationToken = default)
-    {
-        await TryRefreshTokenAsync(cancellationToken).ConfigureAwait(false);
-
-        await Internal_DeleteFileAsync(fileId, cancellationToken)
-            .ConfigureAwait(false);
-    }
-
     /// <summary>
     /// Deletes a file from Google Drive.
     /// Retrieves the file metadata to validate its type
@@ -374,7 +322,7 @@ public class GoogleDriveApi : IDisposable
     /// Thrown when the specified ID refers to an item
     /// that is not a file (for example, a folder).
     /// </exception>
-    private async Task Internal_DeleteFileAsync(string fileId, CancellationToken cancellationToken)
+    public async Task DeleteFileAsync(string fileId, CancellationToken cancellationToken = default)
     {
         ArgumentException.ThrowIfNullOrEmpty(fileId);
 
@@ -392,16 +340,6 @@ public class GoogleDriveApi : IDisposable
             .ConfigureAwait(false);
     }
 
-    /// <inheritdoc cref="Internal_RenameFileAsync"/>
-    public async Task RenameFileAsync(string fileId, string newName, CancellationToken cancellationToken = default)
-    {
-        await TryRefreshTokenAsync(cancellationToken)
-            .ConfigureAwait(false);
-
-        await Internal_RenameFileAsync(fileId, newName, cancellationToken)
-            .ConfigureAwait(false);
-    }
-
     /// <summary>
     /// Renames a file in Google Drive by updating its metadata.
     /// </summary>
@@ -415,10 +353,7 @@ public class GoogleDriveApi : IDisposable
     /// <exception cref="ArgumentException">
     /// Thrown when <paramref name="fileId"/> or <paramref name="newName"/> is <c>null</c> or empty.
     /// </exception>
-    private async Task Internal_RenameFileAsync(
-        string fileId,
-        string newName,
-        CancellationToken cancellationToken = default)
+    public async Task RenameFileAsync(string fileId, string newName, CancellationToken cancellationToken = default)
     {
         ArgumentException.ThrowIfNullOrEmpty(fileId);
         ArgumentException.ThrowIfNullOrEmpty(newName);
@@ -429,16 +364,6 @@ public class GoogleDriveApi : IDisposable
         updateRequest.Fields = "id,name";
 
         await updateRequest.ExecuteAsync(cancellationToken).ConfigureAwait(false);
-    }
-
-    /// <inheritdoc cref="Internal_MoveFileToAsync"/>
-    public async Task MoveFileToAsync(string fileId, string sourceFolderId, string destinationFolderId, CancellationToken cancellationToken = default)
-    {
-        await TryRefreshTokenAsync(cancellationToken)
-            .ConfigureAwait(false);
-
-        await Internal_MoveFileToAsync(fileId, sourceFolderId, destinationFolderId, cancellationToken)
-            .ConfigureAwait(false);
     }
 
     /// <summary>
@@ -458,7 +383,7 @@ public class GoogleDriveApi : IDisposable
     /// Thrown when <paramref name="fileId"/>, <paramref name="sourceFolderId"/>,
     /// or <paramref name="destinationFolderId"/> is <c>null</c> or empty.
     /// </exception>
-    private async Task Internal_MoveFileToAsync(string fileId, string sourceFolderId, string destinationFolderId, CancellationToken cancellationToken = default)
+    public async Task MoveFileToAsync(string fileId, string sourceFolderId, string destinationFolderId, CancellationToken cancellationToken = default)
     {
         ArgumentException.ThrowIfNullOrEmpty(fileId);
         ArgumentException.ThrowIfNullOrEmpty(sourceFolderId);
@@ -475,16 +400,6 @@ public class GoogleDriveApi : IDisposable
         updateRequest.Fields = "id, parents";
 
         await updateRequest.ExecuteAsync(cancellationToken).ConfigureAwait(false);
-    }
-
-    /// <inheritdoc cref="Internal_CopyFileToAsync"/>
-    public async Task<string> CopyFileToAsync(string fileId, string destinationFolderId, string? newName = null, CancellationToken cancellationToken = default)
-    {
-        await TryRefreshTokenAsync(cancellationToken)
-            .ConfigureAwait(false);
-
-        return await Internal_CopyFileToAsync(fileId, destinationFolderId, newName, cancellationToken)
-            .ConfigureAwait(false);
     }
 
     /// <summary>
@@ -507,7 +422,7 @@ public class GoogleDriveApi : IDisposable
     /// <exception cref="CopyFileException">
     /// Thrown when the file could not be copied to the specified destination folder.
     /// </exception>
-    private async Task<string> Internal_CopyFileToAsync(string fileId, string destinationFolderId, string? newName = null, CancellationToken cancellationToken = default)
+    public async Task<string> CopyFileToAsync(string fileId, string destinationFolderId, string? newName = null, CancellationToken cancellationToken = default)
     {
         ArgumentException.ThrowIfNullOrEmpty(fileId);
         ArgumentException.ThrowIfNullOrEmpty(destinationFolderId);
@@ -533,15 +448,6 @@ public class GoogleDriveApi : IDisposable
         return copiedFile.Id;
     }
 
-    /// <inheritdoc cref="Internal_GetFolderIdByAsync(string, string?, CancellationToken)"/>
-    public async Task<string?> GetFolderIdByAsync(string folderName, string? parentFolderId = null, CancellationToken cancellationToken = default)
-    {
-        await TryRefreshTokenAsync(cancellationToken).ConfigureAwait(false);
-
-        return await Internal_GetFolderIdByAsync(folderName, parentFolderId, cancellationToken)
-            .ConfigureAwait(false);
-    }
-
     /// <summary>
     /// Retrieves the ID of a folder by its name within the specified parent folder.
     /// </summary>
@@ -562,7 +468,7 @@ public class GoogleDriveApi : IDisposable
     /// <exception cref="ArgumentException">
     /// Thrown when <paramref name="folderName"/> is <c>null</c> or empty.
     /// </exception>
-    private async Task<string?> Internal_GetFolderIdByAsync(string folderName, string? parentFolderId = null, CancellationToken cancellationToken = default)
+    public async Task<string?> GetFolderIdByAsync(string folderName, string? parentFolderId = null, CancellationToken cancellationToken = default)
     {
         ArgumentException.ThrowIfNullOrEmpty(folderName);
 
@@ -577,15 +483,6 @@ public class GoogleDriveApi : IDisposable
         GoogleFile? file = result.Files.FirstOrDefault();
 
         return file?.Id;
-    }
-
-    /// <inheritdoc cref="Internal_GetFoldersByAsync(string, int, CancellationToken)"/>
-    public async Task<List<(string id, string name)>> GetFoldersByAsync(string parentFolderId, int pageSize = 50, CancellationToken cancellationToken = default)
-    {
-        await TryRefreshTokenAsync(cancellationToken).ConfigureAwait(false);
-
-        return await Internal_GetFoldersByAsync(parentFolderId, pageSize, cancellationToken)
-            .ConfigureAwait(false);
     }
 
     /// <summary>
@@ -608,7 +505,7 @@ public class GoogleDriveApi : IDisposable
     /// Thrown when <paramref name="parentFolderId"/> is <c>null</c> or empty,
     /// or when <paramref name="pageSize"/> is less than or equal to zero.
     /// </exception>
-    private async Task<List<(string id, string name)>> Internal_GetFoldersByAsync(string parentFolderId, int pageSize, CancellationToken cancellationToken)
+    public async Task<List<(string id, string name)>> GetFoldersByAsync(string parentFolderId, int pageSize = 50, CancellationToken cancellationToken = default)
     {
         ArgumentException.ThrowIfNullOrEmpty(parentFolderId);
 
@@ -643,14 +540,6 @@ public class GoogleDriveApi : IDisposable
             .ToList();
     }
 
-    /// <inheritdoc cref="Internal_GetAllFoldersAsync(CancellationToken)"/>
-    public async Task<List<GDriveFile>> GetAllFoldersAsync(CancellationToken cancellationToken = default)
-    {
-        await TryRefreshTokenAsync(cancellationToken).ConfigureAwait(false);
-
-        return await Internal_GetAllFoldersAsync(cancellationToken).ConfigureAwait(false);
-    }
-
     /// <summary>
     /// Retrieves all folders from Google Drive.
     /// </summary>
@@ -662,7 +551,7 @@ public class GoogleDriveApi : IDisposable
     /// This method retrieves folders using paginated requests.
     /// Each request uses the maximum supported page size (1000) and continues until all pages are fetched.
     /// </remarks>
-    private async Task<List<GDriveFile>> Internal_GetAllFoldersAsync(CancellationToken cancellationToken)
+    public async Task<List<GDriveFile>> GetAllFoldersAsync(CancellationToken cancellationToken = default)
     {
         var request = Provider.Files.List();
         request.Q = $"mimeType = '{GDriveMimeTypes.Folder}'";
@@ -680,15 +569,6 @@ public class GoogleDriveApi : IDisposable
         var driveFolders = folders.Select(f => f.ToGDriveFile()).ToList();
 
         return driveFolders;
-    }
-
-    /// <inheritdoc cref="Internal_CreateFolderAsync(string, string?, CancellationToken)"/>
-    public async Task<string> CreateFolderAsync(string folderName, string? parentFolderId = null, CancellationToken cancellationToken = default)
-    {
-        await TryRefreshTokenAsync(cancellationToken).ConfigureAwait(false);
-
-        return await Internal_CreateFolderAsync(folderName, parentFolderId, cancellationToken)
-            .ConfigureAwait(false);
     }
 
     /// <summary>
@@ -710,7 +590,7 @@ public class GoogleDriveApi : IDisposable
     /// The folder is created using a single Google Drive API request.
     /// Only folder-specific metadata is set; no additional properties are modified.
     /// </remarks>
-    private async Task<string> Internal_CreateFolderAsync(string folderName, string? parentFolderId = null, CancellationToken cancellationToken = default)
+    public async Task<string> CreateFolderAsync(string folderName, string? parentFolderId = null, CancellationToken cancellationToken = default)
     {
         ArgumentException.ThrowIfNullOrEmpty(folderName);
 
@@ -729,15 +609,6 @@ public class GoogleDriveApi : IDisposable
         return file.Id;
     }
 
-    /// <inheritdoc cref="Internal_DeleteFolderAsync"/>
-    public async Task<bool> DeleteFolderAsync(string folderId, CancellationToken cancellationToken = default)
-    {
-        await TryRefreshTokenAsync(cancellationToken).ConfigureAwait(false);
-
-        return await Internal_DeleteFolderAsync(folderId, cancellationToken)
-            .ConfigureAwait(false);
-    }
-
     /// <summary>
     /// Deletes a folder from Google Drive after validating its type.
     /// </summary>
@@ -752,7 +623,7 @@ public class GoogleDriveApi : IDisposable
     /// <exception cref="InvalidFileTypeException">
     /// Thrown when the specified ID refers to an item that is not a folder.
     /// </exception>
-    private async Task<bool> Internal_DeleteFolderAsync(string folderId, CancellationToken cancellationToken)
+    public async Task<bool> DeleteFolderAsync(string folderId, CancellationToken cancellationToken = default)
     {
         ArgumentException.ThrowIfNullOrEmpty(folderId);
 
@@ -765,15 +636,6 @@ public class GoogleDriveApi : IDisposable
         await Provider.Files.Delete(folderId).ExecuteAsync(cancellationToken).ConfigureAwait(false);
 
         return true;
-    }
-
-    /// <inheritdoc cref="Internal_GetFileIdByAsync(string, string?, CancellationToken)"/>
-    public async Task<string?> GetFileIdByAsync(string fullFileName, string? parentFolderId = null, CancellationToken cancellationToken = default)
-    {
-        await TryRefreshTokenAsync(cancellationToken).ConfigureAwait(false);
-
-        return await Internal_GetFileIdByAsync(fullFileName, parentFolderId, cancellationToken)
-            .ConfigureAwait(false);
     }
 
     /// <summary>
@@ -799,7 +661,7 @@ public class GoogleDriveApi : IDisposable
     /// <exception cref="AuthorizationException">
     /// Thrown if the Google Drive API is not initialized or authorized.
     /// </exception>
-    private async Task<string?> Internal_GetFileIdByAsync(string fullFileName, string? parentFolderId = null, CancellationToken cancellationToken = default)
+    public async Task<string?> GetFileIdByAsync(string fullFileName, string? parentFolderId = null, CancellationToken cancellationToken = default)
     {
         ArgumentException.ThrowIfNullOrEmpty(fullFileName);
 
@@ -833,9 +695,6 @@ public class GoogleDriveApi : IDisposable
     /// <exception cref="UpdateFileContentException">Thrown when the upload fails or does not complete successfully.</exception>
     public async Task UpdateFileContentAsync(string fileId, Stream content, string contentType, CancellationToken cancellationToken = default)
     {
-        await TryRefreshTokenAsync(cancellationToken)
-            .ConfigureAwait(false);
-
         ArgumentException.ThrowIfNullOrEmpty(fileId);
         ArgumentNullException.ThrowIfNull(content);
         ArgumentException.ThrowIfNullOrEmpty(contentType);
@@ -848,7 +707,7 @@ public class GoogleDriveApi : IDisposable
 
         try
         {
-            _ = await Internal_UploadAsync(
+            _ = await UploadAsync(
                 request,
                 () => null,
                 $"Failed to update content for file '{fileId}'.",
@@ -880,7 +739,6 @@ public class GoogleDriveApi : IDisposable
     /// <exception cref="UploadFileException">Thrown when the upload fails for any reason other than cancellation.</exception>
     public async Task<string> UploadFilePathAsync(string filePath, string mimeType, CancellationToken cancellationToken = default)
     {
-        ThrowIfDisposed();
         ArgumentException.ThrowIfNullOrEmpty(filePath);
         if (!File.Exists(filePath))
         {
@@ -894,7 +752,6 @@ public class GoogleDriveApi : IDisposable
             FileAccess.Read,
             FileShare.Read);
 
-        ThrowIfDisposed();
         ArgumentNullException.ThrowIfNull(stream);
         ArgumentException.ThrowIfNullOrEmpty(fileName);
         ArgumentException.ThrowIfNullOrEmpty(mimeType);
@@ -913,7 +770,7 @@ public class GoogleDriveApi : IDisposable
 
         try
         {
-            GoogleFile result = await Internal_UploadAsync(
+            GoogleFile result = await UploadAsync(
                     request,
                     () => request.ResponseBody,
                     $"Failed to upload file '{fileName}'.",
@@ -946,7 +803,6 @@ public class GoogleDriveApi : IDisposable
     /// <exception cref="UploadFileException">Thrown when the upload fails for any reason other than cancellation.</exception>
     public async Task<string> UploadFileStreamAsync(Stream fileStream, string fileName, string mimeType, CancellationToken cancellationToken = default)
     {
-        ThrowIfDisposed();
         ArgumentNullException.ThrowIfNull(fileStream);
         ArgumentException.ThrowIfNullOrEmpty(fileName);
         ArgumentException.ThrowIfNullOrEmpty(mimeType);
@@ -965,7 +821,7 @@ public class GoogleDriveApi : IDisposable
 
         try
         {
-            GoogleFile result = await Internal_UploadAsync(
+            GoogleFile result = await UploadAsync(
                 request,
                 () => request.ResponseBody,
                 $"Failed to upload file '{fileName}'.",
@@ -997,7 +853,7 @@ public class GoogleDriveApi : IDisposable
     /// <exception cref="ArgumentException">Thrown when <paramref name="errorMessage"/> is null or empty.</exception>
     /// <exception cref="OperationCanceledException">Thrown if the operation is canceled.</exception>
     /// <exception cref="UploadException">Thrown when the upload fails or does not complete successfully.</exception>
-    private async Task<TResponse> Internal_UploadAsync<TResponse>(
+    private async Task<TResponse> UploadAsync<TResponse>(
         ResumableUpload<TResponse> upload,
         Func<TResponse?> responseAccessor,
         string errorMessage,
@@ -1050,8 +906,6 @@ public class GoogleDriveApi : IDisposable
     {
         ArgumentException.ThrowIfNullOrEmpty(fileId);
         ArgumentException.ThrowIfNullOrEmpty(saveToPath);
-
-        await TryRefreshTokenAsync(cancellationToken).ConfigureAwait(false);
 
         // Ensure the folderPath directory exists
         Directory.CreateDirectory(saveToPath);
