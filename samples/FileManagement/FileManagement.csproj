@@ -11,4 +11,14 @@
     <ProjectReference Include="..\..\src\GoogleDriveApi-DotNet.csproj" />
   </ItemGroup>
 
+	<PropertyGroup>
+		<!-- Template: put your file into samples/Shared and change only this name -->
+		<SharedSampleFileName>NewTextFileCopy.txt</SharedSampleFileName>
+	</PropertyGroup>
+
+	<ItemGroup Condition="Exists('..\Shared\$(SharedSampleFileName)')">
+		<None Include="..\Shared\$(SharedSampleFileName)">
+			<CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
+		</None>
+	</ItemGroup>
 </Project>
