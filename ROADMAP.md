@@ -12,8 +12,8 @@ The library is in **active development** and approaching its first stable releas
 
 ### File Operations
 
-- [x] Upload file from path (`UploadFilePath`)
-- [x] Upload file from stream (`UploadFileStream`)
+- [x] Upload file from path (`UploadFilePathAsync`)
+- [x] Upload file from stream (`UploadFileStreamAsync`)
 - [x] Download binary files (`DownloadFileAsync`)
 - [x] Download/export Google Workspace files (Docs, Sheets, Slides)
 - [x] Get file ID by name (`GetFileIdByAsync`)

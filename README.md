@@ -6,16 +6,7 @@ This C# library simplifies interaction with the Google Drive API. While it doesn
 
 🚧 **Pre-release** — The library is in active development approaching v1.0.0.
 
-| Category                             | Status         |
-| ------------------------------------ | -------------- |
-| Authentication                       | ✅ Complete    |
-| File Upload/Download                 | ✅ Complete    |
-| Folder Management                    | ✅ Complete    |
-| File Management (move, rename, copy) | ✅ Complete    |
-| Trash Operations                     | ✅ Complete    |
-| Advanced Search                      | 📋 Planned     |
-
-See the full [Roadmap](ROADMAP.md) for detailed feature tracking.
+See the [Roadmap](ROADMAP.md) for feature status and detailed tracking.
 
 ## Documentation
 
@@ -27,13 +18,13 @@ See the full [Roadmap](ROADMAP.md) for detailed feature tracking.
 
 ## Installation
 
-Add the Google Drive API NuGet package to your project:
+This library depends on the official Google Drive API NuGet package. Add it to your project:
 
 ```bash
 dotnet add package Google.Apis.Drive.v3
 ```
 
-> Download this library or create our own implementation based on this template.
+> Download this library or create your own implementation based on this template.
 
 ## Setup
 
@@ -46,7 +37,7 @@ See [Google Cloud Console Setup](docs/GoogleCloudConsoleSetup.md).
 1. Place the downloaded `credentials.json` file in your project directory.
 2. Initialize the `GoogleDriveApi` class with your credentials.
 
-## If you are developer
+## If you are a developer
 
 > For testing samples just place downloaded `credentials.json` in samples/Shared directory.
 > If you want to share more files across sample project include them in `Directory.Build.targets` config file.
