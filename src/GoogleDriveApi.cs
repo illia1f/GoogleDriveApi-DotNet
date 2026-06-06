@@ -475,12 +475,12 @@ public class GoogleDriveApi : IDisposable
         parentFolderId ??= _options.RootFolderId;
 
         var listRequest = Provider.Files.List();
-        listRequest.Q = $"mimeType='{GDriveMimeTypes.Folder}' and name='{folderName}' and '{parentFolderId}' in parents and trashed=false";
+        listRequest.Q = $"mimeType='{GDriveMimeTypes.Folder}' and name='{DriveQueryHelper.EscapeValue(folderName)}' and '{DriveQueryHelper.EscapeValue(parentFolderId)}' in parents and trashed=false";
         listRequest.Fields = "files(id, name)";
         listRequest.PageSize = 1;
 
         var result = await listRequest.ExecuteAsync(cancellationToken).ConfigureAwait(false);
-        GoogleFile? file = result.Files.FirstOrDefault();
+        GoogleFile? file = result.Files?.FirstOrDefault();
 
         return file?.Id;
     }
@@ -516,7 +516,7 @@ public class GoogleDriveApi : IDisposable
 
         var allFolders = new List<GoogleFile>();
         string? pageToken = null;
-        string qSelector = $"mimeType='{GDriveMimeTypes.Folder}' and '{parentFolderId}' in parents and trashed=false";
+        string qSelector = $"mimeType='{GDriveMimeTypes.Folder}' and '{DriveQueryHelper.EscapeValue(parentFolderId)}' in parents and trashed=false";
         const string fields = "nextPageToken, files(id, name)";
         do
         {
@@ -668,12 +668,12 @@ public class GoogleDriveApi : IDisposable
         parentFolderId ??= _options.RootFolderId;
 
         var request = Provider.Files.List();
-        request.Q = $"name = '{fullFileName}' and '{parentFolderId}' in parents and trashed = false";
+        request.Q = $"name = '{DriveQueryHelper.EscapeValue(fullFileName)}' and '{DriveQueryHelper.EscapeValue(parentFolderId)}' in parents and trashed = false";
         request.Fields = "files(id, name)";
         request.PageSize = 1;
 
         var result = await request.ExecuteAsync(cancellationToken).ConfigureAwait(false);
-        var file = result.Files.FirstOrDefault();
+        var file = result.Files?.FirstOrDefault();
 
         return file?.Id;
     }
