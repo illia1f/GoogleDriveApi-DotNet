@@ -14,16 +14,14 @@ Downloads a file from Google Drive by its file ID.
 
 **Parameters:**
 - `fileId`: The ID of the file to download.
-- `saveToPath`: The local path where the file will be saved (default is "Downloads").
+- `saveToPath`: The local **directory** where the downloaded file will be saved (default is "Downloads"). Created if it does not exist.
 
 **Process:**
-1. Refreshes the authentication token if necessary.
-2. Ensures the destination directory exists.
-3. Fetches the file metadata using the file ID.
-4. Determines if the file has a Google-specific MIME type.
-5. If the file has a Google-specific MIME type, the MIME type is converted to an exportable type.
-6. Constructs the full path for the downloaded file.
-7. If the file is a Google-specific MIME type, it is exported; otherwise, it is downloaded as a binary file.
+1. Fetches the file metadata using the file ID.
+2. Determines if the file has a Google-specific MIME type.
+3. If the file has a Google-specific MIME type, the MIME type is converted to an exportable type.
+4. Ensures the destination directory exists and constructs the full path for the downloaded file.
+5. If the file is a Google-specific MIME type, it is exported; otherwise, it is downloaded as a binary file.
 
 ## Handling Google-Specific MIME Types
 

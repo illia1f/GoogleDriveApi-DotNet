@@ -2,7 +2,7 @@
 
 namespace GoogleDriveApi_DotNet.Helpers;
 
-public static class GoogleDriveHelper
+internal static class GoogleDriveHelper
 {
     private const string RootFolderUrl = "https://drive.google.com/drive/my-drive";
     private const string FolderUrlPattern = @"https://drive.google.com/drive/folders/([a-zA-Z0-9-_]+)";

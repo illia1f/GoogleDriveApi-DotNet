@@ -13,6 +13,13 @@ using static Google.Apis.Drive.v3.FilesResource;
 
 namespace GoogleDriveApi_DotNet;
 
+/// <summary>
+/// Provides a simplified wrapper around the Google Drive v3 API.
+/// </summary>
+/// <remarks>
+/// Most instance members require successful authorization through <see cref="AuthorizeAsync"/>
+/// before they are used. Each member documents the exceptions it can throw.
+/// </remarks>
 public class GoogleDriveApi : IDisposable
 {
     private readonly GoogleDriveApiOptions _options;
@@ -31,9 +38,6 @@ public class GoogleDriveApi : IDisposable
     /// </summary>
     public GoogleDriveApiOptions Options => _options;
 
-    /// <summary>
-    /// Private constructor to prevent direct instantiation. Use <see cref="Create"/> method instead.
-    /// </summary>
     private GoogleDriveApi(GoogleDriveApiOptions options, IGoogleDriveAuthProvider authProvider)
     {
         _options = options;
@@ -56,6 +60,11 @@ public class GoogleDriveApi : IDisposable
         return new(options, authProvider);
     }
 
+    /// <summary>
+    /// Gets the underlying <see cref="DriveService"/> for direct access to the Google Drive API.
+    /// </summary>
+    /// <exception cref="AuthorizationException">Thrown when the instance has not been authorized. Call <see cref="AuthorizeAsync"/> first.</exception>
+    /// <exception cref="ObjectDisposedException">Thrown when the instance has been disposed.</exception>
     public DriveService Provider
     {
         get
@@ -65,6 +74,10 @@ public class GoogleDriveApi : IDisposable
         }
     }
 
+    /// <summary>
+    /// Gets a value indicating whether <see cref="AuthorizeAsync"/> has completed successfully.
+    /// </summary>
+    /// <exception cref="ObjectDisposedException">Thrown when the instance has been disposed.</exception>
     public bool IsAuthorized
     {
         get
@@ -73,6 +86,11 @@ public class GoogleDriveApi : IDisposable
             return _service is not null;
         }
     }
+
+    /// <summary>
+    /// Gets a value indicating whether the current access token is stale and should be refreshed.
+    /// </summary>
+    /// <exception cref="ObjectDisposedException">Thrown when the instance has been disposed.</exception>
     public bool IsTokenShouldBeRefreshed
     {
         get
@@ -116,13 +134,19 @@ public class GoogleDriveApi : IDisposable
         }
     }
 
-    /// <summary>
-    /// Throws an <see cref="ObjectDisposedException"/> if the object has been disposed.
-    /// </summary>
     private void ThrowIfDisposed() => ObjectDisposedException.ThrowIf(_disposed, this);
 
+    /// <summary>
+    /// Creates a builder for configuring a new <see cref="GoogleDriveApi"/> instance.
+    /// </summary>
+    /// <returns>A new <see cref="GoogleDriveApiBuilder"/> instance.</returns>
     public static IGoogleDriveApiBuilder CreateBuilder() => CreateBuilder<GoogleDriveApiBuilder>();
 
+    /// <summary>
+    /// Creates a builder of the specified type for configuring a new <see cref="GoogleDriveApi"/> instance.
+    /// </summary>
+    /// <typeparam name="TBuilder">The builder type to instantiate.</typeparam>
+    /// <returns>A new <typeparamref name="TBuilder"/> instance.</returns>
     public static IGoogleDriveApiBuilder CreateBuilder<TBuilder>() where TBuilder : IGoogleDriveApiBuilder, new()
         => new TBuilder();
 
@@ -130,9 +154,11 @@ public class GoogleDriveApi : IDisposable
     /// Authorizes the user in Google Drive using the configured authentication provider.
     /// Use <paramref name="cancellationToken"/> to cancel the operation or set a timeout (e.g., <c>new CancellationTokenSource(TimeSpan.FromSeconds(30)).Token</c>).
     /// </summary>
-    /// <param name="cancellationToken">Cancellation token to cancel the operation or set a timeout.</param>
+    /// <param name="cancellationToken">The token to monitor for cancellation requests.</param>
     /// <exception cref="OperationCanceledException">Thrown if the authorization process is cancelled or times out.</exception>
     /// <exception cref="AuthorizationException">Thrown if already authorized.</exception>
+    /// <exception cref="Google.Apis.Auth.OAuth2.Responses.TokenResponseException">Thrown when the OAuth token request fails (e.g., consent declined, invalid credentials, revoked refresh token).</exception>
+    /// <exception cref="ObjectDisposedException">Thrown when the instance has been disposed.</exception>
     public async Task AuthorizeAsync(CancellationToken cancellationToken = default)
     {
         ThrowIfDisposed();
@@ -159,10 +185,13 @@ public class GoogleDriveApi : IDisposable
     /// before each API request via <see cref="UserCredential.InterceptAsync"/>. Use this method only
     /// if you need to proactively refresh tokens (e.g., before a batch of operations).
     /// </para>
-    /// <para>Documentation: https://cloud.google.com/dotnet/docs/reference/Google.Apis/latest/Google.Apis.Auth.OAuth2.UserCredential?hl=en#Google_Apis_Auth_OAuth2_UserCredential_RefreshTokenAsync_System_Threading_CancellationToken_</para>
+    /// <para>Documentation: https://docs.cloud.google.com/dotnet/docs/reference/Google.Apis/latest/Google.Apis.Auth.OAuth2.UserCredential?hl=en#Google_Apis_Auth_OAuth2_UserCredential_RefreshTokenAsync_System_Threading_CancellationToken_</para>
     /// </summary>
-    /// <param name="cancellationToken">Cancellation token to cancel the operation.</param>
+    /// <param name="cancellationToken">The token to monitor for cancellation requests.</param>
     /// <returns>True if the token was refreshed, false otherwise.</returns>
+    /// <exception cref="OperationCanceledException">Thrown when the operation is cancelled via the cancellation token.</exception>
+    /// <exception cref="Google.Apis.Auth.OAuth2.Responses.TokenResponseException">Thrown when the OAuth token refresh fails (e.g., revoked refresh token, invalid credentials).</exception>
+    /// <exception cref="ObjectDisposedException">Thrown when the instance has been disposed.</exception>
     public async Task<bool> TryRefreshTokenAsync(CancellationToken cancellationToken = default)
     {
         ThrowIfDisposed();
@@ -181,7 +210,11 @@ public class GoogleDriveApi : IDisposable
     /// <summary>
     /// Permanently deletes all items from the Google Drive trash.
     /// </summary>
-    /// <param name="cancellationToken">Cancellation token.</param>
+    /// <param name="cancellationToken">The token to monitor for cancellation requests.</param>
+    /// <exception cref="AuthorizationException">Thrown when the instance has not been authorized. Call <see cref="AuthorizeAsync"/> first.</exception>
+    /// <exception cref="ObjectDisposedException">Thrown when the instance has been disposed.</exception>
+    /// <exception cref="Google.GoogleApiException">Thrown when the Google Drive API returns an error (e.g., not found, insufficient permissions, quota exceeded).</exception>
+    /// <exception cref="OperationCanceledException">Thrown when the operation is cancelled via the cancellation token.</exception>
     public async Task EmptyTrashAsync(CancellationToken cancellationToken = default)
     {
         await Provider.Files.EmptyTrash()
@@ -196,7 +229,7 @@ public class GoogleDriveApi : IDisposable
     /// The maximum number of items to retrieve per page.
     /// Must be greater than zero.
     /// </param>
-    /// <param name="cancellationToken">Cancellation token.</param>
+    /// <param name="cancellationToken">The token to monitor for cancellation requests.</param>
     /// <returns>
     /// A list of <see cref="GoogleFile"/> objects representing trashed items.
     /// </returns>
@@ -204,15 +237,16 @@ public class GoogleDriveApi : IDisposable
     /// Only items marked as trashed are returned.
     /// The method retrieves all available pages until no more results remain.
     /// </remarks>
-    /// <exception cref="ArgumentException">
+    /// <exception cref="ArgumentOutOfRangeException">
     /// Thrown when <paramref name="pageSize"/> is less than or equal to zero.
     /// </exception>
+    /// <exception cref="AuthorizationException">Thrown when the instance has not been authorized. Call <see cref="AuthorizeAsync"/> first.</exception>
+    /// <exception cref="ObjectDisposedException">Thrown when the instance has been disposed.</exception>
+    /// <exception cref="Google.GoogleApiException">Thrown when the Google Drive API returns an error (e.g., not found, insufficient permissions, quota exceeded).</exception>
+    /// <exception cref="OperationCanceledException">Thrown when the operation is cancelled via the cancellation token.</exception>
     public async Task<List<GoogleFile>> GetTrashedFilesAsync(int pageSize = 50, CancellationToken cancellationToken = default)
     {
-        if (pageSize <= 0)
-        {
-            throw new ArgumentException("PageSize cannot be smaller than 1.");
-        }
+        ArgumentOutOfRangeException.ThrowIfNegativeOrZero(pageSize);
 
         var trashed = new List<GoogleFile>();
 
@@ -245,13 +279,14 @@ public class GoogleDriveApi : IDisposable
     /// Marks the file as trashed by updating its metadata.
     /// </summary>
     /// <param name="fileId">The ID of the file to move to trash.</param>
-    /// <param name="cancellationToken">Cancellation token.</param>
+    /// <param name="cancellationToken">The token to monitor for cancellation requests.</param>
     /// <exception cref="ArgumentException">
     /// Thrown when <paramref name="fileId"/> is <c>null</c> or empty.
     /// </exception>
-    /// <exception cref="TrashFileException">
-    /// Thrown when the file could not be moved to the Google Drive trash.
-    /// </exception>
+    /// <exception cref="AuthorizationException">Thrown when the instance has not been authorized. Call <see cref="AuthorizeAsync"/> first.</exception>
+    /// <exception cref="ObjectDisposedException">Thrown when the instance has been disposed.</exception>
+    /// <exception cref="Google.GoogleApiException">Thrown when the Google Drive API returns an error (e.g., not found, insufficient permissions, quota exceeded).</exception>
+    /// <exception cref="OperationCanceledException">Thrown when the operation is cancelled via the cancellation token.</exception>
     public async Task MoveFileToTrashAsync(string fileId, CancellationToken cancellationToken = default)
     {
         ArgumentException.ThrowIfNullOrEmpty(fileId);
@@ -264,14 +299,9 @@ public class GoogleDriveApi : IDisposable
         var updateRequest = Provider.Files.Update(metadata, fileId);
         updateRequest.Fields = "id, trashed";
 
-        var updated = await updateRequest
+        await updateRequest
             .ExecuteAsync(cancellationToken)
             .ConfigureAwait(false);
-
-        if (updated is null || updated.Trashed != true)
-        {
-            throw new TrashFileException($"Failed to move file '{fileId}' to trash.");
-        }
     }
 
     /// <summary>
@@ -279,13 +309,14 @@ public class GoogleDriveApi : IDisposable
     /// Marks the file as not trashed by updating its metadata.
     /// </summary>
     /// <param name="fileId">The ID of the file to restore.</param>
-    /// <param name="cancellationToken">Cancellation token.</param>
+    /// <param name="cancellationToken">The token to monitor for cancellation requests.</param>
     /// <exception cref="ArgumentException">
     /// Thrown when <paramref name="fileId"/> is <c>null</c> or empty.
     /// </exception>
-    /// <exception cref="RestoreFileException">
-    /// Thrown when the file could not be restored from the Google Drive trash.
-    /// </exception>
+    /// <exception cref="AuthorizationException">Thrown when the instance has not been authorized. Call <see cref="AuthorizeAsync"/> first.</exception>
+    /// <exception cref="ObjectDisposedException">Thrown when the instance has been disposed.</exception>
+    /// <exception cref="Google.GoogleApiException">Thrown when the Google Drive API returns an error (e.g., not found, insufficient permissions, quota exceeded).</exception>
+    /// <exception cref="OperationCanceledException">Thrown when the operation is cancelled via the cancellation token.</exception>
     public async Task RestoreFileFromTrashAsync(string fileId, CancellationToken cancellationToken = default)
     {
         ArgumentException.ThrowIfNullOrEmpty(fileId);
@@ -298,14 +329,9 @@ public class GoogleDriveApi : IDisposable
         var updateRequest = Provider.Files.Update(metadata, fileId);
         updateRequest.Fields = "id, trashed";
 
-        var updated = await updateRequest
+        await updateRequest
             .ExecuteAsync(cancellationToken)
             .ConfigureAwait(false);
-
-        if (updated is null || updated.Trashed != false)
-        {
-            throw new RestoreFileException($"Failed to restore file '{fileId}' from trash.");
-        }
     }
 
     /// <summary>
@@ -314,14 +340,18 @@ public class GoogleDriveApi : IDisposable
     /// and then permanently deletes the file.
     /// </summary>
     /// <param name="fileId">The ID of the file to delete.</param>
-    /// <param name="cancellationToken">Cancellation token.</param>
+    /// <param name="cancellationToken">The token to monitor for cancellation requests.</param>
     /// <exception cref="ArgumentException">
     /// Thrown when <paramref name="fileId"/> is <c>null</c> or empty.
     /// </exception>
-    /// <exception cref="InvalidFileTypeException">
+    /// <exception cref="InvalidMimeTypeException">
     /// Thrown when the specified ID refers to an item
     /// that is not a file (for example, a folder).
     /// </exception>
+    /// <exception cref="AuthorizationException">Thrown when the instance has not been authorized. Call <see cref="AuthorizeAsync"/> first.</exception>
+    /// <exception cref="ObjectDisposedException">Thrown when the instance has been disposed.</exception>
+    /// <exception cref="Google.GoogleApiException">Thrown when the Google Drive API returns an error (e.g., not found, insufficient permissions, quota exceeded).</exception>
+    /// <exception cref="OperationCanceledException">Thrown when the operation is cancelled via the cancellation token.</exception>
     public async Task DeleteFileAsync(string fileId, CancellationToken cancellationToken = default)
     {
         ArgumentException.ThrowIfNullOrEmpty(fileId);
@@ -332,7 +362,7 @@ public class GoogleDriveApi : IDisposable
 
         if (file.MimeType == GDriveMimeTypes.Folder)
         {
-            throw new InvalidFileTypeException(fileId, file.MimeType);
+            throw new InvalidMimeTypeException(fileId, file.MimeType);
         }
 
         await Provider.Files.Delete(fileId)
@@ -345,7 +375,7 @@ public class GoogleDriveApi : IDisposable
     /// </summary>
     /// <param name="fileId">The ID of the file to rename.</param>
     /// <param name="newName">The new name to assign to the file.</param>
-    /// <param name="cancellationToken">Cancellation token to cancel the operation.</param>
+    /// <param name="cancellationToken">The token to monitor for cancellation requests.</param>
     /// <remarks>
     /// This method performs a partial update of the file metadata.
     /// Only the <c>Name</c> field is modified; all other properties remain unchanged.
@@ -353,6 +383,10 @@ public class GoogleDriveApi : IDisposable
     /// <exception cref="ArgumentException">
     /// Thrown when <paramref name="fileId"/> or <paramref name="newName"/> is <c>null</c> or empty.
     /// </exception>
+    /// <exception cref="AuthorizationException">Thrown when the instance has not been authorized. Call <see cref="AuthorizeAsync"/> first.</exception>
+    /// <exception cref="ObjectDisposedException">Thrown when the instance has been disposed.</exception>
+    /// <exception cref="Google.GoogleApiException">Thrown when the Google Drive API returns an error (e.g., not found, insufficient permissions, quota exceeded).</exception>
+    /// <exception cref="OperationCanceledException">Thrown when the operation is cancelled via the cancellation token.</exception>
     public async Task RenameFileAsync(string fileId, string newName, CancellationToken cancellationToken = default)
     {
         ArgumentException.ThrowIfNullOrEmpty(fileId);
@@ -372,7 +406,7 @@ public class GoogleDriveApi : IDisposable
     /// <param name="fileId">The ID of the file to move.</param>
     /// <param name="sourceFolderId">The ID of the folder from which the file will be moved.</param>
     /// <param name="destinationFolderId">The ID of the folder to which the file will be moved.</param>
-    /// <param name="cancellationToken">A token that can be used to cancel the asynchronous operation.</param>
+    /// <param name="cancellationToken">The token to monitor for cancellation requests.</param>
     /// <remarks>
     /// This method performs a partial update of the file metadata in Google Drive.
     /// Only the file's parent folders are modified — the file is removed from
@@ -383,6 +417,10 @@ public class GoogleDriveApi : IDisposable
     /// Thrown when <paramref name="fileId"/>, <paramref name="sourceFolderId"/>,
     /// or <paramref name="destinationFolderId"/> is <c>null</c> or empty.
     /// </exception>
+    /// <exception cref="AuthorizationException">Thrown when the instance has not been authorized. Call <see cref="AuthorizeAsync"/> first.</exception>
+    /// <exception cref="ObjectDisposedException">Thrown when the instance has been disposed.</exception>
+    /// <exception cref="Google.GoogleApiException">Thrown when the Google Drive API returns an error (e.g., not found, insufficient permissions, quota exceeded).</exception>
+    /// <exception cref="OperationCanceledException">Thrown when the operation is cancelled via the cancellation token.</exception>
     public async Task MoveFileToAsync(string fileId, string sourceFolderId, string destinationFolderId, CancellationToken cancellationToken = default)
     {
         ArgumentException.ThrowIfNullOrEmpty(fileId);
@@ -411,7 +449,7 @@ public class GoogleDriveApi : IDisposable
     /// Optional new name for the copied file. If <c>null</c> or empty,
     /// the original file name is preserved.
     /// </param>
-    /// <param name="cancellationToken">Cancellation token.</param>
+    /// <param name="cancellationToken">The token to monitor for cancellation requests.</param>
     /// <returns>
     /// The ID of the newly created copied file.
     /// </returns>
@@ -419,9 +457,10 @@ public class GoogleDriveApi : IDisposable
     /// Thrown when <paramref name="fileId"/> or <paramref name="destinationFolderId"/> is
     /// <c>null</c> or empty.
     /// </exception>
-    /// <exception cref="CopyFileException">
-    /// Thrown when the file could not be copied to the specified destination folder.
-    /// </exception>
+    /// <exception cref="AuthorizationException">Thrown when the instance has not been authorized. Call <see cref="AuthorizeAsync"/> first.</exception>
+    /// <exception cref="ObjectDisposedException">Thrown when the instance has been disposed.</exception>
+    /// <exception cref="Google.GoogleApiException">Thrown when the Google Drive API returns an error (e.g., not found, insufficient permissions, quota exceeded).</exception>
+    /// <exception cref="OperationCanceledException">Thrown when the operation is cancelled via the cancellation token.</exception>
     public async Task<string> CopyFileToAsync(string fileId, string destinationFolderId, string? newName = null, CancellationToken cancellationToken = default)
     {
         ArgumentException.ThrowIfNullOrEmpty(fileId);
@@ -430,20 +469,14 @@ public class GoogleDriveApi : IDisposable
         var metadata = new GoogleFile
         {
             Name = string.IsNullOrWhiteSpace(newName) ? null : newName,
-            Parents = new[] { destinationFolderId }
+            Parents = [destinationFolderId]
         };
-
-        var copyRequest = Provider.Files.Copy(metadata, fileId);
+        CopyRequest copyRequest = Provider.Files.Copy(metadata, fileId);
         copyRequest.Fields = "id, name, parents";
 
-        var copiedFile = await copyRequest
+        GoogleFile copiedFile = await copyRequest
             .ExecuteAsync(cancellationToken)
             .ConfigureAwait(false);
-
-        if (copiedFile is null)
-        {
-            throw new CopyFileException($"Failed to copy file '{fileId}' to folder '{destinationFolderId}'.");
-        }
 
         return copiedFile.Id;
     }
@@ -454,9 +487,9 @@ public class GoogleDriveApi : IDisposable
     /// <param name="folderName">The name of the folder to search for.</param>
     /// <param name="parentFolderId">
     /// Optional ID of the parent folder to search within. If <c>null</c>,
-    /// <see cref="_options"/>.<c>RootFolderId</c> is used.
+    /// <see cref="RootFolderId"/> is used.
     /// </param>
-    /// <param name="cancellationToken">Cancellation token.</param>
+    /// <param name="cancellationToken">The token to monitor for cancellation requests.</param>
     /// <returns>
     /// The folder ID if a matching folder is found; otherwise, <c>null</c>.
     /// </returns>
@@ -468,6 +501,10 @@ public class GoogleDriveApi : IDisposable
     /// <exception cref="ArgumentException">
     /// Thrown when <paramref name="folderName"/> is <c>null</c> or empty.
     /// </exception>
+    /// <exception cref="AuthorizationException">Thrown when the instance has not been authorized. Call <see cref="AuthorizeAsync"/> first.</exception>
+    /// <exception cref="ObjectDisposedException">Thrown when the instance has been disposed.</exception>
+    /// <exception cref="Google.GoogleApiException">Thrown when the Google Drive API returns an error (e.g., not found, insufficient permissions, quota exceeded).</exception>
+    /// <exception cref="OperationCanceledException">Thrown when the operation is cancelled via the cancellation token.</exception>
     public async Task<string?> GetFolderIdByAsync(string folderName, string? parentFolderId = null, CancellationToken cancellationToken = default)
     {
         ArgumentException.ThrowIfNullOrEmpty(folderName);
@@ -493,7 +530,7 @@ public class GoogleDriveApi : IDisposable
     /// The maximum number of folders to retrieve per page.
     /// Must be greater than zero.
     /// </param>
-    /// <param name="cancellationToken">Cancellation token.</param>
+    /// <param name="cancellationToken">The token to monitor for cancellation requests.</param>
     /// <returns>
     /// A list of tuples containing the ID and name of each folder.
     /// </returns>
@@ -502,17 +539,19 @@ public class GoogleDriveApi : IDisposable
     /// The method retrieves all available pages until no more results remain.
     /// </remarks>
     /// <exception cref="ArgumentException">
-    /// Thrown when <paramref name="parentFolderId"/> is <c>null</c> or empty,
-    /// or when <paramref name="pageSize"/> is less than or equal to zero.
+    /// Thrown when <paramref name="parentFolderId"/> is <c>null</c> or empty.
     /// </exception>
+    /// <exception cref="ArgumentOutOfRangeException">
+    /// Thrown when <paramref name="pageSize"/> is less than or equal to zero.
+    /// </exception>
+    /// <exception cref="AuthorizationException">Thrown when the instance has not been authorized. Call <see cref="AuthorizeAsync"/> first.</exception>
+    /// <exception cref="ObjectDisposedException">Thrown when the instance has been disposed.</exception>
+    /// <exception cref="Google.GoogleApiException">Thrown when the Google Drive API returns an error (e.g., not found, insufficient permissions, quota exceeded).</exception>
+    /// <exception cref="OperationCanceledException">Thrown when the operation is cancelled via the cancellation token.</exception>
     public async Task<List<(string id, string name)>> GetFoldersByAsync(string parentFolderId, int pageSize = 50, CancellationToken cancellationToken = default)
     {
         ArgumentException.ThrowIfNullOrEmpty(parentFolderId);
-
-        if (pageSize <= 0)
-        {
-            throw new ArgumentException("PageSize cannot be smaller than 1.");
-        }
+        ArgumentOutOfRangeException.ThrowIfNegativeOrZero(pageSize);
 
         var allFolders = new List<GoogleFile>();
         string? pageToken = null;
@@ -543,7 +582,7 @@ public class GoogleDriveApi : IDisposable
     /// <summary>
     /// Retrieves all folders from Google Drive.
     /// </summary>
-    /// <param name="cancellationToken">Cancellation token.</param>
+    /// <param name="cancellationToken">The token to monitor for cancellation requests.</param>
     /// <returns>
     /// A list of <see cref="GDriveFile"/> objects representing all folders in Google Drive.
     /// </returns>
@@ -551,6 +590,10 @@ public class GoogleDriveApi : IDisposable
     /// This method retrieves folders using paginated requests.
     /// Each request uses the maximum supported page size (1000) and continues until all pages are fetched.
     /// </remarks>
+    /// <exception cref="AuthorizationException">Thrown when the instance has not been authorized. Call <see cref="AuthorizeAsync"/> first.</exception>
+    /// <exception cref="ObjectDisposedException">Thrown when the instance has been disposed.</exception>
+    /// <exception cref="Google.GoogleApiException">Thrown when the Google Drive API returns an error (e.g., not found, insufficient permissions, quota exceeded).</exception>
+    /// <exception cref="OperationCanceledException">Thrown when the operation is cancelled via the cancellation token.</exception>
     public async Task<List<GDriveFile>> GetAllFoldersAsync(CancellationToken cancellationToken = default)
     {
         var request = Provider.Files.List();
@@ -562,7 +605,11 @@ public class GoogleDriveApi : IDisposable
         do
         {
             var result = await request.ExecuteAsync(cancellationToken).ConfigureAwait(false);
-            folders.AddRange(result.Files);
+            if (result.Files is not null)
+            {
+                folders.AddRange(result.Files);
+            }
+
             request.PageToken = result.NextPageToken;
         } while (!string.IsNullOrEmpty(request.PageToken));
 
@@ -579,7 +626,7 @@ public class GoogleDriveApi : IDisposable
     /// Optional ID of the parent folder in which the new folder will be created.
     /// If <c>null</c>, the root folder is used.
     /// </param>
-    /// <param name="cancellationToken">Cancellation token.</param>
+    /// <param name="cancellationToken">The token to monitor for cancellation requests.</param>
     /// <returns>
     /// The ID of the newly created folder.
     /// </returns>
@@ -590,6 +637,10 @@ public class GoogleDriveApi : IDisposable
     /// The folder is created using a single Google Drive API request.
     /// Only folder-specific metadata is set; no additional properties are modified.
     /// </remarks>
+    /// <exception cref="AuthorizationException">Thrown when the instance has not been authorized. Call <see cref="AuthorizeAsync"/> first.</exception>
+    /// <exception cref="ObjectDisposedException">Thrown when the instance has been disposed.</exception>
+    /// <exception cref="Google.GoogleApiException">Thrown when the Google Drive API returns an error (e.g., not found, insufficient permissions, quota exceeded).</exception>
+    /// <exception cref="OperationCanceledException">Thrown when the operation is cancelled via the cancellation token.</exception>
     public async Task<string> CreateFolderAsync(string folderName, string? parentFolderId = null, CancellationToken cancellationToken = default)
     {
         ArgumentException.ThrowIfNullOrEmpty(folderName);
@@ -613,29 +664,28 @@ public class GoogleDriveApi : IDisposable
     /// Deletes a folder from Google Drive after validating its type.
     /// </summary>
     /// <param name="folderId">The ID of the folder to delete.</param>
-    /// <param name="cancellationToken">Cancellation token.</param>
-    /// <returns>
-    /// <c>true</c> if the folder was successfully deleted.
-    /// </returns>
+    /// <param name="cancellationToken">The token to monitor for cancellation requests.</param>
     /// <exception cref="ArgumentException">
     /// Thrown when <paramref name="folderId"/> is <c>null</c> or empty.
     /// </exception>
-    /// <exception cref="InvalidFileTypeException">
+    /// <exception cref="InvalidMimeTypeException">
     /// Thrown when the specified ID refers to an item that is not a folder.
     /// </exception>
-    public async Task<bool> DeleteFolderAsync(string folderId, CancellationToken cancellationToken = default)
+    /// <exception cref="AuthorizationException">Thrown when the instance has not been authorized. Call <see cref="AuthorizeAsync"/> first.</exception>
+    /// <exception cref="ObjectDisposedException">Thrown when the instance has been disposed.</exception>
+    /// <exception cref="Google.GoogleApiException">Thrown when the Google Drive API returns an error (e.g., not found, insufficient permissions, quota exceeded).</exception>
+    /// <exception cref="OperationCanceledException">Thrown when the operation is cancelled via the cancellation token.</exception>
+    public async Task DeleteFolderAsync(string folderId, CancellationToken cancellationToken = default)
     {
         ArgumentException.ThrowIfNullOrEmpty(folderId);
 
         GoogleFile folder = await Provider.Files.Get(folderId).ExecuteAsync(cancellationToken).ConfigureAwait(false);
         if (folder.MimeType != GDriveMimeTypes.Folder)
         {
-            throw new InvalidFileTypeException(folderId, folder.MimeType, expectedMimeType: GDriveMimeTypes.Folder);
+            throw new InvalidMimeTypeException(folderId, folder.MimeType, expectedMimeType: GDriveMimeTypes.Folder);
         }
 
         await Provider.Files.Delete(folderId).ExecuteAsync(cancellationToken).ConfigureAwait(false);
-
-        return true;
     }
 
     /// <summary>
@@ -644,9 +694,9 @@ public class GoogleDriveApi : IDisposable
     /// <param name="fullFileName">The file name (including extension) to search for.</param>
     /// <param name="parentFolderId">
     /// Optional ID of the parent folder to search within. If <c>null</c>,
-    /// <see cref="_options"/>.<c>RootFolderId</c> is used.
+    /// <see cref="RootFolderId"/> is used.
     /// </param>
-    /// <param name="cancellationToken">Cancellation token.</param>
+    /// <param name="cancellationToken">The token to monitor for cancellation requests.</param>
     /// <returns>
     /// The file ID if a matching file is found; otherwise, <c>null</c>.
     /// </returns>
@@ -658,9 +708,10 @@ public class GoogleDriveApi : IDisposable
     /// <exception cref="ArgumentException">
     /// Thrown when <paramref name="fullFileName"/> is <c>null</c> or empty.
     /// </exception>
-    /// <exception cref="AuthorizationException">
-    /// Thrown if the Google Drive API is not initialized or authorized.
-    /// </exception>
+    /// <exception cref="AuthorizationException">Thrown when the instance has not been authorized. Call <see cref="AuthorizeAsync"/> first.</exception>
+    /// <exception cref="ObjectDisposedException">Thrown when the instance has been disposed.</exception>
+    /// <exception cref="Google.GoogleApiException">Thrown when the Google Drive API returns an error (e.g., not found, insufficient permissions, quota exceeded).</exception>
+    /// <exception cref="OperationCanceledException">Thrown when the operation is cancelled via the cancellation token.</exception>
     public async Task<string?> GetFileIdByAsync(string fullFileName, string? parentFolderId = null, CancellationToken cancellationToken = default)
     {
         ArgumentException.ThrowIfNullOrEmpty(fullFileName);
@@ -741,7 +792,7 @@ public class GoogleDriveApi : IDisposable
     /// <param name="fileId">The identifier of the file whose content should be updated.</param>
     /// <param name="content">A stream containing the new file content.</param>
     /// <param name="contentType">The MIME type of the content (for example <c>application/pdf</c> or <c>image/png</c>).</param>
-    /// <param name="cancellationToken">A token that can be used to cancel the upload operation.</param>
+    /// <param name="cancellationToken">The token to monitor for cancellation requests.</param>
     /// <remarks>
     /// This method replaces the existing file content while preserving the file metadata and validates that the upload completes successfully.
     /// If the provided <paramref name="content"/> stream is seekable, its position is reset before the upload begins.
@@ -750,13 +801,15 @@ public class GoogleDriveApi : IDisposable
     /// <exception cref="ArgumentNullException">Thrown when <paramref name="content"/> is null.</exception>
     /// <exception cref="OperationCanceledException">Thrown if the operation is canceled.</exception>
     /// <exception cref="UpdateFileContentException">Thrown when the upload fails or does not complete successfully.</exception>
+    /// <exception cref="AuthorizationException">Thrown when the instance has not been authorized. Call <see cref="AuthorizeAsync"/> first.</exception>
+    /// <exception cref="ObjectDisposedException">Thrown when the instance has been disposed.</exception>
     public async Task UpdateFileContentAsync(string fileId, Stream content, string contentType, CancellationToken cancellationToken = default)
     {
         ArgumentException.ThrowIfNullOrEmpty(fileId);
         ArgumentNullException.ThrowIfNull(content);
         ArgumentException.ThrowIfNullOrEmpty(contentType);
 
-        StreamHelper.ResetIfSeekable(content);
+        content.ResetIfSeekable();
 
         var metadata = new GoogleFile();
         UpdateMediaUpload request = Provider.Files.Update(metadata, fileId, content, contentType);
@@ -768,10 +821,11 @@ public class GoogleDriveApi : IDisposable
                 request,
                 () => null,
                 $"Failed to update content for file '{fileId}'.",
+                static (message, cause) => new UpdateFileContentException(message, cause),
                 cancellationToken)
                 .ConfigureAwait(false);
         }
-        catch (Exception ex) when (ex is not OperationCanceledException)
+        catch (Exception ex) when (ex is not OperationCanceledException and not UpdateFileContentException)
         {
             throw new UpdateFileContentException(
                 $"Failed to update content for file '{fileId}'.", ex);
@@ -783,63 +837,65 @@ public class GoogleDriveApi : IDisposable
     /// </summary>
     /// <param name="filePath">The full path to the file to be uploaded.</param>
     /// <param name="mimeType">The MIME type of the file content (for example <c>application/pdf</c> or <c>image/png</c>).</param>
-    /// <param name="cancellationToken">A token that can be used to cancel the upload operation.</param>
+    /// <param name="cancellationToken">The token to monitor for cancellation requests.</param>
     /// <returns>The identifier of the newly created Google Drive file.</returns>
     /// <remarks>
     /// The file is opened for read-only access and uploaded using a resumable upload.
-    /// If the upload completes successfully but no file identifier is returned by the API, an <see cref="UploadException"/> is thrown.
+    /// If the upload completes successfully but no file identifier is returned by the API, an <see cref="UploadFileException"/> is thrown.
     /// </remarks>
     /// <exception cref="ArgumentException">Thrown when <paramref name="filePath"/> or <paramref name="mimeType"/> is null or empty.</exception>
     /// <exception cref="FileNotFoundException">Thrown when the file specified by <paramref name="filePath"/> does not exist.</exception>
     /// <exception cref="OperationCanceledException">Thrown if the operation is canceled.</exception>
-    /// <exception cref="UploadException">Thrown when the upload completes without returning a valid file identifier.</exception>
-    /// <exception cref="UploadFileException">Thrown when the upload fails for any reason other than cancellation.</exception>
+    /// <exception cref="UploadFileException">Thrown when the upload fails for any reason other than cancellation, including when no valid file identifier is returned.</exception>
+    /// <exception cref="AuthorizationException">Thrown when the instance has not been authorized. Call <see cref="AuthorizeAsync"/> first.</exception>
+    /// <exception cref="ObjectDisposedException">Thrown when the instance has been disposed.</exception>
     public async Task<string> UploadFilePathAsync(string filePath, string mimeType, CancellationToken cancellationToken = default)
     {
         ArgumentException.ThrowIfNullOrEmpty(filePath);
+        ArgumentException.ThrowIfNullOrEmpty(mimeType);
+
         if (!File.Exists(filePath))
         {
             throw new FileNotFoundException($"Cannot find the file at {filePath}.");
         }
 
         string fileName = Path.GetFileName(filePath);
-        using var stream = new FileStream(
-            filePath,
-            FileMode.Open,
-            FileAccess.Read,
-            FileShare.Read);
 
-        ArgumentNullException.ThrowIfNull(stream);
-        ArgumentException.ThrowIfNullOrEmpty(fileName);
-        ArgumentException.ThrowIfNullOrEmpty(mimeType);
+        // Usage-error checks (authorization, disposal) must run outside the wrapping try.
+        FilesResource files = Provider.Files;
 
         cancellationToken.ThrowIfCancellationRequested();
 
-        StreamHelper.ResetIfSeekable(stream);
-
-        var fileMetadata = new GoogleFile
-        {
-            Name = fileName
-        };
-
-        CreateMediaUpload request = Provider.Files.Create(fileMetadata, stream, mimeType);
-        request.Fields = "id";
-
         try
         {
+            using var stream = new FileStream(
+                filePath,
+                FileMode.Open,
+                FileAccess.Read,
+                FileShare.Read);
+
+            var fileMetadata = new GoogleFile
+            {
+                Name = fileName
+            };
+
+            CreateMediaUpload request = files.Create(fileMetadata, stream, mimeType);
+            request.Fields = "id";
+
             GoogleFile result = await UploadAsync(
                     request,
                     () => request.ResponseBody,
                     $"Failed to upload file '{fileName}'.",
+                    static (message, cause) => new UploadFileException(message, cause),
                     cancellationToken)
                 .ConfigureAwait(false);
 
             if (string.IsNullOrWhiteSpace(result.Id))
-                throw new UploadException($"Failed to upload file '{fileName}' (no file id returned).");
+                throw new UploadFileException($"Failed to upload file '{fileName}' (no file id returned).");
 
             return result.Id;
         }
-        catch (Exception ex) when (ex is not OperationCanceledException)
+        catch (Exception ex) when (ex is not OperationCanceledException and not UploadFileException)
         {
             throw new UploadFileException($"Failed to upload file '{fileName}'.", ex);
         }
@@ -851,13 +907,14 @@ public class GoogleDriveApi : IDisposable
     /// <param name="fileStream">A stream containing the file content to be uploaded.</param>
     /// <param name="fileName">The name of the file to be created in Google Drive.</param>
     /// <param name="mimeType">The MIME type of the file content.</param>
-    /// <param name="cancellationToken">A token that can be used to cancel the upload operation.</param>
+    /// <param name="cancellationToken">The token to monitor for cancellation requests.</param>
     /// <returns>The identifier of the newly created Google Drive file.</returns>
     /// <exception cref="ArgumentNullException">Thrown when <paramref name="fileStream"/> is null.</exception>
     /// <exception cref="ArgumentException">Thrown when <paramref name="fileName"/> or <paramref name="mimeType"/> is null or empty.</exception>
     /// <exception cref="OperationCanceledException">Thrown if the operation is canceled.</exception>
-    /// <exception cref="UploadException">Thrown when the upload completes without returning a file identifier.</exception>
-    /// <exception cref="UploadFileException">Thrown when the upload fails for any reason other than cancellation.</exception>
+    /// <exception cref="UploadFileException">Thrown when the upload fails for any reason other than cancellation, including when no file identifier is returned.</exception>
+    /// <exception cref="AuthorizationException">Thrown when the instance has not been authorized. Call <see cref="AuthorizeAsync"/> first.</exception>
+    /// <exception cref="ObjectDisposedException">Thrown when the instance has been disposed.</exception>
     public async Task<string> UploadFileStreamAsync(Stream fileStream, string fileName, string mimeType, CancellationToken cancellationToken = default)
     {
         ArgumentNullException.ThrowIfNull(fileStream);
@@ -866,7 +923,7 @@ public class GoogleDriveApi : IDisposable
 
         cancellationToken.ThrowIfCancellationRequested();
 
-        StreamHelper.ResetIfSeekable(fileStream);
+        fileStream.ResetIfSeekable();
 
         var fileMetadata = new GoogleFile()
         {
@@ -882,15 +939,16 @@ public class GoogleDriveApi : IDisposable
                 request,
                 () => request.ResponseBody,
                 $"Failed to upload file '{fileName}'.",
+                static (message, cause) => new UploadFileException(message, cause),
                 cancellationToken)
             .ConfigureAwait(false);
 
             if (string.IsNullOrWhiteSpace(result.Id))
-                throw new UploadException($"Failed to upload file '{fileName}' (no file id returned).");
+                throw new UploadFileException($"Failed to upload file '{fileName}' (no file id returned).");
 
             return result.Id;
         }
-        catch (Exception ex) when (ex is not OperationCanceledException)
+        catch (Exception ex) when (ex is not OperationCanceledException and not UploadFileException)
         {
             throw new UploadFileException($"Failed to upload file '{fileName}'.", ex);
         }
@@ -898,27 +956,35 @@ public class GoogleDriveApi : IDisposable
 
     /// <summary>
     /// Executes a resumable upload and validates that it completes successfully.
+    /// <para>
+    /// <see cref="ResumableUpload.UploadAsync(CancellationToken)"/> does not throw on failure —
+    /// it returns an <see cref="IUploadProgress"/> with <see cref="UploadStatus.Failed"/> and the error in
+    /// <see cref="IUploadProgress.Exception"/>. This method converts that silent failure into an exception
+    /// created by <paramref name="exceptionFactory"/>, so each public method surfaces its own documented type.
+    /// </para>
     /// </summary>
     /// <typeparam name="TResponse">The type of the response returned by the upload.</typeparam>
     /// <param name="upload">The resumable upload request to execute.</param>
     /// <param name="responseAccessor">A delegate used to retrieve the response after a successful upload.</param>
     /// <param name="errorMessage">The base error message used when the upload fails.</param>
-    /// <param name="ct">A token that can be used to cancel the upload operation.</param>
+    /// <param name="exceptionFactory">Creates the exception to throw on failure; receives the message and the underlying cause (may be <c>null</c>).</param>
+    /// <param name="ct">The token to monitor for cancellation requests.</param>
     /// <param name="onProgress">An optional callback invoked when upload progress changes.</param>
     /// <returns>The response returned by the upload.</returns>
-    /// <exception cref="ArgumentNullException">Thrown when <paramref name="upload"/> or <paramref name="responseAccessor"/> is null.</exception>
+    /// <exception cref="ArgumentNullException">Thrown when <paramref name="upload"/>, <paramref name="responseAccessor"/>, or <paramref name="exceptionFactory"/> is null.</exception>
     /// <exception cref="ArgumentException">Thrown when <paramref name="errorMessage"/> is null or empty.</exception>
     /// <exception cref="OperationCanceledException">Thrown if the operation is canceled.</exception>
-    /// <exception cref="UploadException">Thrown when the upload fails or does not complete successfully.</exception>
-    private async Task<TResponse> UploadAsync<TResponse>(
+    private static async Task<TResponse> UploadAsync<TResponse>(
         ResumableUpload<TResponse> upload,
         Func<TResponse?> responseAccessor,
         string errorMessage,
+        Func<string, Exception?, Exception> exceptionFactory,
         CancellationToken ct = default,
         Action<IUploadProgress>? onProgress = null)
     {
         ArgumentNullException.ThrowIfNull(upload);
         ArgumentNullException.ThrowIfNull(responseAccessor);
+        ArgumentNullException.ThrowIfNull(exceptionFactory);
         ArgumentException.ThrowIfNullOrWhiteSpace(errorMessage);
 
         ct.ThrowIfCancellationRequested();
@@ -933,10 +999,10 @@ public class GoogleDriveApi : IDisposable
             ct.ThrowIfCancellationRequested();
 
             if (progress.Status == UploadStatus.Failed)
-                throw new UploadException(errorMessage, progress.Exception);
+                throw exceptionFactory(errorMessage, progress.Exception);
 
             if (progress.Status != UploadStatus.Completed)
-                throw new UploadException($"{errorMessage} Status: {progress.Status}.");
+                throw exceptionFactory($"{errorMessage} Status: {progress.Status}.", null);
 
             var response = responseAccessor();
 
@@ -950,126 +1016,121 @@ public class GoogleDriveApi : IDisposable
     }
 
     /// <summary>
-    /// Downloads a file from Google Drive by its file ID.
+    /// Downloads a Google Drive file to the specified local directory.
+    /// Google Workspace files (Docs, Sheets, Slides, etc.) are exported to a compatible format;
+    /// all other files are downloaded as-is.
     /// </summary>
     /// <param name="fileId">The ID of the file to download.</param>
-    /// <param name="saveToPath">The local path where the file will be saved.</param>
-    /// <param name="cancellationToken">Cancellation token to cancel the operation.</param>
-    /// <returns>A task representing the asynchronous operation.</returns>
-    /// <exception cref="AuthorizationException">Thrown if the GoogleDriveApi is not initialized and authorized.</exception>
-    /// <inheritdoc cref="ExportGoogleFileAsync"/>
-    /// <inheritdoc cref="DownloadBinaryFileAsync"/>
+    /// <param name="saveToPath">
+    /// The local directory where the downloaded file will be saved.
+    /// The directory is created if it does not exist. Defaults to <c>Downloads</c>.
+    /// </param>
+    /// <param name="cancellationToken">The token to monitor for cancellation requests.</param>
+    /// <exception cref="ArgumentException">Thrown when <paramref name="fileId"/> or <paramref name="saveToPath"/> is <c>null</c> or empty.</exception>
+    /// <exception cref="UnsupportedMimeTypeException">Thrown when the file's MIME type is not supported for download or export.</exception>
+    /// <exception cref="DownloadFileException">Thrown when the file cannot be downloaded, exported, or saved locally.</exception>
+    /// <exception cref="AuthorizationException">Thrown when the instance has not been authorized. Call <see cref="AuthorizeAsync"/> first.</exception>
+    /// <exception cref="ObjectDisposedException">Thrown when the instance has been disposed.</exception>
+    /// <exception cref="Google.GoogleApiException">Thrown when the Google Drive API returns an error (e.g., not found, insufficient permissions, quota exceeded).</exception>
+    /// <exception cref="OperationCanceledException">Thrown when the operation is cancelled via the cancellation token.</exception>
     public async Task DownloadFileAsync(string fileId, string saveToPath = "Downloads", CancellationToken cancellationToken = default)
     {
         ArgumentException.ThrowIfNullOrEmpty(fileId);
         ArgumentException.ThrowIfNullOrEmpty(saveToPath);
 
-        // Ensure the folderPath directory exists
-        Directory.CreateDirectory(saveToPath);
-
         var request = Provider.Files.Get(fileId);
         GoogleFile file = await request.ExecuteAsync(cancellationToken).ConfigureAwait(false);
-        string fileName = Path.GetFileNameWithoutExtension(file.Name);
-        string? fileMimeType = file.MimeType;
+        string fileName = PathHelper.SanitizeFileName(Path.GetFileNameWithoutExtension(file.Name));
+        string fileMimeType = file.MimeType;
 
-        // Check for a specific Google Workplace Mime Types
         bool isGoogleSpecificMimeType = GDriveMimeTypes.IsValid(fileMimeType);
         if (isGoogleSpecificMimeType)
         {
-            fileMimeType = GDriveMimeTypes.GetExportMimeTypeBy(fileMimeType);
-            if (fileMimeType is null)
+            fileMimeType = GDriveMimeTypes.GetExportMimeTypeBy(fileMimeType)
+                ?? throw new UnsupportedMimeTypeException(fileId, file.MimeType);
+        }
+
+        string extension = MimeTypeHelper.GetExtensionBy(fileMimeType)
+            ?? throw new UnsupportedMimeTypeException(fileId, file.MimeType);
+
+        try
+        {
+            Directory.CreateDirectory(saveToPath);
+
+            string fullPath = Path.Combine(saveToPath, $"{fileName}.{extension}");
+
+            if (isGoogleSpecificMimeType)
             {
-                throw new InvalidOperationException($"Unsupported mime type ({file.MimeType})");
+                await ExportGoogleFileAsync(fileId, fileMimeType, fullPath, cancellationToken).ConfigureAwait(false);
+            }
+            else
+            {
+                await DownloadBinaryFileAsync(fileId, fullPath, cancellationToken).ConfigureAwait(false);
             }
         }
-
-        string? extension = MimeTypeHelper.GetExtensionBy(fileMimeType);
-        if (extension is null)
+        catch (Exception ex) when (ex is not OperationCanceledException and not DownloadFileException)
         {
-            throw new InvalidOperationException($"Unsupported mime type ({file.MimeType})");
-        }
-
-        string fullPath = Path.Combine(saveToPath, $"{fileName}.{extension}");
-
-        if (isGoogleSpecificMimeType)
-        {
-            await ExportGoogleFileAsync(fileId, fileMimeType, fullPath, cancellationToken).ConfigureAwait(false);
-        }
-        else
-        {
-            await DownloadBinaryFileAsync(fileId, fullPath, cancellationToken).ConfigureAwait(false);
+            throw new DownloadFileException($"Failed to download file '{fileId}'.", ex);
         }
     }
 
     /// <summary>
-    /// Exports a Google-specific file (like Google Docs, Sheets, Slides) to a specified MIME type.
+    /// Exports a Google-specific file (like Google Docs, Sheets, Slides) to a specified MIME type and saves it locally.
     /// </summary>
-    /// <param name="fileId">The ID of the file to export.</param>
-    /// <param name="exportMimeType">The MIME type to which the file should be exported.</param>
-    /// <param name="fullFilePath">The full path where the exported file will be saved.</param>
-    /// <param name="cancellationToken">Cancellation token to cancel the operation.</param>
-    /// <exception cref="ExportRequestException">Thrown if the export failed.</exception>
     private async Task ExportGoogleFileAsync(string fileId, string exportMimeType, string fullFilePath, CancellationToken cancellationToken)
     {
         var request = Provider.Files.Export(fileId, exportMimeType);
-        var streamFile = new MemoryStream();
+        using var streamFile = new MemoryStream();
 
         request.MediaDownloader.ProgressChanged += (IDownloadProgress progress) =>
         {
-            switch (progress.Status)
+            if (progress.Status == DownloadStatus.Downloading)
             {
-                case DownloadStatus.Downloading:
-                    Debug.WriteLine($"BytesDownloaded: {progress.BytesDownloaded}");
-                    break;
-                case DownloadStatus.Completed:
-                    SaveStream(streamFile, fullFilePath);
-                    Debug.WriteLine("Export complete.");
-                    break;
-                case DownloadStatus.Failed:
-                    Debug.WriteLine("Export failed.");
-                    throw new ExportRequestException("Failed to export the file from Google Drive.", progress.Exception);
+                Debug.WriteLine($"BytesDownloaded: {progress.BytesDownloaded}");
             }
         };
 
-        await request.DownloadAsync(streamFile, cancellationToken).ConfigureAwait(false);
+        IDownloadProgress result = await request.DownloadAsync(streamFile, cancellationToken).ConfigureAwait(false);
+
+        cancellationToken.ThrowIfCancellationRequested();
+
+        if (result.Status != DownloadStatus.Completed)
+        {
+            Debug.WriteLine("Export failed.");
+            throw new DownloadFileException("Failed to export the file from Google Drive.", result.Exception);
+        }
+
+        streamFile.SaveToFile(fullFilePath);
+        Debug.WriteLine("Export complete.");
     }
 
     /// <summary>
-    /// Downloads a binary file from Google Drive.
+    /// Downloads a binary file from Google Drive and saves it locally.
     /// </summary>
-    /// <param name="fileId">The ID of the file to download.</param>
-    /// <param name="fullFilePath">The full path where the downloaded file will be saved.</param>
-    /// <param name="cancellationToken">Cancellation token to cancel the operation.</param>
-    /// <exception cref="GetRequestException">Thrown if the downloading failed.</exception>
     private async Task DownloadBinaryFileAsync(string fileId, string fullFilePath, CancellationToken cancellationToken)
     {
         var request = Provider.Files.Get(fileId);
-        var streamFile = new MemoryStream();
+        using var streamFile = new MemoryStream();
 
         request.MediaDownloader.ProgressChanged += (IDownloadProgress progress) =>
         {
-            switch (progress.Status)
+            if (progress.Status == DownloadStatus.Downloading)
             {
-                case DownloadStatus.Downloading:
-                    Debug.WriteLine($"BytesDownloaded: {progress.BytesDownloaded}");
-                    break;
-                case DownloadStatus.Completed:
-                    SaveStream(streamFile, fullFilePath);
-                    Debug.WriteLine("Download complete.");
-                    break;
-                case DownloadStatus.Failed:
-                    Debug.WriteLine("Download failed.");
-                    throw new GetRequestException("Failed to download the file from Google Drive.", progress.Exception);
+                Debug.WriteLine($"BytesDownloaded: {progress.BytesDownloaded}");
             }
         };
 
-        await request.DownloadAsync(streamFile, cancellationToken).ConfigureAwait(false);
-    }
+        IDownloadProgress result = await request.DownloadAsync(streamFile, cancellationToken).ConfigureAwait(false);
 
-    private static void SaveStream(MemoryStream stream, string fullFilePath)
-    {
-        using var fileStream = new FileStream(fullFilePath, FileMode.Create, FileAccess.Write);
+        cancellationToken.ThrowIfCancellationRequested();
 
-        stream.WriteTo(fileStream);
+        if (result.Status != DownloadStatus.Completed)
+        {
+            Debug.WriteLine("Download failed.");
+            throw new DownloadFileException("Failed to download the file from Google Drive.", result.Exception);
+        }
+
+        streamFile.SaveToFile(fullFilePath);
+        Debug.WriteLine("Download complete.");
     }
 }

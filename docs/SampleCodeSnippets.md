@@ -203,9 +203,9 @@ try
     string copiedFileId = await gDriveApi.CopyFileToAsync(fileId, destinationFolderId, newName); // Add: cancellationToken: cts.Token
     Console.WriteLine($"File copied successfully with new ID: {copiedFileId}");
 }
-catch (CopyFileException ex)
+catch (GoogleApiException ex)
 {
-    Console.WriteLine($"Copy failed: {ex.Message}");
+    Console.WriteLine($"Copy failed ({ex.HttpStatusCode}): {ex.Message}");
 }
 ```
 
@@ -223,7 +223,7 @@ try
     await gDriveApi.DeleteFileAsync(fileId); // Add: cancellationToken: cts.Token
     Console.WriteLine("File deleted successfully.");
 }
-catch (InvalidFileTypeException ex)
+catch (InvalidMimeTypeException ex)
 {
     Console.WriteLine($"Cannot delete: {ex.Message}");
 }
@@ -245,9 +245,9 @@ try
     await gDriveApi.MoveFileToTrashAsync(fileId); // Add: cancellationToken: cts.Token
     Console.WriteLine("File moved to trash successfully.");
 }
-catch (TrashFileException ex)
+catch (GoogleApiException ex)
 {
-    Console.WriteLine($"Failed to trash file: {ex.Message}");
+    Console.WriteLine($"Failed to trash file ({ex.HttpStatusCode}): {ex.Message}");
 }
 ```
 
@@ -265,8 +265,8 @@ try
     await gDriveApi.RestoreFileFromTrashAsync(fileId); // Add: cancellationToken: cts.Token
     Console.WriteLine("File restored from trash successfully.");
 }
-catch (RestoreFileException ex)
+catch (GoogleApiException ex)
 {
-    Console.WriteLine($"Failed to restore file: {ex.Message}");
+    Console.WriteLine($"Failed to restore file ({ex.HttpStatusCode}): {ex.Message}");
 }
 ```

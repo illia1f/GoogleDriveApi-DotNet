@@ -22,4 +22,5 @@ The underlying package handles authentication, request serialization, and API co
 
 - [Google Drive API Documentation](https://developers.google.com/drive)
 - [Google API .NET Client Library](https://github.com/googleapis/google-api-dotnet-client)
+- [Generated Drive v3 Client Source](https://github.com/googleapis/google-api-dotnet-client/tree/main/Src/Generated/Google.Apis.Drive.v3)
 - [NuGet Package](https://www.nuget.org/packages/Google.Apis.Drive.v3)

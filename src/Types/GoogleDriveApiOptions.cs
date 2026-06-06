@@ -7,9 +7,16 @@ namespace GoogleDriveApi_DotNet.Types;
 /// </summary>
 public record GoogleDriveApiOptions : IOptions
 {
+    /// <summary>The default value of <see cref="RootFolderId"/>.</summary>
     public const string DefaultRootFolderId = "root";
+
+    /// <summary>The default value of <see cref="CredentialsPath"/>.</summary>
     public const string DefaultCredentialsPath = "credentials.json";
+
+    /// <summary>The default value of <see cref="TokenFolderPath"/>.</summary>
     public const string DefaultTokenFolderPath = "_metadata";
+
+    /// <summary>The default value of <see cref="UserId"/>.</summary>
     public const string DefaultUserId = "user";
 
     /// <summary>

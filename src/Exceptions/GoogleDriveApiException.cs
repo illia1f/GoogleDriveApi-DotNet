@@ -1,8 +1,21 @@
-﻿namespace GoogleDriveApi_DotNet.Exceptions;
+namespace GoogleDriveApi_DotNet.Exceptions;
 
+/// <summary>
+/// The base exception for all errors raised by this library.
+/// Catch this type to handle any library-specific failure.
+/// </summary>
 public class GoogleDriveApiException : Exception
 {
+    /// <inheritdoc/>
     public GoogleDriveApiException() { }
-    public GoogleDriveApiException(string message) : base(message) { }
-    public GoogleDriveApiException(string message, Exception inner) : base(message, inner) { }
+
+    /// <inheritdoc/>
+    public GoogleDriveApiException(string message)
+        : base(message) 
+    { }
+
+    /// <inheritdoc/>
+    public GoogleDriveApiException(string message, Exception? innerException)
+        : base(message, innerException)
+    { }
 }
