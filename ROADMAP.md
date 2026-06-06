@@ -17,7 +17,7 @@ The library is in **active development** and approaching its first stable releas
 - [x] Download binary files (`DownloadFileAsync`)
 - [x] Download/export Google Workspace files (Docs, Sheets, Slides)
 - [x] Get file ID by name (`GetFileIdByAsync`)
-- [ ] Get files by folder (`GetFilesByAsync`)
+- [x] Get files by folder (`GetFilesByAsync`)
 - [x] Delete file (`DeleteFileAsync`)
 - [x] Move file to different folder (`MoveFileToAsync`)
 - [x] Rename file (`RenameFileAsync`)

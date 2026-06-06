@@ -679,6 +679,63 @@ public class GoogleDriveApi : IDisposable
     }
 
     /// <summary>
+    /// Retrieves a list of files (non-folders) within the specified parent folder.
+    /// </summary>
+    /// <param name="parentFolderId">
+    /// Optional ID of the parent folder to search within. If <c>null</c>,
+    /// <see cref="RootFolderId"/> is used.
+    /// </param>
+    /// <param name="pageSize">
+    /// The maximum number of files to retrieve per page.
+    /// Must be greater than zero.
+    /// </param>
+    /// <param name="cancellationToken">The token to monitor for cancellation requests.</param>
+    /// <returns>
+    /// A list of <see cref="GoogleFile"/> objects representing the files in the folder,
+    /// including their <c>Id</c>, <c>Name</c>, <c>MimeType</c>, <c>Size</c> and <c>ModifiedTime</c>.
+    /// </returns>
+    /// <remarks>
+    /// Only non-trashed, non-folder items are returned.
+    /// The method retrieves all available pages until no more results remain.
+    /// </remarks>
+    /// <exception cref="ArgumentOutOfRangeException">
+    /// Thrown when <paramref name="pageSize"/> is less than or equal to zero.
+    /// </exception>
+    /// <exception cref="AuthorizationException">Thrown when the instance has not been authorized. Call <see cref="AuthorizeAsync"/> first.</exception>
+    /// <exception cref="ObjectDisposedException">Thrown when the instance has been disposed.</exception>
+    /// <exception cref="Google.GoogleApiException">Thrown when the Google Drive API returns an error (e.g., not found, insufficient permissions, quota exceeded).</exception>
+    /// <exception cref="OperationCanceledException">Thrown when the operation is cancelled via the cancellation token.</exception>
+    public async Task<List<GoogleFile>> GetFilesByAsync(string? parentFolderId = null, int pageSize = 100, CancellationToken cancellationToken = default)
+    {
+        ArgumentOutOfRangeException.ThrowIfNegativeOrZero(pageSize);
+
+        parentFolderId ??= _options.RootFolderId;
+
+        var files = new List<GoogleFile>();
+        string? pageToken = null;
+        string qSelector = $"mimeType != '{GDriveMimeTypes.Folder}' and '{DriveQueryHelper.EscapeValue(parentFolderId)}' in parents and trashed = false";
+        const string fields = "nextPageToken, files(id, name, mimeType, size, modifiedTime)";
+        do
+        {
+            var listRequest = Provider.Files.List();
+            listRequest.Q = qSelector;
+            listRequest.Fields = fields;
+            listRequest.PageSize = pageSize;
+            listRequest.PageToken = pageToken;
+
+            var result = await listRequest.ExecuteAsync(cancellationToken).ConfigureAwait(false);
+            if (result.Files is not null)
+            {
+                files.AddRange(result.Files);
+            }
+
+            pageToken = result.NextPageToken;
+        } while (!string.IsNullOrEmpty(pageToken));
+
+        return files;
+    }
+
+    /// <summary>
     /// Updates the binary content of an existing Google Drive file using a resumable upload.
     /// </summary>
     /// <param name="fileId">The identifier of the file whose content should be updated.</param>
