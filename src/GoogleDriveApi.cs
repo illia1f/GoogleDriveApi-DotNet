@@ -475,12 +475,12 @@ public class GoogleDriveApi : IDisposable
         parentFolderId ??= _options.RootFolderId;
 
         var listRequest = Provider.Files.List();
-        listRequest.Q = $"mimeType='{GDriveMimeTypes.Folder}' and name='{folderName}' and '{parentFolderId}' in parents and trashed=false";
+        listRequest.Q = $"mimeType='{GDriveMimeTypes.Folder}' and name='{DriveQueryHelper.EscapeValue(folderName)}' and '{DriveQueryHelper.EscapeValue(parentFolderId)}' in parents and trashed=false";
         listRequest.Fields = "files(id, name)";
         listRequest.PageSize = 1;
 
         var result = await listRequest.ExecuteAsync(cancellationToken).ConfigureAwait(false);
-        GoogleFile? file = result.Files.FirstOrDefault();
+        GoogleFile? file = result.Files?.FirstOrDefault();
 
         return file?.Id;
     }
@@ -516,7 +516,7 @@ public class GoogleDriveApi : IDisposable
 
         var allFolders = new List<GoogleFile>();
         string? pageToken = null;
-        string qSelector = $"mimeType='{GDriveMimeTypes.Folder}' and '{parentFolderId}' in parents and trashed=false";
+        string qSelector = $"mimeType='{GDriveMimeTypes.Folder}' and '{DriveQueryHelper.EscapeValue(parentFolderId)}' in parents and trashed=false";
         const string fields = "nextPageToken, files(id, name)";
         do
         {
@@ -668,14 +668,71 @@ public class GoogleDriveApi : IDisposable
         parentFolderId ??= _options.RootFolderId;
 
         var request = Provider.Files.List();
-        request.Q = $"name = '{fullFileName}' and '{parentFolderId}' in parents and trashed = false";
+        request.Q = $"name = '{DriveQueryHelper.EscapeValue(fullFileName)}' and '{DriveQueryHelper.EscapeValue(parentFolderId)}' in parents and trashed = false";
         request.Fields = "files(id, name)";
         request.PageSize = 1;
 
         var result = await request.ExecuteAsync(cancellationToken).ConfigureAwait(false);
-        var file = result.Files.FirstOrDefault();
+        var file = result.Files?.FirstOrDefault();
 
         return file?.Id;
+    }
+
+    /// <summary>
+    /// Retrieves a list of files (non-folders) within the specified parent folder.
+    /// </summary>
+    /// <param name="parentFolderId">
+    /// Optional ID of the parent folder to search within. If <c>null</c>,
+    /// <see cref="RootFolderId"/> is used.
+    /// </param>
+    /// <param name="pageSize">
+    /// The maximum number of files to retrieve per page.
+    /// Must be greater than zero.
+    /// </param>
+    /// <param name="cancellationToken">The token to monitor for cancellation requests.</param>
+    /// <returns>
+    /// A list of <see cref="GoogleFile"/> objects representing the files in the folder,
+    /// including their <c>Id</c>, <c>Name</c>, <c>MimeType</c>, <c>Size</c> and <c>ModifiedTime</c>.
+    /// </returns>
+    /// <remarks>
+    /// Only non-trashed, non-folder items are returned.
+    /// The method retrieves all available pages until no more results remain.
+    /// </remarks>
+    /// <exception cref="ArgumentOutOfRangeException">
+    /// Thrown when <paramref name="pageSize"/> is less than or equal to zero.
+    /// </exception>
+    /// <exception cref="AuthorizationException">Thrown when the instance has not been authorized. Call <see cref="AuthorizeAsync"/> first.</exception>
+    /// <exception cref="ObjectDisposedException">Thrown when the instance has been disposed.</exception>
+    /// <exception cref="Google.GoogleApiException">Thrown when the Google Drive API returns an error (e.g., not found, insufficient permissions, quota exceeded).</exception>
+    /// <exception cref="OperationCanceledException">Thrown when the operation is cancelled via the cancellation token.</exception>
+    public async Task<List<GoogleFile>> GetFilesByAsync(string? parentFolderId = null, int pageSize = 100, CancellationToken cancellationToken = default)
+    {
+        ArgumentOutOfRangeException.ThrowIfNegativeOrZero(pageSize);
+
+        parentFolderId ??= _options.RootFolderId;
+
+        var files = new List<GoogleFile>();
+        string? pageToken = null;
+        string qSelector = $"mimeType != '{GDriveMimeTypes.Folder}' and '{DriveQueryHelper.EscapeValue(parentFolderId)}' in parents and trashed = false";
+        const string fields = "nextPageToken, files(id, name, mimeType, size, modifiedTime)";
+        do
+        {
+            var listRequest = Provider.Files.List();
+            listRequest.Q = qSelector;
+            listRequest.Fields = fields;
+            listRequest.PageSize = pageSize;
+            listRequest.PageToken = pageToken;
+
+            var result = await listRequest.ExecuteAsync(cancellationToken).ConfigureAwait(false);
+            if (result.Files is not null)
+            {
+                files.AddRange(result.Files);
+            }
+
+            pageToken = result.NextPageToken;
+        } while (!string.IsNullOrEmpty(pageToken));
+
+        return files;
     }
 
     /// <summary>
