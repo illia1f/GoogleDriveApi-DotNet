@@ -2,7 +2,7 @@
 
 namespace GoogleDriveApi_DotNet.Extensions;
 
-public static class ConvertionExtensions
+internal static class ConvertionExtensions
 {
     public static GDriveFile ToGDriveFile(this GoogleFile file)
     {

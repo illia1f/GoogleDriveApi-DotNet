@@ -1,6 +1,6 @@
 ﻿namespace GoogleDriveApi_DotNet.Helpers;
 
-public static class MimeTypeHelper
+internal static class MimeTypeHelper
 {
     /// <summary>
     /// Returns a file extension for a given MIME type.
@@ -9,6 +9,6 @@ public static class MimeTypeHelper
     /// <returns>The corresponding file extension, or null if no extension is found.</returns>
     public static string? GetExtensionBy(string mimeType)
     {
-        return MimeMapping.MimeUtility.GetExtensions(mimeType).FirstOrDefault();
+        return MimeMapping.MimeUtility.GetExtensions(mimeType)?.FirstOrDefault();
     }
 }

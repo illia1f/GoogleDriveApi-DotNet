@@ -61,5 +61,12 @@ public interface IGoogleDriveApiBuilder
     /// <param name="immediateAuthorization">Whether to authorize immediately after building.</param>
     /// <param name="cancellationToken">Cancellation token to cancel the operation or set a timeout.</param>
     /// <returns>A task representing the asynchronous operation. The result contains the authorized GoogleDriveApi instance.</returns>
+    /// <remarks>
+    /// When <paramref name="immediateAuthorization"/> is <c>true</c>, authorization failures from the configured
+    /// <see cref="Abstractions.IGoogleDriveAuthProvider"/> propagate to the caller. The default provider may throw
+    /// <see cref="FileNotFoundException"/> when the credentials file is missing or
+    /// <see cref="Google.Apis.Auth.OAuth2.Responses.TokenResponseException"/> when the OAuth token request fails.
+    /// </remarks>
+    /// <exception cref="OperationCanceledException">Thrown when the operation is cancelled via the cancellation token.</exception>
     Task<GoogleDriveApi> BuildAsync(bool immediateAuthorization = true, CancellationToken cancellationToken = default);
 }

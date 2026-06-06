@@ -13,6 +13,8 @@ See the [Roadmap](ROADMAP.md) for feature status and detailed tracking.
 - [Google.Apis.Drive.v3 Package Overview](docs/GoogleApisDrivePackage.md)
 - [Downloading Files from Google Drive](docs/DownloadingFiles.md)
 - [Understanding Folder Hierarchy and Cycle Dependencies](docs/FolderHierarchyAndCycleDependencies.md)
+- [Token Refresh](docs/TokenRefresh.md) — why no manual token refresh is required.
+- [Architecture Decision Records](docs/architecture-decisions/README.md) — why the library is designed the way it is.
 
 > **Note:** This library is not a full reflection of the real Google Drive API but implements the most commonly used API endpoints to simplify interaction with Google Drive.
 

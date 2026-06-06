@@ -1,5 +1,5 @@
-﻿using GoogleDriveApi_DotNet;
-using GoogleDriveApi_DotNet.Exceptions;
+﻿using Google;
+using GoogleDriveApi_DotNet;
 
 using var cts = new CancellationTokenSource(TimeSpan.FromMinutes(5));
 
@@ -38,7 +38,7 @@ try
     copyFileId = await gDriveApi.CopyFileToAsync(fileId, sourceFolderId, cancellationToken: cts.Token);
     Console.WriteLine($"Created a copy of file \"{fileToCopyName}\".");
 }
-catch (CopyFileException ex)
+catch (GoogleApiException ex)
 {
     Console.WriteLine($"Cannot create a copy of file \"{fileToCopyName}\". Details: {ex.Message}");
     return;

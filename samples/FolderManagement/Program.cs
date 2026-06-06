@@ -79,13 +79,10 @@ Console.WriteLine(new string('-', 50));
         {
             Console.WriteLine("Cannot find the Test Folder.");
         }
-        else if (await gDriveApi.DeleteFolderAsync(folderId, cts.Token))
-        {
-            Console.WriteLine("Test Folder has been deleted =)");
-        }
         else
         {
-            Console.WriteLine("Sth went wrong :(");
+            await gDriveApi.DeleteFolderAsync(folderId, cts.Token);
+            Console.WriteLine("Test Folder has been deleted =)");
         }
     }
     catch (OperationCanceledException)
