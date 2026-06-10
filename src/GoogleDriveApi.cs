@@ -837,6 +837,10 @@ public class GoogleDriveApi : IDisposable
     /// </summary>
     /// <param name="filePath">The full path to the file to be uploaded.</param>
     /// <param name="mimeType">The MIME type of the file content (for example <c>application/pdf</c> or <c>image/png</c>).</param>
+    /// <param name="parentFolderId">
+    /// Optional ID of the parent folder in which the file will be created.
+    /// If <c>null</c>, <see cref="RootFolderId"/> is used.
+    /// </param>
     /// <param name="cancellationToken">The token to monitor for cancellation requests.</param>
     /// <returns>The identifier of the newly created Google Drive file.</returns>
     /// <remarks>
@@ -849,10 +853,12 @@ public class GoogleDriveApi : IDisposable
     /// <exception cref="UploadFileException">Thrown when the upload fails for any reason other than cancellation, including when no valid file identifier is returned.</exception>
     /// <exception cref="AuthorizationException">Thrown when the instance has not been authorized. Call <see cref="AuthorizeAsync"/> first.</exception>
     /// <exception cref="ObjectDisposedException">Thrown when the instance has been disposed.</exception>
-    public async Task<string> UploadFilePathAsync(string filePath, string mimeType, CancellationToken cancellationToken = default)
+    public async Task<string> UploadFilePathAsync(string filePath, string mimeType, string? parentFolderId = null, CancellationToken cancellationToken = default)
     {
         ArgumentException.ThrowIfNullOrEmpty(filePath);
         ArgumentException.ThrowIfNullOrEmpty(mimeType);
+
+        parentFolderId ??= _options.RootFolderId;
 
         if (!File.Exists(filePath))
         {
@@ -876,7 +882,8 @@ public class GoogleDriveApi : IDisposable
 
             var fileMetadata = new GoogleFile
             {
-                Name = fileName
+                Name = fileName,
+                Parents = [parentFolderId]
             };
 
             CreateMediaUpload request = files.Create(fileMetadata, stream, mimeType);
@@ -907,6 +914,10 @@ public class GoogleDriveApi : IDisposable
     /// <param name="fileStream">A stream containing the file content to be uploaded.</param>
     /// <param name="fileName">The name of the file to be created in Google Drive.</param>
     /// <param name="mimeType">The MIME type of the file content.</param>
+    /// <param name="parentFolderId">
+    /// Optional ID of the parent folder in which the file will be created.
+    /// If <c>null</c>, <see cref="RootFolderId"/> is used.
+    /// </param>
     /// <param name="cancellationToken">The token to monitor for cancellation requests.</param>
     /// <returns>The identifier of the newly created Google Drive file.</returns>
     /// <exception cref="ArgumentNullException">Thrown when <paramref name="fileStream"/> is null.</exception>
@@ -915,11 +926,13 @@ public class GoogleDriveApi : IDisposable
     /// <exception cref="UploadFileException">Thrown when the upload fails for any reason other than cancellation, including when no file identifier is returned.</exception>
     /// <exception cref="AuthorizationException">Thrown when the instance has not been authorized. Call <see cref="AuthorizeAsync"/> first.</exception>
     /// <exception cref="ObjectDisposedException">Thrown when the instance has been disposed.</exception>
-    public async Task<string> UploadFileStreamAsync(Stream fileStream, string fileName, string mimeType, CancellationToken cancellationToken = default)
+    public async Task<string> UploadFileStreamAsync(Stream fileStream, string fileName, string mimeType, string? parentFolderId = null, CancellationToken cancellationToken = default)
     {
         ArgumentNullException.ThrowIfNull(fileStream);
         ArgumentException.ThrowIfNullOrEmpty(fileName);
         ArgumentException.ThrowIfNullOrEmpty(mimeType);
+
+        parentFolderId ??= _options.RootFolderId;
 
         cancellationToken.ThrowIfCancellationRequested();
 
@@ -927,7 +940,8 @@ public class GoogleDriveApi : IDisposable
 
         var fileMetadata = new GoogleFile()
         {
-            Name = fileName
+            Name = fileName,
+            Parents = [parentFolderId]
         };
 
         CreateMediaUpload request = Provider.Files.Create(fileMetadata, fileStream, mimeType);

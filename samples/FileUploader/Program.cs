@@ -17,21 +17,36 @@ await gDriveApi.AuthorizeAsync(cts.Token);
 
 string filePath = "Files/Escanor.jpg";
 
+if (!File.Exists(filePath))
+{
+    Console.WriteLine($"Sample file \"{filePath}\" not found.");
+    Console.WriteLine("The \"Files\" folder is excluded from git, so you need to provide your own file:");
+    Console.WriteLine($"  1. Create the folder samples/FileUploader/Files");
+    Console.WriteLine($"  2. Put any .jpg image named \"Escanor.jpg\" there (or adjust \"filePath\" above)");
+    Console.WriteLine($"  3. Rebuild and run again");
+    return;
+}
+
 try
 {
-    // Uploads a file to Google Drive using a file path.
-    string fileId = await gDriveApi.UploadFilePathAsync(filePath, KnownMimeTypes.Jpeg, cts.Token);
+    // Uploads a file to Google Drive using a file path (into the root folder).
+    string fileId = await gDriveApi.UploadFilePathAsync(filePath, KnownMimeTypes.Jpeg, cancellationToken: cts.Token);
 
     Console.WriteLine($"File has been successfuly uploded with ID({fileId})");
 
+    // Uploads directly into a target folder by passing parentFolderId —
+    // no need to upload to root and move the file afterwards.
+    const string folderName = "FileUploaderSample";
+    string folderId = await gDriveApi.GetFolderIdByAsync(folderName, cancellationToken: cts.Token)
+                      ?? await gDriveApi.CreateFolderAsync(folderName, cancellationToken: cts.Token);
 
     using var stream = new FileStream(filePath, FileMode.Open);
     string fileName = Path.GetFileName(filePath);
 
     // Uploads a file to Google Drive using a Stream.
-    await gDriveApi.UploadFileStreamAsync(stream, fileName, KnownMimeTypes.Jpeg, cts.Token);
+    string streamFileId = await gDriveApi.UploadFileStreamAsync(stream, fileName, KnownMimeTypes.Jpeg, folderId, cts.Token);
 
-    Console.WriteLine($"File has been successfuly uploded with ID({fileId})");
+    Console.WriteLine($"File has been successfuly uploded into folder \"{folderName}\" with ID({streamFileId})");
 }
 catch (OperationCanceledException)
 {
