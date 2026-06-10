@@ -38,16 +38,16 @@ string filePath = "Files/Escanor.jpg";
 
 try
 {
-    // Uploads a file to Google Drive using a file path.
-    string fileId = await gDriveApi.UploadFilePathAsync(filePath, KnownMimeTypes.Jpeg); // Add: cts.Token
+    // Uploads a file to Google Drive using a file path (into the root folder).
+    string fileId = await gDriveApi.UploadFilePathAsync(filePath, KnownMimeTypes.Jpeg); // Add: cancellationToken: cts.Token
 
     Console.WriteLine($"File has been successfully uploaded with ID({fileId})");
 
     using var stream = new FileStream(filePath, FileMode.Open);
     string fileName = Path.GetFileName(filePath);
 
-    // Uploads a file to Google Drive using a Stream.
-    string fileId2 = await gDriveApi.UploadFileStreamAsync(stream, fileName, KnownMimeTypes.Jpeg); // Add: cts.Token
+    // Uploads a file to Google Drive using a Stream, directly into a target folder.
+    string fileId2 = await gDriveApi.UploadFileStreamAsync(stream, fileName, KnownMimeTypes.Jpeg, parentFolderId: "your-folder-id"); // Add: cancellationToken: cts.Token
 
     Console.WriteLine($"File has been successfully uploaded with ID({fileId2})");
 }
