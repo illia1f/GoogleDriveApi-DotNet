@@ -23,6 +23,8 @@ Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "FileManagement", "samples\F
 EndProject
 Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "TrashOperations", "samples\TrashOperations\TrashOperations.csproj", "{61A797B4-343C-2D8F-BFD9-FEDA8F48027F}"
 EndProject
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "GDriveExplorerWinForms", "samples\GDriveExplorerWinForms\GDriveExplorerWinForms.csproj", "{C5842095-27A2-9000-1A81-929187B261DF}"
+EndProject
 Global
 	GlobalSection(SolutionConfigurationPlatforms) = preSolution
 		Debug|Any CPU = Debug|Any CPU
@@ -61,6 +63,10 @@ Global
 		{61A797B4-343C-2D8F-BFD9-FEDA8F48027F}.Debug|Any CPU.Build.0 = Debug|Any CPU
 		{61A797B4-343C-2D8F-BFD9-FEDA8F48027F}.Release|Any CPU.ActiveCfg = Release|Any CPU
 		{61A797B4-343C-2D8F-BFD9-FEDA8F48027F}.Release|Any CPU.Build.0 = Release|Any CPU
+		{C5842095-27A2-9000-1A81-929187B261DF}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{C5842095-27A2-9000-1A81-929187B261DF}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{C5842095-27A2-9000-1A81-929187B261DF}.Release|Any CPU.ActiveCfg = Release|Any CPU
+		{C5842095-27A2-9000-1A81-929187B261DF}.Release|Any CPU.Build.0 = Release|Any CPU
 	EndGlobalSection
 	GlobalSection(SolutionProperties) = preSolution
 		HideSolutionNode = FALSE
@@ -73,6 +79,7 @@ Global
 		{56648DA1-9918-44CA-9FDF-C9432FF27EDC} = {21C6580E-7CBF-47E8-B08C-CC18E521FDB5}
 		{EA3F9217-0914-7908-3827-42285E46738E} = {51EC3CAB-9BE8-486E-A7EF-582DE5045414}
 		{61A797B4-343C-2D8F-BFD9-FEDA8F48027F} = {51EC3CAB-9BE8-486E-A7EF-582DE5045414}
+		{C5842095-27A2-9000-1A81-929187B261DF} = {51EC3CAB-9BE8-486E-A7EF-582DE5045414}
 	EndGlobalSection
 	GlobalSection(ExtensibilityGlobals) = postSolution
 		SolutionGuid = {9B738F98-FBFD-4B03-B6C9-2BE4EBFFCDB3}
