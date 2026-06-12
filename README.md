@@ -39,7 +39,22 @@ See [Google Cloud Console Setup](docs/GoogleCloudConsoleSetup.md).
 1. Place the downloaded `credentials.json` file in your project directory.
 2. Initialize the `GoogleDriveApi` class with your credentials.
 
-## If you are a developer
+## Samples
+
+The [samples](samples) directory contains runnable projects demonstrating the library:
+
+**Console samples:**
+
+- [FileUploader](samples/FileUploader) — uploading files from a path or stream, creating target folders
+- [FileDownloader](samples/FileDownloader) — locating files by name and downloading them
+- [FileManagement](samples/FileManagement) — renaming, moving, copying files and updating file content
+- [FolderManagement](samples/FolderManagement) — creating, listing and deleting folders
+- [TrashOperations](samples/TrashOperations) — moving files to trash, restoring them and listing trashed files
+- [RetrieveAllFolderHierarchy](samples/RetrieveAllFolderHierarchy) — retrieving the full folder tree in one call
+
+**Desktop app:**
+
+- [GDriveExplorerWinForms](samples/GDriveExplorerWinForms) — full-featured WinForms Drive explorer covering nearly the entire API surface: browsing, upload/download, rename/move/copy, folder management, trash and token refresh
 
 > For testing samples just place downloaded `credentials.json` in samples/Shared directory.
 > If you want to share more files across sample project include them in `Directory.Build.targets` config file.
