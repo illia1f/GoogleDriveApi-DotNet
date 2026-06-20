@@ -1,86 +1,82 @@
 # GoogleDriveApi-DotNet
 
-This C# library simplifies interaction with the Google Drive API. While it doesn't cover the entire API, it includes the most commonly used endpoints for easier access to Google Drive.
+A C# library that simplifies interaction with the Google Drive API. It doesn't cover the entire
+API — it wraps the most commonly used endpoints (files, folders, trash, upload/download) behind a
+clean, fluent interface.
 
-## Status
-
-🚧 **Pre-release** — The library is in active development approaching v1.0.0.
-
-See the [Roadmap](ROADMAP.md) for feature status and detailed tracking.
-
-## Documentation
-
-- [Google.Apis.Drive.v3 Package Overview](docs/GoogleApisDrivePackage.md)
-- [Downloading Files from Google Drive](docs/DownloadingFiles.md)
-- [Understanding Folder Hierarchy and Cycle Dependencies](docs/FolderHierarchyAndCycleDependencies.md)
-- [Token Refresh](docs/TokenRefresh.md) — why no manual token refresh is required.
-- [Architecture Decision Records](docs/architecture-decisions/README.md) — why the library is designed the way it is.
-
-> **Note:** This library is not a full reflection of the real Google Drive API but implements the most commonly used API endpoints to simplify interaction with Google Drive.
+> 🚧 **Pre-release** — approaching v1.0.0. Not yet published to NuGet; first preview is in progress.
+> See the [Roadmap](https://github.com/Illia1F/GoogleDriveApi-DotNet/blob/main/ROADMAP.md) for status.
 
 ## Installation
 
-This library depends on the official Google Drive API NuGet package. Add it to your project:
+Not yet on NuGet. Clone the repo and reference the project directly:
 
 ```bash
-dotnet add package Google.Apis.Drive.v3
+git clone https://github.com/Illia1F/GoogleDriveApi-DotNet.git
 ```
 
-> Download this library or create your own implementation based on this template.
+```xml
+<ProjectReference Include="path/to/src/GoogleDriveApi-DotNet.csproj" />
+```
 
-## Setup
+> **Coming soon** — once the first preview ships, install via:
+> `dotnet add package GoogleDriveApi.DotNet --prerelease`
+> (dependencies `Google.Apis.Drive.v3` and `MimeMapping` are pulled in transitively).
 
-### Google Cloud Console (enable API + OAuth)
+## Quickstart
 
-See [Google Cloud Console Setup](docs/GoogleCloudConsoleSetup.md).
+```csharp
+using GoogleDriveApi_DotNet;
+using MimeMapping;
 
-### Application setup
+// Authorizes on build (opens a browser the first time).
+using GoogleDriveApi gDriveApi = await GoogleDriveApi.CreateBuilder()
+    .SetCredentialsPath("credentials.json")
+    .SetApplicationName("My Drive App")
+    .BuildAsync();
 
-1. Place the downloaded `credentials.json` file in your project directory.
-2. Initialize the `GoogleDriveApi` class with your credentials.
+string folderId = await gDriveApi.CreateFolderAsync("My Folder");
+string fileId   = await gDriveApi.UploadFilePathAsync("photo.jpg", KnownMimeTypes.Jpeg, folderId);
+await gDriveApi.DownloadFileAsync(fileId, "Downloads");
+```
+
+You need a Google Cloud project and a `credentials.json` first — see
+[Getting Started](https://github.com/Illia1F/GoogleDriveApi-DotNet/blob/main/docs/getting-started.md).
+
+## Documentation
+
+| Guides                                                                                                                 | Reference                                                                                             | Project                                                                                                      |
+| ---------------------------------------------------------------------------------------------------------------------- | ----------------------------------------------------------------------------------------------------- | ------------------------------------------------------------------------------------------------------------ |
+| [Getting Started](https://github.com/Illia1F/GoogleDriveApi-DotNet/blob/main/docs/getting-started.md)                  | [Options](https://github.com/Illia1F/GoogleDriveApi-DotNet/blob/main/docs/reference/options.md)       | [Roadmap](https://github.com/Illia1F/GoogleDriveApi-DotNet/blob/main/ROADMAP.md)                             |
+| [Uploading files](https://github.com/Illia1F/GoogleDriveApi-DotNet/blob/main/docs/guides/uploading-files.md)           | [Exceptions](https://github.com/Illia1F/GoogleDriveApi-DotNet/blob/main/docs/reference/exceptions.md) | [Architecture](https://github.com/Illia1F/GoogleDriveApi-DotNet/blob/main/docs/contributing/architecture.md) |
+| [Downloading files](https://github.com/Illia1F/GoogleDriveApi-DotNet/blob/main/docs/guides/downloading-files.md)       | [MIME types](https://github.com/Illia1F/GoogleDriveApi-DotNet/blob/main/docs/reference/mime-types.md) | [Decision records](https://github.com/Illia1F/GoogleDriveApi-DotNet/blob/main/docs/adr/README.md)            |
+| [Managing files](https://github.com/Illia1F/GoogleDriveApi-DotNet/blob/main/docs/guides/managing-files.md)             |                                                                                                       | [Contributing](https://github.com/Illia1F/GoogleDriveApi-DotNet/blob/main/CONTRIBUTING.md)                   |
+| [Folders & hierarchy](https://github.com/Illia1F/GoogleDriveApi-DotNet/blob/main/docs/guides/folders-and-hierarchy.md) |                                                                                                       |                                                                                                              |
+| [Trash](https://github.com/Illia1F/GoogleDriveApi-DotNet/blob/main/docs/guides/trash.md)                               |                                                                                                       |                                                                                                              |
+| [Token & auth](https://github.com/Illia1F/GoogleDriveApi-DotNet/blob/main/docs/guides/token-and-auth.md)               |                                                                                                       |                                                                                                              |
+
+> This library is not a full reflection of the real Google Drive API — it implements the most
+> commonly used endpoints to simplify everyday interaction with Google Drive.
 
 ## Samples
 
-The [samples](samples) directory contains runnable projects demonstrating the library:
+Runnable projects in [samples/](https://github.com/Illia1F/GoogleDriveApi-DotNet/tree/main/samples):
 
-**Console samples:**
+- **Console:** [FileUploader](https://github.com/Illia1F/GoogleDriveApi-DotNet/tree/main/samples/FileUploader),
+  [FileDownloader](https://github.com/Illia1F/GoogleDriveApi-DotNet/tree/main/samples/FileDownloader),
+  [FileManagement](https://github.com/Illia1F/GoogleDriveApi-DotNet/tree/main/samples/FileManagement),
+  [FolderManagement](https://github.com/Illia1F/GoogleDriveApi-DotNet/tree/main/samples/FolderManagement),
+  [TrashOperations](https://github.com/Illia1F/GoogleDriveApi-DotNet/tree/main/samples/TrashOperations),
+  [RetrieveAllFolderHierarchy](https://github.com/Illia1F/GoogleDriveApi-DotNet/tree/main/samples/RetrieveAllFolderHierarchy)
+- **Desktop:** [GDriveExplorerWinForms](https://github.com/Illia1F/GoogleDriveApi-DotNet/tree/main/samples/GDriveExplorerWinForms) —
+  a WinForms Drive explorer covering nearly the whole API surface.
 
-- [FileUploader](samples/FileUploader) — uploading files from a path or stream, creating target folders
-- [FileDownloader](samples/FileDownloader) — locating files by name and downloading them
-- [FileManagement](samples/FileManagement) — renaming, moving, copying files and updating file content
-- [FolderManagement](samples/FolderManagement) — creating, listing and deleting folders
-- [TrashOperations](samples/TrashOperations) — moving files to trash, restoring them and listing trashed files
-- [RetrieveAllFolderHierarchy](samples/RetrieveAllFolderHierarchy) — retrieving the full folder tree in one call
-
-**Desktop app:**
-
-- [GDriveExplorerWinForms](samples/GDriveExplorerWinForms) — full-featured WinForms Drive explorer covering nearly the entire API surface: browsing, upload/download, rename/move/copy, folder management, trash and token refresh
-
-> For testing samples just place downloaded `credentials.json` in samples/Shared directory.
-> If you want to share more files across sample project include them in `Directory.Build.targets` config file.
-
-## Sample code snippets
-
-### Creating an Instance of GoogleDriveApi
-
-First, create an instance of the `GoogleDriveApi` class using the fluent builder pattern with your credentials and token paths:
-
-```csharp
-using GoogleDriveApi gDriveApi = await GoogleDriveApi.CreateBuilder()
-	.SetCredentialsPath("credentials.json") // default value "credentials.json"
-	.SetTokenFolderPath("_metadata") // default value "_metadata"
-	.BuildAsync();
-```
-
-Additional sample code snippets are available in the [Sample Code Snippets file](docs/SampleCodeSnippets.md).
+> To run a sample, place your `credentials.json` in `samples/Shared`. To share more files across
+> samples, add them to the `Directory.Build.targets` config.
 
 ## License
 
-This project is licensed under the MIT License. See the [LICENSE](LICENSE) file for details.
-
-## Contributing
-
-We welcome contributions! Please read our [Contributing Guidelines](CONTRIBUTING.md) to get started.
+MIT — see [LICENSE](https://github.com/Illia1F/GoogleDriveApi-DotNet/blob/main/LICENSE).
 
 ## Acknowledgements
 

@@ -53,7 +53,7 @@ public sealed class ConnectPanel : UserControl
         AddSpanningRow(grid, new Label
         {
             Text = "Uses GoogleDriveApi.CreateBuilder() — pick your OAuth client credentials\n" +
-                   "(see docs/GoogleCloudConsoleSetup.md) and press Connect.",
+                   "(see docs/getting-started.md) and press Connect.",
             Font = Theme.SmallFont,
             ForeColor = Theme.TextSecondary,
             AutoSize = false,

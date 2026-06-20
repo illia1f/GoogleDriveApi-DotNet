@@ -4,7 +4,7 @@ This document outlines the current state of the library and planned features for
 
 ## Current Status
 
-The library is in **active development** and approaching its first stable release. Core functionality for authentication, file uploads/downloads, and folder management is implemented.
+The library is in **active development** and approaching its first stable release. Core functionality for authentication, file uploads/downloads, and folder management is implemented. A v1 architecture redesign (operation-group split, unified domain model, multiple auth providers, and Dependency Injection) is planned before the first NuGet publish — see [Architecture](docs/contributing/architecture.md).
 
 ---
 
@@ -46,6 +46,18 @@ The library is in **active development** and approaching its first stable releas
 - [x] MIME type detection and mapping
 - [x] Google Workspace MIME type handling
 - [x] Fluent builder pattern for configuration
+
+### Architecture, Packaging & DI (v1 redesign)
+
+- [ ] Operation-group split (`Files` / `Folders` / `Transfers` / `Trash`) over a thin `GDriveClient` facade
+- [ ] Unified `GDriveItem` domain model (replaces the raw Google type / `GDriveFile` struct / tuples)
+- [ ] `IAsyncEnumerable<GDriveItem>` streaming variants for listings
+- [ ] Multiple authentication providers: interactive (desktop), service account, stored refresh token
+- [ ] Lazy + idempotent + thread-safe authorization (safe for DI singletons)
+- [ ] Stream-destination downloads (`DownloadFileAsync(fileId, Stream)`, `OpenReadAsync`) + `ExportFileAsync` for Workspace files
+- [ ] `IProgress<long>` progress reporting on transfers _(pulled forward from v1.1.0)_
+- [ ] `GoogleDriveApi.Extensions.DependencyInjection` package (`AddGoogleDrive`, options pattern, lifetime knob)
+- [ ] NuGet packaging metadata + `GenerateDocumentationFile` + SourceLink (target: `net10.0`)
 
 ---
 
