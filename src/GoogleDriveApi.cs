@@ -42,6 +42,11 @@ public class GoogleDriveApi : IDisposable, IGDriveOperationContext
     public IGDriveTransferOperations Transfers { get; }
 
     /// <summary>
+    /// Gets the trash operations group (move to trash, restore, empty, list trashed items).
+    /// </summary>
+    public IGDriveTrashOperations Trash { get; }
+
+    /// <summary>
     /// Gets the configured root folder ID from options. Default value is "root".
     /// </summary>
     public string RootFolderId => _options.RootFolderId;
@@ -58,6 +63,7 @@ public class GoogleDriveApi : IDisposable, IGDriveOperationContext
         Files = new GDriveFileOperations(this);
         Folders = new GDriveFolderOperations(this);
         Transfers = new GDriveTransferOperations(this);
+        Trash = new GDriveTrashOperations(this);
     }
 
     /// <summary>
@@ -263,132 +269,25 @@ public class GoogleDriveApi : IDisposable, IGDriveOperationContext
         return false;
     }
 
-    /// <summary>
-    /// Permanently deletes all items from the Google Drive trash.
-    /// </summary>
-    /// <param name="cancellationToken">The token to monitor for cancellation requests.</param>
-    /// <exception cref="AuthorizationException">Thrown when the instance has not been authorized. Call <see cref="AuthorizeAsync"/> first.</exception>
-    /// <exception cref="ObjectDisposedException">Thrown when the instance has been disposed.</exception>
-    /// <exception cref="Google.GoogleApiException">Thrown when the Google Drive API returns an error (e.g., not found, insufficient permissions, quota exceeded).</exception>
-    /// <exception cref="OperationCanceledException">Thrown when the operation is cancelled via the cancellation token.</exception>
-    public async Task EmptyTrashAsync(CancellationToken cancellationToken = default)
-    {
-        await Provider.Files.EmptyTrash()
-            .ExecuteAsync(cancellationToken)
-            .ConfigureAwait(false);
-    }
+    /// <inheritdoc cref="IGDriveTrashOperations.EmptyAsync"/>
+    [Obsolete("Use Trash.EmptyAsync instead. This forwarder will be removed in v1.")]
+    public Task EmptyTrashAsync(CancellationToken cancellationToken = default)
+        => Trash.EmptyAsync(cancellationToken);
 
-    /// <summary>
-    /// Retrieves all items currently located in the Google Drive trash.
-    /// </summary>
-    /// <param name="pageSize">
-    /// The maximum number of items to retrieve per page.
-    /// Must be greater than zero.
-    /// </param>
-    /// <param name="cancellationToken">The token to monitor for cancellation requests.</param>
-    /// <returns>
-    /// A list of <see cref="GoogleFile"/> objects representing trashed items.
-    /// </returns>
-    /// <remarks>
-    /// Only items marked as trashed are returned.
-    /// The method retrieves all available pages until no more results remain.
-    /// </remarks>
-    /// <exception cref="ArgumentOutOfRangeException">
-    /// Thrown when <paramref name="pageSize"/> is less than or equal to zero.
-    /// </exception>
-    /// <exception cref="AuthorizationException">Thrown when the instance has not been authorized. Call <see cref="AuthorizeAsync"/> first.</exception>
-    /// <exception cref="ObjectDisposedException">Thrown when the instance has been disposed.</exception>
-    /// <exception cref="Google.GoogleApiException">Thrown when the Google Drive API returns an error (e.g., not found, insufficient permissions, quota exceeded).</exception>
-    /// <exception cref="OperationCanceledException">Thrown when the operation is cancelled via the cancellation token.</exception>
+    /// <inheritdoc cref="IGDriveTrashOperations.ListAsync"/>
+    [Obsolete("Use Trash.ListAsync instead. This forwarder will be removed in v1.")]
     public async Task<List<GoogleFile>> GetTrashedFilesAsync(int pageSize = 50, CancellationToken cancellationToken = default)
-    {
-        ArgumentOutOfRangeException.ThrowIfNegativeOrZero(pageSize);
+        => (await Trash.ListAsync(pageSize, cancellationToken).ConfigureAwait(false)).ToList();
 
-        var trashed = new List<GoogleFile>();
+    /// <inheritdoc cref="IGDriveTrashOperations.TrashAsync"/>
+    [Obsolete("Use Trash.TrashAsync instead. This forwarder will be removed in v1.")]
+    public Task MoveFileToTrashAsync(string fileId, CancellationToken cancellationToken = default)
+        => Trash.TrashAsync(fileId, cancellationToken);
 
-        string? pageToken = null;
-
-        do
-        {
-            var request = Provider.Files.List();
-            request.Q = "trashed = true";
-            request.Fields = "nextPageToken, files(id, name, mimeType, parents)";
-            request.PageSize = pageSize;
-            request.PageToken = pageToken;
-
-            var result = await request.ExecuteAsync(cancellationToken).ConfigureAwait(false);
-
-            if (result.Files is not null)
-            {
-                trashed.AddRange(result.Files);
-            }
-
-            pageToken = result.NextPageToken;
-
-        } while (!string.IsNullOrEmpty(pageToken));
-
-        return trashed;
-    }
-
-    /// <summary>
-    /// Moves a file to the Google Drive trash.
-    /// Marks the file as trashed by updating its metadata.
-    /// </summary>
-    /// <param name="fileId">The ID of the file to move to trash.</param>
-    /// <param name="cancellationToken">The token to monitor for cancellation requests.</param>
-    /// <exception cref="ArgumentException">
-    /// Thrown when <paramref name="fileId"/> is <c>null</c> or empty.
-    /// </exception>
-    /// <exception cref="AuthorizationException">Thrown when the instance has not been authorized. Call <see cref="AuthorizeAsync"/> first.</exception>
-    /// <exception cref="ObjectDisposedException">Thrown when the instance has been disposed.</exception>
-    /// <exception cref="Google.GoogleApiException">Thrown when the Google Drive API returns an error (e.g., not found, insufficient permissions, quota exceeded).</exception>
-    /// <exception cref="OperationCanceledException">Thrown when the operation is cancelled via the cancellation token.</exception>
-    public async Task MoveFileToTrashAsync(string fileId, CancellationToken cancellationToken = default)
-    {
-        ArgumentException.ThrowIfNullOrEmpty(fileId);
-
-        var metadata = new GoogleFile
-        {
-            Trashed = true
-        };
-
-        var updateRequest = Provider.Files.Update(metadata, fileId);
-        updateRequest.Fields = "id, trashed";
-
-        await updateRequest
-            .ExecuteAsync(cancellationToken)
-            .ConfigureAwait(false);
-    }
-
-    /// <summary>
-    /// Restores a file from the Google Drive trash.
-    /// Marks the file as not trashed by updating its metadata.
-    /// </summary>
-    /// <param name="fileId">The ID of the file to restore.</param>
-    /// <param name="cancellationToken">The token to monitor for cancellation requests.</param>
-    /// <exception cref="ArgumentException">
-    /// Thrown when <paramref name="fileId"/> is <c>null</c> or empty.
-    /// </exception>
-    /// <exception cref="AuthorizationException">Thrown when the instance has not been authorized. Call <see cref="AuthorizeAsync"/> first.</exception>
-    /// <exception cref="ObjectDisposedException">Thrown when the instance has been disposed.</exception>
-    /// <exception cref="Google.GoogleApiException">Thrown when the Google Drive API returns an error (e.g., not found, insufficient permissions, quota exceeded).</exception>
-    /// <exception cref="OperationCanceledException">Thrown when the operation is cancelled via the cancellation token.</exception>
-    public async Task RestoreFileFromTrashAsync(string fileId, CancellationToken cancellationToken = default)
-    {
-        ArgumentException.ThrowIfNullOrEmpty(fileId);
-
-        var metadata = new GoogleFile
-        {
-            Trashed = false
-        };
-
-        var updateRequest = Provider.Files.Update(metadata, fileId);
-        updateRequest.Fields = "id, trashed";
-
-        await updateRequest
-            .ExecuteAsync(cancellationToken)
-            .ConfigureAwait(false);
-    }
+    /// <inheritdoc cref="IGDriveTrashOperations.RestoreAsync"/>
+    [Obsolete("Use Trash.RestoreAsync instead. This forwarder will be removed in v1.")]
+    public Task RestoreFileFromTrashAsync(string fileId, CancellationToken cancellationToken = default)
+        => Trash.RestoreAsync(fileId, cancellationToken);
 
     /// <inheritdoc cref="IGDriveFileOperations.DeleteAsync"/>
     [Obsolete("Use Files.DeleteAsync instead. This forwarder will be removed in v1.")]
