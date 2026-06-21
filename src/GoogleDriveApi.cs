@@ -7,6 +7,7 @@ using GoogleDriveApi_DotNet.Abstractions;
 using GoogleDriveApi_DotNet.Exceptions;
 using GoogleDriveApi_DotNet.Extensions;
 using GoogleDriveApi_DotNet.Helpers;
+using GoogleDriveApi_DotNet.Operations;
 using GoogleDriveApi_DotNet.Types;
 using System.Diagnostics;
 using static Google.Apis.Drive.v3.FilesResource;
@@ -20,13 +21,19 @@ namespace GoogleDriveApi_DotNet;
 /// Most instance members require successful authorization through <see cref="AuthorizeAsync"/>
 /// before they are used. Each member documents the exceptions it can throw.
 /// </remarks>
-public class GoogleDriveApi : IDisposable
+public class GoogleDriveApi : IDisposable, IGDriveOperationContext
 {
     private readonly GoogleDriveApiOptions _options;
     private readonly IGoogleDriveAuthProvider _authProvider;
     private DriveService? _service;
     private UserCredential? _credential;
     private bool _disposed;
+
+    /// <summary>
+    /// Gets the file operations group (list, find, delete, rename, move, copy).
+    /// Reads like the underlying <c>DriveService.Files.*</c> surface.
+    /// </summary>
+    public IGDriveFileOperations Files { get; }
 
     /// <summary>
     /// Gets the configured root folder ID from options. Default value is "root".
@@ -42,6 +49,7 @@ public class GoogleDriveApi : IDisposable
     {
         _options = options;
         _authProvider = authProvider;
+        Files = new GDriveFileOperations(this);
     }
 
     /// <summary>
@@ -334,152 +342,25 @@ public class GoogleDriveApi : IDisposable
             .ConfigureAwait(false);
     }
 
-    /// <summary>
-    /// Deletes a file from Google Drive.
-    /// Retrieves the file metadata to validate its type
-    /// and then permanently deletes the file.
-    /// </summary>
-    /// <param name="fileId">The ID of the file to delete.</param>
-    /// <param name="cancellationToken">The token to monitor for cancellation requests.</param>
-    /// <exception cref="ArgumentException">
-    /// Thrown when <paramref name="fileId"/> is <c>null</c> or empty.
-    /// </exception>
-    /// <exception cref="InvalidMimeTypeException">
-    /// Thrown when the specified ID refers to an item
-    /// that is not a file (for example, a folder).
-    /// </exception>
-    /// <exception cref="AuthorizationException">Thrown when the instance has not been authorized. Call <see cref="AuthorizeAsync"/> first.</exception>
-    /// <exception cref="ObjectDisposedException">Thrown when the instance has been disposed.</exception>
-    /// <exception cref="Google.GoogleApiException">Thrown when the Google Drive API returns an error (e.g., not found, insufficient permissions, quota exceeded).</exception>
-    /// <exception cref="OperationCanceledException">Thrown when the operation is cancelled via the cancellation token.</exception>
-    public async Task DeleteFileAsync(string fileId, CancellationToken cancellationToken = default)
-    {
-        ArgumentException.ThrowIfNullOrEmpty(fileId);
+    /// <inheritdoc cref="IGDriveFileOperations.DeleteAsync"/>
+    [Obsolete("Use Files.DeleteAsync instead. This forwarder will be removed in v1.")]
+    public Task DeleteFileAsync(string fileId, CancellationToken cancellationToken = default)
+        => Files.DeleteAsync(fileId, cancellationToken);
 
-        GoogleFile file = await Provider.Files.Get(fileId)
-            .ExecuteAsync(cancellationToken)
-            .ConfigureAwait(false);
+    /// <inheritdoc cref="IGDriveFileOperations.RenameAsync"/>
+    [Obsolete("Use Files.RenameAsync instead. This forwarder will be removed in v1.")]
+    public Task RenameFileAsync(string fileId, string newName, CancellationToken cancellationToken = default)
+        => Files.RenameAsync(fileId, newName, cancellationToken);
 
-        if (file.MimeType == GDriveMimeTypes.Folder)
-        {
-            throw new InvalidMimeTypeException(fileId, file.MimeType);
-        }
+    /// <inheritdoc cref="IGDriveFileOperations.MoveAsync"/>
+    [Obsolete("Use Files.MoveAsync instead. This forwarder will be removed in v1.")]
+    public Task MoveFileToAsync(string fileId, string sourceFolderId, string destinationFolderId, CancellationToken cancellationToken = default)
+        => Files.MoveAsync(fileId, sourceFolderId, destinationFolderId, cancellationToken);
 
-        await Provider.Files.Delete(fileId)
-            .ExecuteAsync(cancellationToken)
-            .ConfigureAwait(false);
-    }
-
-    /// <summary>
-    /// Renames a file in Google Drive by updating its metadata.
-    /// </summary>
-    /// <param name="fileId">The ID of the file to rename.</param>
-    /// <param name="newName">The new name to assign to the file.</param>
-    /// <param name="cancellationToken">The token to monitor for cancellation requests.</param>
-    /// <remarks>
-    /// This method performs a partial update of the file metadata.
-    /// Only the <c>Name</c> field is modified; all other properties remain unchanged.
-    /// </remarks>
-    /// <exception cref="ArgumentException">
-    /// Thrown when <paramref name="fileId"/> or <paramref name="newName"/> is <c>null</c> or empty.
-    /// </exception>
-    /// <exception cref="AuthorizationException">Thrown when the instance has not been authorized. Call <see cref="AuthorizeAsync"/> first.</exception>
-    /// <exception cref="ObjectDisposedException">Thrown when the instance has been disposed.</exception>
-    /// <exception cref="Google.GoogleApiException">Thrown when the Google Drive API returns an error (e.g., not found, insufficient permissions, quota exceeded).</exception>
-    /// <exception cref="OperationCanceledException">Thrown when the operation is cancelled via the cancellation token.</exception>
-    public async Task RenameFileAsync(string fileId, string newName, CancellationToken cancellationToken = default)
-    {
-        ArgumentException.ThrowIfNullOrEmpty(fileId);
-        ArgumentException.ThrowIfNullOrEmpty(newName);
-
-        var metadata = new GoogleFile { Name = newName };
-
-        var updateRequest = Provider.Files.Update(metadata, fileId);
-        updateRequest.Fields = "id,name";
-
-        await updateRequest.ExecuteAsync(cancellationToken).ConfigureAwait(false);
-    }
-
-    /// <summary>
-    /// Moves a file to another folder in Google Drive by updating its parent references.
-    /// </summary>
-    /// <param name="fileId">The ID of the file to move.</param>
-    /// <param name="sourceFolderId">The ID of the folder from which the file will be moved.</param>
-    /// <param name="destinationFolderId">The ID of the folder to which the file will be moved.</param>
-    /// <param name="cancellationToken">The token to monitor for cancellation requests.</param>
-    /// <remarks>
-    /// This method performs a partial update of the file metadata in Google Drive.
-    /// Only the file's parent folders are modified — the file is removed from
-    /// <paramref name="sourceFolderId"/> and added to <paramref name="destinationFolderId"/>.
-    /// The file name and all other metadata remain unchanged.
-    /// </remarks>
-    /// <exception cref="ArgumentException">
-    /// Thrown when <paramref name="fileId"/>, <paramref name="sourceFolderId"/>,
-    /// or <paramref name="destinationFolderId"/> is <c>null</c> or empty.
-    /// </exception>
-    /// <exception cref="AuthorizationException">Thrown when the instance has not been authorized. Call <see cref="AuthorizeAsync"/> first.</exception>
-    /// <exception cref="ObjectDisposedException">Thrown when the instance has been disposed.</exception>
-    /// <exception cref="Google.GoogleApiException">Thrown when the Google Drive API returns an error (e.g., not found, insufficient permissions, quota exceeded).</exception>
-    /// <exception cref="OperationCanceledException">Thrown when the operation is cancelled via the cancellation token.</exception>
-    public async Task MoveFileToAsync(string fileId, string sourceFolderId, string destinationFolderId, CancellationToken cancellationToken = default)
-    {
-        ArgumentException.ThrowIfNullOrEmpty(fileId);
-        ArgumentException.ThrowIfNullOrEmpty(sourceFolderId);
-        ArgumentException.ThrowIfNullOrEmpty(destinationFolderId);
-
-        var metadata = new GoogleFile();
-
-        var updateRequest = Provider.Files.Update(metadata, fileId);
-
-        updateRequest.AddParents = destinationFolderId;
-
-        updateRequest.RemoveParents = sourceFolderId;
-
-        updateRequest.Fields = "id, parents";
-
-        await updateRequest.ExecuteAsync(cancellationToken).ConfigureAwait(false);
-    }
-
-    /// <summary>
-    /// Copies a file in Google Drive to the specified destination folder.
-    /// </summary>
-    /// <param name="fileId">The ID of the file to copy.</param>
-    /// <param name="destinationFolderId">The ID of the folder where the copied file will be placed.</param>
-    /// <param name="newName">
-    /// Optional new name for the copied file. If <c>null</c> or empty,
-    /// the original file name is preserved.
-    /// </param>
-    /// <param name="cancellationToken">The token to monitor for cancellation requests.</param>
-    /// <returns>
-    /// The ID of the newly created copied file.
-    /// </returns>
-    /// <exception cref="ArgumentException">
-    /// Thrown when <paramref name="fileId"/> or <paramref name="destinationFolderId"/> is
-    /// <c>null</c> or empty.
-    /// </exception>
-    /// <exception cref="AuthorizationException">Thrown when the instance has not been authorized. Call <see cref="AuthorizeAsync"/> first.</exception>
-    /// <exception cref="ObjectDisposedException">Thrown when the instance has been disposed.</exception>
-    /// <exception cref="Google.GoogleApiException">Thrown when the Google Drive API returns an error (e.g., not found, insufficient permissions, quota exceeded).</exception>
-    /// <exception cref="OperationCanceledException">Thrown when the operation is cancelled via the cancellation token.</exception>
-    public async Task<string> CopyFileToAsync(string fileId, string destinationFolderId, string? newName = null, CancellationToken cancellationToken = default)
-    {
-        ArgumentException.ThrowIfNullOrEmpty(fileId);
-        ArgumentException.ThrowIfNullOrEmpty(destinationFolderId);
-
-        var metadata = new GoogleFile
-        {
-            Name = string.IsNullOrWhiteSpace(newName) ? null : newName,
-            Parents = [destinationFolderId]
-        };
-        CopyRequest copyRequest = Provider.Files.Copy(metadata, fileId);
-        copyRequest.Fields = "id, name, parents";
-
-        GoogleFile copiedFile = await copyRequest
-            .ExecuteAsync(cancellationToken)
-            .ConfigureAwait(false);
-
-        return copiedFile.Id;
-    }
+    /// <inheritdoc cref="IGDriveFileOperations.CopyAsync"/>
+    [Obsolete("Use Files.CopyAsync instead. This forwarder will be removed in v1.")]
+    public Task<string> CopyFileToAsync(string fileId, string destinationFolderId, string? newName = null, CancellationToken cancellationToken = default)
+        => Files.CopyAsync(fileId, destinationFolderId, newName, cancellationToken);
 
     /// <summary>
     /// Retrieves the ID of a folder by its name within the specified parent folder.
@@ -688,103 +569,15 @@ public class GoogleDriveApi : IDisposable
         await Provider.Files.Delete(folderId).ExecuteAsync(cancellationToken).ConfigureAwait(false);
     }
 
-    /// <summary>
-    /// Retrieves the file ID by its name within the specified parent folder.
-    /// </summary>
-    /// <param name="fullFileName">The file name (including extension) to search for.</param>
-    /// <param name="parentFolderId">
-    /// Optional ID of the parent folder to search within. If <c>null</c>,
-    /// <see cref="RootFolderId"/> is used.
-    /// </param>
-    /// <param name="cancellationToken">The token to monitor for cancellation requests.</param>
-    /// <returns>
-    /// The file ID if a matching file is found; otherwise, <c>null</c>.
-    /// </returns>
-    /// <remarks>
-    /// The search is limited to non-trashed items and returns at most one result.
-    /// If multiple files with the same name exist in the same parent folder,
-    /// the returned file is unspecified.
-    /// </remarks>
-    /// <exception cref="ArgumentException">
-    /// Thrown when <paramref name="fullFileName"/> is <c>null</c> or empty.
-    /// </exception>
-    /// <exception cref="AuthorizationException">Thrown when the instance has not been authorized. Call <see cref="AuthorizeAsync"/> first.</exception>
-    /// <exception cref="ObjectDisposedException">Thrown when the instance has been disposed.</exception>
-    /// <exception cref="Google.GoogleApiException">Thrown when the Google Drive API returns an error (e.g., not found, insufficient permissions, quota exceeded).</exception>
-    /// <exception cref="OperationCanceledException">Thrown when the operation is cancelled via the cancellation token.</exception>
-    public async Task<string?> GetFileIdByAsync(string fullFileName, string? parentFolderId = null, CancellationToken cancellationToken = default)
-    {
-        ArgumentException.ThrowIfNullOrEmpty(fullFileName);
+    /// <inheritdoc cref="IGDriveFileOperations.FindIdByNameAsync"/>
+    [Obsolete("Use Files.FindIdByNameAsync instead. This forwarder will be removed in v1.")]
+    public Task<string?> GetFileIdByAsync(string fullFileName, string? parentFolderId = null, CancellationToken cancellationToken = default)
+        => Files.FindIdByNameAsync(fullFileName, parentFolderId, cancellationToken);
 
-        parentFolderId ??= _options.RootFolderId;
-
-        var request = Provider.Files.List();
-        request.Q = $"name = '{DriveQueryHelper.EscapeValue(fullFileName)}' and '{DriveQueryHelper.EscapeValue(parentFolderId)}' in parents and trashed = false";
-        request.Fields = "files(id, name)";
-        request.PageSize = 1;
-
-        var result = await request.ExecuteAsync(cancellationToken).ConfigureAwait(false);
-        var file = result.Files?.FirstOrDefault();
-
-        return file?.Id;
-    }
-
-    /// <summary>
-    /// Retrieves a list of files (non-folders) within the specified parent folder.
-    /// </summary>
-    /// <param name="parentFolderId">
-    /// Optional ID of the parent folder to search within. If <c>null</c>,
-    /// <see cref="RootFolderId"/> is used.
-    /// </param>
-    /// <param name="pageSize">
-    /// The maximum number of files to retrieve per page.
-    /// Must be greater than zero.
-    /// </param>
-    /// <param name="cancellationToken">The token to monitor for cancellation requests.</param>
-    /// <returns>
-    /// A list of <see cref="GoogleFile"/> objects representing the files in the folder,
-    /// including their <c>Id</c>, <c>Name</c>, <c>MimeType</c>, <c>Size</c> and <c>ModifiedTime</c>.
-    /// </returns>
-    /// <remarks>
-    /// Only non-trashed, non-folder items are returned.
-    /// The method retrieves all available pages until no more results remain.
-    /// </remarks>
-    /// <exception cref="ArgumentOutOfRangeException">
-    /// Thrown when <paramref name="pageSize"/> is less than or equal to zero.
-    /// </exception>
-    /// <exception cref="AuthorizationException">Thrown when the instance has not been authorized. Call <see cref="AuthorizeAsync"/> first.</exception>
-    /// <exception cref="ObjectDisposedException">Thrown when the instance has been disposed.</exception>
-    /// <exception cref="Google.GoogleApiException">Thrown when the Google Drive API returns an error (e.g., not found, insufficient permissions, quota exceeded).</exception>
-    /// <exception cref="OperationCanceledException">Thrown when the operation is cancelled via the cancellation token.</exception>
+    /// <inheritdoc cref="IGDriveFileOperations.ListAsync"/>
+    [Obsolete("Use Files.ListAsync instead. This forwarder will be removed in v1.")]
     public async Task<List<GoogleFile>> GetFilesByAsync(string? parentFolderId = null, int pageSize = 100, CancellationToken cancellationToken = default)
-    {
-        ArgumentOutOfRangeException.ThrowIfNegativeOrZero(pageSize);
-
-        parentFolderId ??= _options.RootFolderId;
-
-        var files = new List<GoogleFile>();
-        string? pageToken = null;
-        string qSelector = $"mimeType != '{GDriveMimeTypes.Folder}' and '{DriveQueryHelper.EscapeValue(parentFolderId)}' in parents and trashed = false";
-        const string fields = "nextPageToken, files(id, name, mimeType, size, modifiedTime)";
-        do
-        {
-            var listRequest = Provider.Files.List();
-            listRequest.Q = qSelector;
-            listRequest.Fields = fields;
-            listRequest.PageSize = pageSize;
-            listRequest.PageToken = pageToken;
-
-            var result = await listRequest.ExecuteAsync(cancellationToken).ConfigureAwait(false);
-            if (result.Files is not null)
-            {
-                files.AddRange(result.Files);
-            }
-
-            pageToken = result.NextPageToken;
-        } while (!string.IsNullOrEmpty(pageToken));
-
-        return files;
-    }
+        => (await Files.ListAsync(parentFolderId, pageSize, cancellationToken).ConfigureAwait(false)).ToList();
 
     /// <summary>
     /// Updates the binary content of an existing Google Drive file using a resumable upload.
