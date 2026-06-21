@@ -1,16 +1,10 @@
 using Google.Apis.Auth.OAuth2;
-using Google.Apis.Download;
 using Google.Apis.Drive.v3;
 using Google.Apis.Services;
-using Google.Apis.Upload;
 using GoogleDriveApi_DotNet.Abstractions;
 using GoogleDriveApi_DotNet.Exceptions;
-using GoogleDriveApi_DotNet.Extensions;
-using GoogleDriveApi_DotNet.Helpers;
 using GoogleDriveApi_DotNet.Operations;
 using GoogleDriveApi_DotNet.Types;
-using System.Diagnostics;
-using static Google.Apis.Drive.v3.FilesResource;
 
 namespace GoogleDriveApi_DotNet;
 
@@ -43,6 +37,11 @@ public class GoogleDriveApi : IDisposable, IGDriveOperationContext
     public IGDriveFolderOperations Folders { get; }
 
     /// <summary>
+    /// Gets the transfer operations group (upload, update content, download with Workspace export).
+    /// </summary>
+    public IGDriveTransferOperations Transfers { get; }
+
+    /// <summary>
     /// Gets the configured root folder ID from options. Default value is "root".
     /// </summary>
     public string RootFolderId => _options.RootFolderId;
@@ -58,6 +57,7 @@ public class GoogleDriveApi : IDisposable, IGDriveOperationContext
         _authProvider = authProvider;
         Files = new GDriveFileOperations(this);
         Folders = new GDriveFolderOperations(this);
+        Transfers = new GDriveTransferOperations(this);
     }
 
     /// <summary>
@@ -445,365 +445,23 @@ public class GoogleDriveApi : IDisposable, IGDriveOperationContext
     public async Task<List<GoogleFile>> GetFilesByAsync(string? parentFolderId = null, int pageSize = 100, CancellationToken cancellationToken = default)
         => (await Files.ListAsync(parentFolderId, pageSize, cancellationToken).ConfigureAwait(false)).ToList();
 
-    /// <summary>
-    /// Updates the binary content of an existing Google Drive file using a resumable upload.
-    /// </summary>
-    /// <param name="fileId">The identifier of the file whose content should be updated.</param>
-    /// <param name="content">A stream containing the new file content.</param>
-    /// <param name="contentType">The MIME type of the content (for example <c>application/pdf</c> or <c>image/png</c>).</param>
-    /// <param name="cancellationToken">The token to monitor for cancellation requests.</param>
-    /// <remarks>
-    /// This method replaces the existing file content while preserving the file metadata and validates that the upload completes successfully.
-    /// If the provided <paramref name="content"/> stream is seekable, its position is reset before the upload begins.
-    /// </remarks>
-    /// <exception cref="ArgumentException">Thrown when <paramref name="fileId"/> or <paramref name="contentType"/> is null or empty.</exception>
-    /// <exception cref="ArgumentNullException">Thrown when <paramref name="content"/> is null.</exception>
-    /// <exception cref="OperationCanceledException">Thrown if the operation is canceled.</exception>
-    /// <exception cref="UpdateFileContentException">Thrown when the upload fails or does not complete successfully.</exception>
-    /// <exception cref="AuthorizationException">Thrown when the instance has not been authorized. Call <see cref="AuthorizeAsync"/> first.</exception>
-    /// <exception cref="ObjectDisposedException">Thrown when the instance has been disposed.</exception>
-    public async Task UpdateFileContentAsync(string fileId, Stream content, string contentType, CancellationToken cancellationToken = default)
-    {
-        ArgumentException.ThrowIfNullOrEmpty(fileId);
-        ArgumentNullException.ThrowIfNull(content);
-        ArgumentException.ThrowIfNullOrEmpty(contentType);
+    /// <inheritdoc cref="IGDriveTransferOperations.UpdateContentAsync"/>
+    [Obsolete("Use Transfers.UpdateContentAsync instead. This forwarder will be removed in v1.")]
+    public Task UpdateFileContentAsync(string fileId, Stream content, string contentType, CancellationToken cancellationToken = default)
+        => Transfers.UpdateContentAsync(fileId, content, contentType, cancellationToken);
 
-        content.ResetIfSeekable();
+    /// <inheritdoc cref="IGDriveTransferOperations.UploadAsync(string, string, string?, CancellationToken)"/>
+    [Obsolete("Use Transfers.UploadAsync instead. This forwarder will be removed in v1.")]
+    public Task<string> UploadFilePathAsync(string filePath, string mimeType, string? parentFolderId = null, CancellationToken cancellationToken = default)
+        => Transfers.UploadAsync(filePath, mimeType, parentFolderId, cancellationToken);
 
-        var metadata = new GoogleFile();
-        UpdateMediaUpload request = Provider.Files.Update(metadata, fileId, content, contentType);
-        request.Fields = "id, md5Checksum, size";
+    /// <inheritdoc cref="IGDriveTransferOperations.UploadAsync(Stream, string, string, string?, CancellationToken)"/>
+    [Obsolete("Use Transfers.UploadAsync instead. This forwarder will be removed in v1.")]
+    public Task<string> UploadFileStreamAsync(Stream fileStream, string fileName, string mimeType, string? parentFolderId = null, CancellationToken cancellationToken = default)
+        => Transfers.UploadAsync(fileStream, fileName, mimeType, parentFolderId, cancellationToken);
 
-        try
-        {
-            _ = await UploadAsync(
-                request,
-                () => null,
-                $"Failed to update content for file '{fileId}'.",
-                static (message, cause) => new UpdateFileContentException(message, cause),
-                cancellationToken)
-                .ConfigureAwait(false);
-        }
-        catch (Exception ex) when (ex is not OperationCanceledException and not UpdateFileContentException)
-        {
-            throw new UpdateFileContentException(
-                $"Failed to update content for file '{fileId}'.", ex);
-        }
-    }
-
-    /// <summary>
-    /// Uploads a file from the specified file system path to Google Drive using a resumable upload.
-    /// </summary>
-    /// <param name="filePath">The full path to the file to be uploaded.</param>
-    /// <param name="mimeType">The MIME type of the file content (for example <c>application/pdf</c> or <c>image/png</c>).</param>
-    /// <param name="parentFolderId">
-    /// Optional ID of the parent folder in which the file will be created.
-    /// If <c>null</c>, <see cref="RootFolderId"/> is used.
-    /// </param>
-    /// <param name="cancellationToken">The token to monitor for cancellation requests.</param>
-    /// <returns>The identifier of the newly created Google Drive file.</returns>
-    /// <remarks>
-    /// The file is opened for read-only access and uploaded using a resumable upload.
-    /// If the upload completes successfully but no file identifier is returned by the API, an <see cref="UploadFileException"/> is thrown.
-    /// </remarks>
-    /// <exception cref="ArgumentException">Thrown when <paramref name="filePath"/> or <paramref name="mimeType"/> is null or empty.</exception>
-    /// <exception cref="FileNotFoundException">Thrown when the file specified by <paramref name="filePath"/> does not exist.</exception>
-    /// <exception cref="OperationCanceledException">Thrown if the operation is canceled.</exception>
-    /// <exception cref="UploadFileException">Thrown when the upload fails for any reason other than cancellation, including when no valid file identifier is returned.</exception>
-    /// <exception cref="AuthorizationException">Thrown when the instance has not been authorized. Call <see cref="AuthorizeAsync"/> first.</exception>
-    /// <exception cref="ObjectDisposedException">Thrown when the instance has been disposed.</exception>
-    public async Task<string> UploadFilePathAsync(string filePath, string mimeType, string? parentFolderId = null, CancellationToken cancellationToken = default)
-    {
-        ArgumentException.ThrowIfNullOrEmpty(filePath);
-        ArgumentException.ThrowIfNullOrEmpty(mimeType);
-
-        parentFolderId ??= _options.RootFolderId;
-
-        if (!File.Exists(filePath))
-        {
-            throw new FileNotFoundException($"Cannot find the file at {filePath}.");
-        }
-
-        string fileName = Path.GetFileName(filePath);
-
-        // Usage-error checks (authorization, disposal) must run outside the wrapping try.
-        FilesResource files = Provider.Files;
-
-        cancellationToken.ThrowIfCancellationRequested();
-
-        try
-        {
-            using var stream = new FileStream(
-                filePath,
-                FileMode.Open,
-                FileAccess.Read,
-                FileShare.Read);
-
-            var fileMetadata = new GoogleFile
-            {
-                Name = fileName,
-                Parents = [parentFolderId]
-            };
-
-            CreateMediaUpload request = files.Create(fileMetadata, stream, mimeType);
-            request.Fields = "id";
-
-            GoogleFile result = await UploadAsync(
-                    request,
-                    () => request.ResponseBody,
-                    $"Failed to upload file '{fileName}'.",
-                    static (message, cause) => new UploadFileException(message, cause),
-                    cancellationToken)
-                .ConfigureAwait(false);
-
-            if (string.IsNullOrWhiteSpace(result.Id))
-                throw new UploadFileException($"Failed to upload file '{fileName}' (no file id returned).");
-
-            return result.Id;
-        }
-        catch (Exception ex) when (ex is not OperationCanceledException and not UploadFileException)
-        {
-            throw new UploadFileException($"Failed to upload file '{fileName}'.", ex);
-        }
-    }
-
-    /// <summary>
-    /// Uploads a file to Google Drive from the provided stream using a resumable upload.
-    /// </summary>
-    /// <param name="fileStream">A stream containing the file content to be uploaded.</param>
-    /// <param name="fileName">The name of the file to be created in Google Drive.</param>
-    /// <param name="mimeType">The MIME type of the file content.</param>
-    /// <param name="parentFolderId">
-    /// Optional ID of the parent folder in which the file will be created.
-    /// If <c>null</c>, <see cref="RootFolderId"/> is used.
-    /// </param>
-    /// <param name="cancellationToken">The token to monitor for cancellation requests.</param>
-    /// <returns>The identifier of the newly created Google Drive file.</returns>
-    /// <exception cref="ArgumentNullException">Thrown when <paramref name="fileStream"/> is null.</exception>
-    /// <exception cref="ArgumentException">Thrown when <paramref name="fileName"/> or <paramref name="mimeType"/> is null or empty.</exception>
-    /// <exception cref="OperationCanceledException">Thrown if the operation is canceled.</exception>
-    /// <exception cref="UploadFileException">Thrown when the upload fails for any reason other than cancellation, including when no file identifier is returned.</exception>
-    /// <exception cref="AuthorizationException">Thrown when the instance has not been authorized. Call <see cref="AuthorizeAsync"/> first.</exception>
-    /// <exception cref="ObjectDisposedException">Thrown when the instance has been disposed.</exception>
-    public async Task<string> UploadFileStreamAsync(Stream fileStream, string fileName, string mimeType, string? parentFolderId = null, CancellationToken cancellationToken = default)
-    {
-        ArgumentNullException.ThrowIfNull(fileStream);
-        ArgumentException.ThrowIfNullOrEmpty(fileName);
-        ArgumentException.ThrowIfNullOrEmpty(mimeType);
-
-        parentFolderId ??= _options.RootFolderId;
-
-        cancellationToken.ThrowIfCancellationRequested();
-
-        fileStream.ResetIfSeekable();
-
-        var fileMetadata = new GoogleFile()
-        {
-            Name = fileName,
-            Parents = [parentFolderId]
-        };
-
-        CreateMediaUpload request = Provider.Files.Create(fileMetadata, fileStream, mimeType);
-        request.Fields = "id";
-
-        try
-        {
-            GoogleFile result = await UploadAsync(
-                request,
-                () => request.ResponseBody,
-                $"Failed to upload file '{fileName}'.",
-                static (message, cause) => new UploadFileException(message, cause),
-                cancellationToken)
-            .ConfigureAwait(false);
-
-            if (string.IsNullOrWhiteSpace(result.Id))
-                throw new UploadFileException($"Failed to upload file '{fileName}' (no file id returned).");
-
-            return result.Id;
-        }
-        catch (Exception ex) when (ex is not OperationCanceledException and not UploadFileException)
-        {
-            throw new UploadFileException($"Failed to upload file '{fileName}'.", ex);
-        }
-    }
-
-    /// <summary>
-    /// Executes a resumable upload and validates that it completes successfully.
-    /// <para>
-    /// <see cref="ResumableUpload.UploadAsync(CancellationToken)"/> does not throw on failure —
-    /// it returns an <see cref="IUploadProgress"/> with <see cref="UploadStatus.Failed"/> and the error in
-    /// <see cref="IUploadProgress.Exception"/>. This method converts that silent failure into an exception
-    /// created by <paramref name="exceptionFactory"/>, so each public method surfaces its own documented type.
-    /// </para>
-    /// </summary>
-    /// <typeparam name="TResponse">The type of the response returned by the upload.</typeparam>
-    /// <param name="upload">The resumable upload request to execute.</param>
-    /// <param name="responseAccessor">A delegate used to retrieve the response after a successful upload.</param>
-    /// <param name="errorMessage">The base error message used when the upload fails.</param>
-    /// <param name="exceptionFactory">Creates the exception to throw on failure; receives the message and the underlying cause (may be <c>null</c>).</param>
-    /// <param name="ct">The token to monitor for cancellation requests.</param>
-    /// <param name="onProgress">An optional callback invoked when upload progress changes.</param>
-    /// <returns>The response returned by the upload.</returns>
-    /// <exception cref="ArgumentNullException">Thrown when <paramref name="upload"/>, <paramref name="responseAccessor"/>, or <paramref name="exceptionFactory"/> is null.</exception>
-    /// <exception cref="ArgumentException">Thrown when <paramref name="errorMessage"/> is null or empty.</exception>
-    /// <exception cref="OperationCanceledException">Thrown if the operation is canceled.</exception>
-    private static async Task<TResponse> UploadAsync<TResponse>(
-        ResumableUpload<TResponse> upload,
-        Func<TResponse?> responseAccessor,
-        string errorMessage,
-        Func<string, Exception?, Exception> exceptionFactory,
-        CancellationToken ct = default,
-        Action<IUploadProgress>? onProgress = null)
-    {
-        ArgumentNullException.ThrowIfNull(upload);
-        ArgumentNullException.ThrowIfNull(responseAccessor);
-        ArgumentNullException.ThrowIfNull(exceptionFactory);
-        ArgumentException.ThrowIfNullOrWhiteSpace(errorMessage);
-
-        ct.ThrowIfCancellationRequested();
-
-        if (onProgress != null)
-            upload.ProgressChanged += onProgress;
-
-        try
-        {
-            var progress = await upload.UploadAsync(ct).ConfigureAwait(false);
-
-            ct.ThrowIfCancellationRequested();
-
-            if (progress.Status == UploadStatus.Failed)
-                throw exceptionFactory(errorMessage, progress.Exception);
-
-            if (progress.Status != UploadStatus.Completed)
-                throw exceptionFactory($"{errorMessage} Status: {progress.Status}.", null);
-
-            var response = responseAccessor();
-
-            return response!;
-        }
-        finally
-        {
-            if (onProgress != null)
-                upload.ProgressChanged -= onProgress;
-        }
-    }
-
-    /// <summary>
-    /// Downloads a Google Drive file to the specified local directory.
-    /// Google Workspace files (Docs, Sheets, Slides, etc.) are exported to a compatible format;
-    /// all other files are downloaded as-is.
-    /// </summary>
-    /// <param name="fileId">The ID of the file to download.</param>
-    /// <param name="saveToPath">
-    /// The local directory where the downloaded file will be saved.
-    /// The directory is created if it does not exist. Defaults to <c>Downloads</c>.
-    /// </param>
-    /// <param name="cancellationToken">The token to monitor for cancellation requests.</param>
-    /// <exception cref="ArgumentException">Thrown when <paramref name="fileId"/> or <paramref name="saveToPath"/> is <c>null</c> or empty.</exception>
-    /// <exception cref="UnsupportedMimeTypeException">Thrown when the file's MIME type is not supported for download or export.</exception>
-    /// <exception cref="DownloadFileException">Thrown when the file cannot be downloaded, exported, or saved locally.</exception>
-    /// <exception cref="AuthorizationException">Thrown when the instance has not been authorized. Call <see cref="AuthorizeAsync"/> first.</exception>
-    /// <exception cref="ObjectDisposedException">Thrown when the instance has been disposed.</exception>
-    /// <exception cref="Google.GoogleApiException">Thrown when the Google Drive API returns an error (e.g., not found, insufficient permissions, quota exceeded).</exception>
-    /// <exception cref="OperationCanceledException">Thrown when the operation is cancelled via the cancellation token.</exception>
-    public async Task DownloadFileAsync(string fileId, string saveToPath = "Downloads", CancellationToken cancellationToken = default)
-    {
-        ArgumentException.ThrowIfNullOrEmpty(fileId);
-        ArgumentException.ThrowIfNullOrEmpty(saveToPath);
-
-        var request = Provider.Files.Get(fileId);
-        GoogleFile file = await request.ExecuteAsync(cancellationToken).ConfigureAwait(false);
-        string fileName = PathHelper.SanitizeFileName(Path.GetFileNameWithoutExtension(file.Name));
-        string fileMimeType = file.MimeType;
-
-        bool isGoogleSpecificMimeType = GDriveMimeTypes.IsValid(fileMimeType);
-        if (isGoogleSpecificMimeType)
-        {
-            fileMimeType = GDriveMimeTypes.GetExportMimeTypeBy(fileMimeType)
-                ?? throw new UnsupportedMimeTypeException(fileId, file.MimeType);
-        }
-
-        string extension = MimeTypeHelper.GetExtensionBy(fileMimeType)
-            ?? throw new UnsupportedMimeTypeException(fileId, file.MimeType);
-
-        try
-        {
-            Directory.CreateDirectory(saveToPath);
-
-            string fullPath = Path.Combine(saveToPath, $"{fileName}.{extension}");
-
-            if (isGoogleSpecificMimeType)
-            {
-                await ExportGoogleFileAsync(fileId, fileMimeType, fullPath, cancellationToken).ConfigureAwait(false);
-            }
-            else
-            {
-                await DownloadBinaryFileAsync(fileId, fullPath, cancellationToken).ConfigureAwait(false);
-            }
-        }
-        catch (Exception ex) when (ex is not OperationCanceledException and not DownloadFileException)
-        {
-            throw new DownloadFileException($"Failed to download file '{fileId}'.", ex);
-        }
-    }
-
-    /// <summary>
-    /// Exports a Google-specific file (like Google Docs, Sheets, Slides) to a specified MIME type and saves it locally.
-    /// </summary>
-    private async Task ExportGoogleFileAsync(string fileId, string exportMimeType, string fullFilePath, CancellationToken cancellationToken)
-    {
-        var request = Provider.Files.Export(fileId, exportMimeType);
-        using var streamFile = new MemoryStream();
-
-        request.MediaDownloader.ProgressChanged += (IDownloadProgress progress) =>
-        {
-            if (progress.Status == DownloadStatus.Downloading)
-            {
-                Debug.WriteLine($"BytesDownloaded: {progress.BytesDownloaded}");
-            }
-        };
-
-        IDownloadProgress result = await request.DownloadAsync(streamFile, cancellationToken).ConfigureAwait(false);
-
-        cancellationToken.ThrowIfCancellationRequested();
-
-        if (result.Status != DownloadStatus.Completed)
-        {
-            Debug.WriteLine("Export failed.");
-            throw new DownloadFileException("Failed to export the file from Google Drive.", result.Exception);
-        }
-
-        streamFile.SaveToFile(fullFilePath);
-        Debug.WriteLine("Export complete.");
-    }
-
-    /// <summary>
-    /// Downloads a binary file from Google Drive and saves it locally.
-    /// </summary>
-    private async Task DownloadBinaryFileAsync(string fileId, string fullFilePath, CancellationToken cancellationToken)
-    {
-        var request = Provider.Files.Get(fileId);
-        using var streamFile = new MemoryStream();
-
-        request.MediaDownloader.ProgressChanged += (IDownloadProgress progress) =>
-        {
-            if (progress.Status == DownloadStatus.Downloading)
-            {
-                Debug.WriteLine($"BytesDownloaded: {progress.BytesDownloaded}");
-            }
-        };
-
-        IDownloadProgress result = await request.DownloadAsync(streamFile, cancellationToken).ConfigureAwait(false);
-
-        cancellationToken.ThrowIfCancellationRequested();
-
-        if (result.Status != DownloadStatus.Completed)
-        {
-            Debug.WriteLine("Download failed.");
-            throw new DownloadFileException("Failed to download the file from Google Drive.", result.Exception);
-        }
-
-        streamFile.SaveToFile(fullFilePath);
-        Debug.WriteLine("Download complete.");
-    }
+    /// <inheritdoc cref="IGDriveTransferOperations.DownloadAsync"/>
+    [Obsolete("Use Transfers.DownloadAsync instead. This forwarder will be removed in v1.")]
+    public Task DownloadFileAsync(string fileId, string saveToPath = "Downloads", CancellationToken cancellationToken = default)
+        => Transfers.DownloadAsync(fileId, saveToPath, cancellationToken);
 }
