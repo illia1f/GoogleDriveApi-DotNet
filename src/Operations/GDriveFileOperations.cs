@@ -23,13 +23,15 @@ internal sealed class GDriveFileOperations : IGDriveFileOperations
 
         parentFolderId ??= _context.RootFolderId;
 
+        var service = await _context.GetServiceAsync(cancellationToken).ConfigureAwait(false);
+
         var files = new List<GoogleFile>();
         string? pageToken = null;
         string qSelector = $"mimeType != '{GDriveMimeTypes.Folder}' and '{DriveQueryHelper.EscapeValue(parentFolderId)}' in parents and trashed = false";
         const string fields = "nextPageToken, files(id, name, mimeType, size, modifiedTime)";
         do
         {
-            var listRequest = _context.Provider.Files.List();
+            var listRequest = service.Files.List();
             listRequest.Q = qSelector;
             listRequest.Fields = fields;
             listRequest.PageSize = pageSize;
@@ -54,7 +56,9 @@ internal sealed class GDriveFileOperations : IGDriveFileOperations
 
         parentFolderId ??= _context.RootFolderId;
 
-        var request = _context.Provider.Files.List();
+        var service = await _context.GetServiceAsync(cancellationToken).ConfigureAwait(false);
+
+        var request = service.Files.List();
         request.Q = $"name = '{DriveQueryHelper.EscapeValue(fullFileName)}' and '{DriveQueryHelper.EscapeValue(parentFolderId)}' in parents and trashed = false";
         request.Fields = "files(id, name)";
         request.PageSize = 1;
@@ -70,7 +74,9 @@ internal sealed class GDriveFileOperations : IGDriveFileOperations
     {
         ArgumentException.ThrowIfNullOrEmpty(fileId);
 
-        GoogleFile file = await _context.Provider.Files.Get(fileId)
+        var service = await _context.GetServiceAsync(cancellationToken).ConfigureAwait(false);
+
+        GoogleFile file = await service.Files.Get(fileId)
             .ExecuteAsync(cancellationToken)
             .ConfigureAwait(false);
 
@@ -79,7 +85,7 @@ internal sealed class GDriveFileOperations : IGDriveFileOperations
             throw new InvalidMimeTypeException(fileId, file.MimeType);
         }
 
-        await _context.Provider.Files.Delete(fileId)
+        await service.Files.Delete(fileId)
             .ExecuteAsync(cancellationToken)
             .ConfigureAwait(false);
     }
@@ -90,9 +96,11 @@ internal sealed class GDriveFileOperations : IGDriveFileOperations
         ArgumentException.ThrowIfNullOrEmpty(fileId);
         ArgumentException.ThrowIfNullOrEmpty(newName);
 
+        var service = await _context.GetServiceAsync(cancellationToken).ConfigureAwait(false);
+
         var metadata = new GoogleFile { Name = newName };
 
-        var updateRequest = _context.Provider.Files.Update(metadata, fileId);
+        var updateRequest = service.Files.Update(metadata, fileId);
         updateRequest.Fields = "id,name";
 
         await updateRequest.ExecuteAsync(cancellationToken).ConfigureAwait(false);
@@ -105,9 +113,11 @@ internal sealed class GDriveFileOperations : IGDriveFileOperations
         ArgumentException.ThrowIfNullOrEmpty(sourceFolderId);
         ArgumentException.ThrowIfNullOrEmpty(destinationFolderId);
 
+        var service = await _context.GetServiceAsync(cancellationToken).ConfigureAwait(false);
+
         var metadata = new GoogleFile();
 
-        var updateRequest = _context.Provider.Files.Update(metadata, fileId);
+        var updateRequest = service.Files.Update(metadata, fileId);
         updateRequest.AddParents = destinationFolderId;
         updateRequest.RemoveParents = sourceFolderId;
         updateRequest.Fields = "id, parents";
@@ -121,13 +131,15 @@ internal sealed class GDriveFileOperations : IGDriveFileOperations
         ArgumentException.ThrowIfNullOrEmpty(fileId);
         ArgumentException.ThrowIfNullOrEmpty(destinationFolderId);
 
+        var service = await _context.GetServiceAsync(cancellationToken).ConfigureAwait(false);
+
         var metadata = new GoogleFile
         {
             Name = string.IsNullOrWhiteSpace(newName) ? null : newName,
             Parents = [destinationFolderId]
         };
 
-        var copyRequest = _context.Provider.Files.Copy(metadata, fileId);
+        var copyRequest = service.Files.Copy(metadata, fileId);
         copyRequest.Fields = "id, name, parents";
 
         GoogleFile copiedFile = await copyRequest

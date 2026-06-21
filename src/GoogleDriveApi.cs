@@ -25,6 +25,7 @@ public class GoogleDriveApi : IDisposable, IGDriveOperationContext
 {
     private readonly GoogleDriveApiOptions _options;
     private readonly IGoogleDriveAuthProvider _authProvider;
+    private readonly SemaphoreSlim _authGate = new(1, 1);
     private DriveService? _service;
     private UserCredential? _credential;
     private bool _disposed;
@@ -78,7 +79,7 @@ public class GoogleDriveApi : IDisposable, IGDriveOperationContext
         get
         {
             ThrowIfDisposed();
-            return _service ?? throw new AuthorizationException("The GoogleDriveApi has not been authorized.");
+            return Volatile.Read(ref _service) ?? throw new AuthorizationException("The GoogleDriveApi has not been authorized.");
         }
     }
 
@@ -91,7 +92,7 @@ public class GoogleDriveApi : IDisposable, IGDriveOperationContext
         get
         {
             ThrowIfDisposed();
-            return _service is not null;
+            return Volatile.Read(ref _service) is not null;
         }
     }
 
@@ -136,9 +137,10 @@ public class GoogleDriveApi : IDisposable, IGDriveOperationContext
 
         if (disposing)
         {
-            _service?.Dispose();
-            _service = null;
+            Volatile.Read(ref _service)?.Dispose();
+            Volatile.Write(ref _service, null);
             _credential = null;
+            _authGate.Dispose();
         }
     }
 
@@ -160,31 +162,70 @@ public class GoogleDriveApi : IDisposable, IGDriveOperationContext
 
     ///<summary>
     /// Authorizes the user in Google Drive using the configured authentication provider.
+    /// Authorization is <b>lazy and idempotent</b>: if the client is not yet authorized, the first API
+    /// call authorizes it on demand; calling this method when already authorized is a no-op, not an error.
     /// Use <paramref name="cancellationToken"/> to cancel the operation or set a timeout (e.g., <c>new CancellationTokenSource(TimeSpan.FromSeconds(30)).Token</c>).
     /// </summary>
     /// <param name="cancellationToken">The token to monitor for cancellation requests.</param>
     /// <exception cref="OperationCanceledException">Thrown if the authorization process is cancelled or times out.</exception>
-    /// <exception cref="AuthorizationException">Thrown if already authorized.</exception>
     /// <exception cref="Google.Apis.Auth.OAuth2.Responses.TokenResponseException">Thrown when the OAuth token request fails (e.g., consent declined, invalid credentials, revoked refresh token).</exception>
     /// <exception cref="ObjectDisposedException">Thrown when the instance has been disposed.</exception>
     public async Task AuthorizeAsync(CancellationToken cancellationToken = default)
     {
         ThrowIfDisposed();
+        await EnsureServiceAsync(cancellationToken).ConfigureAwait(false);
+    }
 
-        if (IsAuthorized)
+    /// <summary>
+    /// Returns the authorized <see cref="DriveService"/>, performing the one-time authorization on first
+    /// use. Lazy, idempotent and thread-safe: an already-authorized client returns synchronously via the
+    /// <c>volatile</c> fast path, and concurrent first-callers authorize exactly once behind the
+    /// <see cref="SemaphoreSlim"/> gate.
+    /// </summary>
+    private async ValueTask<DriveService> EnsureServiceAsync(CancellationToken cancellationToken)
+    {
+        DriveService? service = Volatile.Read(ref _service);
+        if (service is not null)
         {
-            throw new AuthorizationException("The GoogleDriveApi has been already authorized.");
+            return service;
         }
 
-        _credential = await _authProvider.AuthorizeAsync(cancellationToken)
-            .ConfigureAwait(false);
+        ThrowIfDisposed();
 
-        _service = new DriveService(new BaseClientService.Initializer()
+        await _authGate.WaitAsync(cancellationToken).ConfigureAwait(false);
+        try
         {
-            HttpClientInitializer = _credential,
-            ApplicationName = _options.ApplicationName,
-        });
+            // Double-check: another caller may have authorized while we awaited the gate.
+            service = Volatile.Read(ref _service);
+            if (service is not null)
+            {
+                return service;
+            }
+
+            ThrowIfDisposed();
+
+            UserCredential credential = await _authProvider.AuthorizeAsync(cancellationToken)
+                .ConfigureAwait(false);
+
+            service = new DriveService(new BaseClientService.Initializer
+            {
+                HttpClientInitializer = credential,
+                ApplicationName = _options.ApplicationName,
+            });
+
+            _credential = credential;
+            Volatile.Write(ref _service, service);
+            return service;
+        }
+        finally
+        {
+            _authGate.Release();
+        }
     }
+
+    /// <inheritdoc/>
+    ValueTask<DriveService> IGDriveOperationContext.GetServiceAsync(CancellationToken cancellationToken)
+        => EnsureServiceAsync(cancellationToken);
 
     /// <summary>
     /// Manually refreshes the token if it is stale.

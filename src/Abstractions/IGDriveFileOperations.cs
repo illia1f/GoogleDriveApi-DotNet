@@ -5,9 +5,8 @@ namespace GoogleDriveApi_DotNet.Abstractions;
 /// Reads like the underlying <c>DriveService.Files.*</c> surface.
 /// </summary>
 /// <remarks>
-/// Obtained from <see cref="GoogleDriveApi.Files"/>. Every member requires the owning
-/// client to have completed <see cref="GoogleDriveApi.AuthorizeAsync"/>; otherwise an
-/// <see cref="Exceptions.AuthorizationException"/> is thrown.
+/// Obtained from <see cref="GoogleDriveApi.Files"/>. If the owning client is not yet authorized,
+/// the first member call authorizes it on demand.
 /// </remarks>
 public interface IGDriveFileOperations
 {
@@ -19,7 +18,6 @@ public interface IGDriveFileOperations
     /// <param name="cancellationToken">The token to monitor for cancellation requests.</param>
     /// <returns>The non-trashed, non-folder items in the folder.</returns>
     /// <exception cref="ArgumentOutOfRangeException">Thrown when <paramref name="pageSize"/> is less than or equal to zero.</exception>
-    /// <exception cref="Exceptions.AuthorizationException">Thrown when the owning client has not been authorized.</exception>
     /// <exception cref="ObjectDisposedException">Thrown when the owning client has been disposed.</exception>
     /// <exception cref="Google.GoogleApiException">Thrown when the Google Drive API returns an error.</exception>
     /// <exception cref="OperationCanceledException">Thrown when the operation is cancelled via the cancellation token.</exception>
@@ -33,7 +31,6 @@ public interface IGDriveFileOperations
     /// <param name="cancellationToken">The token to monitor for cancellation requests.</param>
     /// <returns>The file ID if a matching file is found; otherwise, <c>null</c>.</returns>
     /// <exception cref="ArgumentException">Thrown when <paramref name="fullFileName"/> is <c>null</c> or empty.</exception>
-    /// <exception cref="Exceptions.AuthorizationException">Thrown when the owning client has not been authorized.</exception>
     /// <exception cref="ObjectDisposedException">Thrown when the owning client has been disposed.</exception>
     /// <exception cref="Google.GoogleApiException">Thrown when the Google Drive API returns an error.</exception>
     /// <exception cref="OperationCanceledException">Thrown when the operation is cancelled via the cancellation token.</exception>
@@ -46,7 +43,6 @@ public interface IGDriveFileOperations
     /// <param name="cancellationToken">The token to monitor for cancellation requests.</param>
     /// <exception cref="ArgumentException">Thrown when <paramref name="fileId"/> is <c>null</c> or empty.</exception>
     /// <exception cref="Exceptions.InvalidMimeTypeException">Thrown when the specified ID refers to a folder.</exception>
-    /// <exception cref="Exceptions.AuthorizationException">Thrown when the owning client has not been authorized.</exception>
     /// <exception cref="ObjectDisposedException">Thrown when the owning client has been disposed.</exception>
     /// <exception cref="Google.GoogleApiException">Thrown when the Google Drive API returns an error.</exception>
     /// <exception cref="OperationCanceledException">Thrown when the operation is cancelled via the cancellation token.</exception>
@@ -59,7 +55,6 @@ public interface IGDriveFileOperations
     /// <param name="newName">The new name to assign to the file.</param>
     /// <param name="cancellationToken">The token to monitor for cancellation requests.</param>
     /// <exception cref="ArgumentException">Thrown when <paramref name="fileId"/> or <paramref name="newName"/> is <c>null</c> or empty.</exception>
-    /// <exception cref="Exceptions.AuthorizationException">Thrown when the owning client has not been authorized.</exception>
     /// <exception cref="ObjectDisposedException">Thrown when the owning client has been disposed.</exception>
     /// <exception cref="Google.GoogleApiException">Thrown when the Google Drive API returns an error.</exception>
     /// <exception cref="OperationCanceledException">Thrown when the operation is cancelled via the cancellation token.</exception>
@@ -74,7 +69,6 @@ public interface IGDriveFileOperations
     /// <param name="destinationFolderId">The ID of the folder to which the file will be moved.</param>
     /// <param name="cancellationToken">The token to monitor for cancellation requests.</param>
     /// <exception cref="ArgumentException">Thrown when any of <paramref name="fileId"/>, <paramref name="sourceFolderId"/>, or <paramref name="destinationFolderId"/> is <c>null</c> or empty.</exception>
-    /// <exception cref="Exceptions.AuthorizationException">Thrown when the owning client has not been authorized.</exception>
     /// <exception cref="ObjectDisposedException">Thrown when the owning client has been disposed.</exception>
     /// <exception cref="Google.GoogleApiException">Thrown when the Google Drive API returns an error.</exception>
     /// <exception cref="OperationCanceledException">Thrown when the operation is cancelled via the cancellation token.</exception>
@@ -89,7 +83,6 @@ public interface IGDriveFileOperations
     /// <param name="cancellationToken">The token to monitor for cancellation requests.</param>
     /// <returns>The ID of the newly created copied file.</returns>
     /// <exception cref="ArgumentException">Thrown when <paramref name="fileId"/> or <paramref name="destinationFolderId"/> is <c>null</c> or empty.</exception>
-    /// <exception cref="Exceptions.AuthorizationException">Thrown when the owning client has not been authorized.</exception>
     /// <exception cref="ObjectDisposedException">Thrown when the owning client has been disposed.</exception>
     /// <exception cref="Google.GoogleApiException">Thrown when the Google Drive API returns an error.</exception>
     /// <exception cref="OperationCanceledException">Thrown when the operation is cancelled via the cancellation token.</exception>
