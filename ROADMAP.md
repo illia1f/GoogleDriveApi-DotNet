@@ -49,7 +49,7 @@ The library is in **active development** and approaching its first stable releas
 
 ### Architecture, Packaging & DI (v1 redesign)
 
-- [ ] Operation-group split (`Files` / `Folders` / `Transfers` / `Trash`) over a thin `GDriveClient` facade
+- [x] Operation-group split (`Files` / `Folders` / `Transfers` / `Trash`) over a thin `GoogleDriveApi` facade
 - [ ] Unified `GDriveItem` domain model (replaces the raw Google type / `GDriveFile` struct / tuples)
 - [ ] `IAsyncEnumerable<GDriveItem>` streaming variants for listings
 - [ ] Multiple authentication providers: interactive (desktop), service account, stored refresh token
