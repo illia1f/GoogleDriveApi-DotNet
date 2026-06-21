@@ -37,6 +37,12 @@ public class GoogleDriveApi : IDisposable, IGDriveOperationContext
     public IGDriveFileOperations Files { get; }
 
     /// <summary>
+    /// Gets the folder operations group (find, list, list-all, create, delete).
+    /// Reads like the underlying <c>DriveService.Files.*</c> surface, scoped to folders.
+    /// </summary>
+    public IGDriveFolderOperations Folders { get; }
+
+    /// <summary>
     /// Gets the configured root folder ID from options. Default value is "root".
     /// </summary>
     public string RootFolderId => _options.RootFolderId;
@@ -51,6 +57,7 @@ public class GoogleDriveApi : IDisposable, IGDriveOperationContext
         _options = options;
         _authProvider = authProvider;
         Files = new GDriveFileOperations(this);
+        Folders = new GDriveFolderOperations(this);
     }
 
     /// <summary>
@@ -403,212 +410,30 @@ public class GoogleDriveApi : IDisposable, IGDriveOperationContext
     public Task<string> CopyFileToAsync(string fileId, string destinationFolderId, string? newName = null, CancellationToken cancellationToken = default)
         => Files.CopyAsync(fileId, destinationFolderId, newName, cancellationToken);
 
-    /// <summary>
-    /// Retrieves the ID of a folder by its name within the specified parent folder.
-    /// </summary>
-    /// <param name="folderName">The name of the folder to search for.</param>
-    /// <param name="parentFolderId">
-    /// Optional ID of the parent folder to search within. If <c>null</c>,
-    /// <see cref="RootFolderId"/> is used.
-    /// </param>
-    /// <param name="cancellationToken">The token to monitor for cancellation requests.</param>
-    /// <returns>
-    /// The folder ID if a matching folder is found; otherwise, <c>null</c>.
-    /// </returns>
-    /// <remarks>
-    /// The search is limited to non-trashed items and returns at most one result.
-    /// If multiple folders with the same name exist in the same parent folder,
-    /// the returned folder is unspecified.
-    /// </remarks>
-    /// <exception cref="ArgumentException">
-    /// Thrown when <paramref name="folderName"/> is <c>null</c> or empty.
-    /// </exception>
-    /// <exception cref="AuthorizationException">Thrown when the instance has not been authorized. Call <see cref="AuthorizeAsync"/> first.</exception>
-    /// <exception cref="ObjectDisposedException">Thrown when the instance has been disposed.</exception>
-    /// <exception cref="Google.GoogleApiException">Thrown when the Google Drive API returns an error (e.g., not found, insufficient permissions, quota exceeded).</exception>
-    /// <exception cref="OperationCanceledException">Thrown when the operation is cancelled via the cancellation token.</exception>
-    public async Task<string?> GetFolderIdByAsync(string folderName, string? parentFolderId = null, CancellationToken cancellationToken = default)
-    {
-        ArgumentException.ThrowIfNullOrEmpty(folderName);
+    /// <inheritdoc cref="IGDriveFolderOperations.FindIdByNameAsync"/>
+    [Obsolete("Use Folders.FindIdByNameAsync instead. This forwarder will be removed in v1.")]
+    public Task<string?> GetFolderIdByAsync(string folderName, string? parentFolderId = null, CancellationToken cancellationToken = default)
+        => Folders.FindIdByNameAsync(folderName, parentFolderId, cancellationToken);
 
-        parentFolderId ??= _options.RootFolderId;
-
-        var listRequest = Provider.Files.List();
-        listRequest.Q = $"mimeType='{GDriveMimeTypes.Folder}' and name='{DriveQueryHelper.EscapeValue(folderName)}' and '{DriveQueryHelper.EscapeValue(parentFolderId)}' in parents and trashed=false";
-        listRequest.Fields = "files(id, name)";
-        listRequest.PageSize = 1;
-
-        var result = await listRequest.ExecuteAsync(cancellationToken).ConfigureAwait(false);
-        GoogleFile? file = result.Files?.FirstOrDefault();
-
-        return file?.Id;
-    }
-
-    /// <summary>
-    /// Retrieves a list of folders within the specified parent folder.
-    /// </summary>
-    /// <param name="parentFolderId">The ID of the parent folder to search within.</param>
-    /// <param name="pageSize">
-    /// The maximum number of folders to retrieve per page.
-    /// Must be greater than zero.
-    /// </param>
-    /// <param name="cancellationToken">The token to monitor for cancellation requests.</param>
-    /// <returns>
-    /// A list of tuples containing the ID and name of each folder.
-    /// </returns>
-    /// <remarks>
-    /// Only non-trashed folders are returned.
-    /// The method retrieves all available pages until no more results remain.
-    /// </remarks>
-    /// <exception cref="ArgumentException">
-    /// Thrown when <paramref name="parentFolderId"/> is <c>null</c> or empty.
-    /// </exception>
-    /// <exception cref="ArgumentOutOfRangeException">
-    /// Thrown when <paramref name="pageSize"/> is less than or equal to zero.
-    /// </exception>
-    /// <exception cref="AuthorizationException">Thrown when the instance has not been authorized. Call <see cref="AuthorizeAsync"/> first.</exception>
-    /// <exception cref="ObjectDisposedException">Thrown when the instance has been disposed.</exception>
-    /// <exception cref="Google.GoogleApiException">Thrown when the Google Drive API returns an error (e.g., not found, insufficient permissions, quota exceeded).</exception>
-    /// <exception cref="OperationCanceledException">Thrown when the operation is cancelled via the cancellation token.</exception>
+    /// <inheritdoc cref="IGDriveFolderOperations.ListAsync"/>
+    [Obsolete("Use Folders.ListAsync instead. This forwarder will be removed in v1.")]
     public async Task<List<(string id, string name)>> GetFoldersByAsync(string parentFolderId, int pageSize = 50, CancellationToken cancellationToken = default)
-    {
-        ArgumentException.ThrowIfNullOrEmpty(parentFolderId);
-        ArgumentOutOfRangeException.ThrowIfNegativeOrZero(pageSize);
+        => (await Folders.ListAsync(parentFolderId, pageSize, cancellationToken).ConfigureAwait(false)).ToList();
 
-        var allFolders = new List<GoogleFile>();
-        string? pageToken = null;
-        string qSelector = $"mimeType='{GDriveMimeTypes.Folder}' and '{DriveQueryHelper.EscapeValue(parentFolderId)}' in parents and trashed=false";
-        const string fields = "nextPageToken, files(id, name)";
-        do
-        {
-            var listRequest = Provider.Files.List();
-            listRequest.Q = qSelector;
-            listRequest.Fields = fields;
-            listRequest.PageSize = pageSize;
-            listRequest.PageToken = pageToken;
-
-            var result = await listRequest.ExecuteAsync(cancellationToken).ConfigureAwait(false);
-            if (result.Files is not null)
-            {
-                allFolders.AddRange(result.Files);
-            }
-
-            pageToken = result.NextPageToken;
-        } while (pageToken is not null);
-
-        return allFolders
-            .Select(f => (f.Id, f.Name))
-            .ToList();
-    }
-
-    /// <summary>
-    /// Retrieves all folders from Google Drive.
-    /// </summary>
-    /// <param name="cancellationToken">The token to monitor for cancellation requests.</param>
-    /// <returns>
-    /// A list of <see cref="GDriveFile"/> objects representing all folders in Google Drive.
-    /// </returns>
-    /// <remarks>
-    /// This method retrieves folders using paginated requests.
-    /// Each request uses the maximum supported page size (1000) and continues until all pages are fetched.
-    /// </remarks>
-    /// <exception cref="AuthorizationException">Thrown when the instance has not been authorized. Call <see cref="AuthorizeAsync"/> first.</exception>
-    /// <exception cref="ObjectDisposedException">Thrown when the instance has been disposed.</exception>
-    /// <exception cref="Google.GoogleApiException">Thrown when the Google Drive API returns an error (e.g., not found, insufficient permissions, quota exceeded).</exception>
-    /// <exception cref="OperationCanceledException">Thrown when the operation is cancelled via the cancellation token.</exception>
+    /// <inheritdoc cref="IGDriveFolderOperations.ListAllAsync"/>
+    [Obsolete("Use Folders.ListAllAsync instead. This forwarder will be removed in v1.")]
     public async Task<List<GDriveFile>> GetAllFoldersAsync(CancellationToken cancellationToken = default)
-    {
-        var request = Provider.Files.List();
-        request.Q = $"mimeType = '{GDriveMimeTypes.Folder}'";
-        request.Fields = "nextPageToken, files(id, name, parents)";
-        request.PageSize = 1000; // Set page size to maximum (1000)
+        => (await Folders.ListAllAsync(cancellationToken).ConfigureAwait(false)).ToList();
 
-        var folders = new List<GoogleFile>();
-        do
-        {
-            var result = await request.ExecuteAsync(cancellationToken).ConfigureAwait(false);
-            if (result.Files is not null)
-            {
-                folders.AddRange(result.Files);
-            }
+    /// <inheritdoc cref="IGDriveFolderOperations.CreateAsync"/>
+    [Obsolete("Use Folders.CreateAsync instead. This forwarder will be removed in v1.")]
+    public Task<string> CreateFolderAsync(string folderName, string? parentFolderId = null, CancellationToken cancellationToken = default)
+        => Folders.CreateAsync(folderName, parentFolderId, cancellationToken);
 
-            request.PageToken = result.NextPageToken;
-        } while (!string.IsNullOrEmpty(request.PageToken));
-
-        var driveFolders = folders.Select(f => f.ToGDriveFile()).ToList();
-
-        return driveFolders;
-    }
-
-    /// <summary>
-    /// Creates a new folder in Google Drive.
-    /// </summary>
-    /// <param name="folderName">The name of the folder to create.</param>
-    /// <param name="parentFolderId">
-    /// Optional ID of the parent folder in which the new folder will be created.
-    /// If <c>null</c>, the root folder is used.
-    /// </param>
-    /// <param name="cancellationToken">The token to monitor for cancellation requests.</param>
-    /// <returns>
-    /// The ID of the newly created folder.
-    /// </returns>
-    /// <exception cref="ArgumentException">
-    /// Thrown when <paramref name="folderName"/> is <c>null</c> or empty.
-    /// </exception>
-    /// <remarks>
-    /// The folder is created using a single Google Drive API request.
-    /// Only folder-specific metadata is set; no additional properties are modified.
-    /// </remarks>
-    /// <exception cref="AuthorizationException">Thrown when the instance has not been authorized. Call <see cref="AuthorizeAsync"/> first.</exception>
-    /// <exception cref="ObjectDisposedException">Thrown when the instance has been disposed.</exception>
-    /// <exception cref="Google.GoogleApiException">Thrown when the Google Drive API returns an error (e.g., not found, insufficient permissions, quota exceeded).</exception>
-    /// <exception cref="OperationCanceledException">Thrown when the operation is cancelled via the cancellation token.</exception>
-    public async Task<string> CreateFolderAsync(string folderName, string? parentFolderId = null, CancellationToken cancellationToken = default)
-    {
-        ArgumentException.ThrowIfNullOrEmpty(folderName);
-
-        parentFolderId ??= _options.RootFolderId;
-
-        var driveFolder = new GoogleFile()
-        {
-            Name = folderName,
-            MimeType = GDriveMimeTypes.Folder,
-            Parents = [parentFolderId]
-        };
-
-        var request = Provider.Files.Create(driveFolder);
-        GoogleFile file = await request.ExecuteAsync(cancellationToken).ConfigureAwait(false);
-
-        return file.Id;
-    }
-
-    /// <summary>
-    /// Deletes a folder from Google Drive after validating its type.
-    /// </summary>
-    /// <param name="folderId">The ID of the folder to delete.</param>
-    /// <param name="cancellationToken">The token to monitor for cancellation requests.</param>
-    /// <exception cref="ArgumentException">
-    /// Thrown when <paramref name="folderId"/> is <c>null</c> or empty.
-    /// </exception>
-    /// <exception cref="InvalidMimeTypeException">
-    /// Thrown when the specified ID refers to an item that is not a folder.
-    /// </exception>
-    /// <exception cref="AuthorizationException">Thrown when the instance has not been authorized. Call <see cref="AuthorizeAsync"/> first.</exception>
-    /// <exception cref="ObjectDisposedException">Thrown when the instance has been disposed.</exception>
-    /// <exception cref="Google.GoogleApiException">Thrown when the Google Drive API returns an error (e.g., not found, insufficient permissions, quota exceeded).</exception>
-    /// <exception cref="OperationCanceledException">Thrown when the operation is cancelled via the cancellation token.</exception>
-    public async Task DeleteFolderAsync(string folderId, CancellationToken cancellationToken = default)
-    {
-        ArgumentException.ThrowIfNullOrEmpty(folderId);
-
-        GoogleFile folder = await Provider.Files.Get(folderId).ExecuteAsync(cancellationToken).ConfigureAwait(false);
-        if (folder.MimeType != GDriveMimeTypes.Folder)
-        {
-            throw new InvalidMimeTypeException(folderId, folder.MimeType, expectedMimeType: GDriveMimeTypes.Folder);
-        }
-
-        await Provider.Files.Delete(folderId).ExecuteAsync(cancellationToken).ConfigureAwait(false);
-    }
+    /// <inheritdoc cref="IGDriveFolderOperations.DeleteAsync"/>
+    [Obsolete("Use Folders.DeleteAsync instead. This forwarder will be removed in v1.")]
+    public Task DeleteFolderAsync(string folderId, CancellationToken cancellationToken = default)
+        => Folders.DeleteAsync(folderId, cancellationToken);
 
     /// <inheritdoc cref="IGDriveFileOperations.FindIdByNameAsync"/>
     [Obsolete("Use Files.FindIdByNameAsync instead. This forwarder will be removed in v1.")]
