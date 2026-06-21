@@ -26,16 +26,17 @@ public class GoogleDriveApiAuthTests
     }
 
     [Fact]
-    public async Task AuthorizeAsync_WhenAlreadyAuthorized_ShouldThrowAuthorizationException()
+    public async Task AuthorizeAsync_WhenAlreadyAuthorized_ShouldBeIdempotentNoOp()
     {
         var mockAuthProvider = CreateMockAuthProvider();
         var api = GoogleDriveApi.Create(_defaultOptions, mockAuthProvider);
-        await api.AuthorizeAsync();
 
-        await Should.ThrowAsync<AuthorizationException>(async () =>
-        {
-            await api.AuthorizeAsync();
-        });
+        await api.AuthorizeAsync();
+        await api.AuthorizeAsync(); // second call must be a no-op, not throw
+
+        api.IsAuthorized.ShouldBeTrue();
+        // Lazy + idempotent: authorization happens exactly once.
+        await mockAuthProvider.Received(1).AuthorizeAsync(Arg.Any<CancellationToken>());
     }
 
     [Fact]
@@ -51,20 +52,16 @@ public class GoogleDriveApiAuthTests
     }
 
     [Fact]
-    public async Task AuthorizeAsync_WhenCancelled_ShouldThrowOperationCanceledException()
+    public async Task AuthorizeAsync_WhenTokenAlreadyCancelled_ShouldThrowBeforeCallingProvider()
     {
-        var mockAuthProvider = Substitute.For<IGoogleDriveAuthProvider>();
-        mockAuthProvider.AuthorizeAsync(Arg.Any<CancellationToken>())
-            .ThrowsAsync<OperationCanceledException>();
-
+        var mockAuthProvider = CreateMockAuthProvider();
         var api = GoogleDriveApi.Create(_defaultOptions, mockAuthProvider);
         using var cts = new CancellationTokenSource();
         cts.Cancel();
 
-        await Should.ThrowAsync<OperationCanceledException>(async () =>
-        {
-            await api.AuthorizeAsync(cts.Token);
-        });
+        await Should.ThrowAsync<OperationCanceledException>(() => api.AuthorizeAsync(cts.Token));
+
+        await mockAuthProvider.DidNotReceive().AuthorizeAsync(Arg.Any<CancellationToken>());
     }
 
     [Fact]
@@ -150,17 +147,17 @@ public class GoogleDriveApiAuthTests
     }
 
     [Fact]
-    public async Task TryRefreshTokenAsync_WithCancellationToken_ShouldNotThrow()
+    public async Task TryRefreshTokenAsync_WhenCancelled_ShouldPropagateCancellation()
     {
-        var credential = CreateTestUserCredential(isStale: true);
+        var credential = CreateStaleCredentialWithCancelAwareFlow();
         var mockAuthProvider = CreateMockAuthProvider(credential);
         var api = GoogleDriveApi.Create(_defaultOptions, mockAuthProvider);
         await api.AuthorizeAsync();
+        api.IsTokenShouldBeRefreshed.ShouldBeTrue();
         using var cts = new CancellationTokenSource();
+        cts.Cancel();
 
-        var result = await api.TryRefreshTokenAsync(cts.Token);
-
-        result.ShouldBeTrue();
+        await Should.ThrowAsync<OperationCanceledException>(() => api.TryRefreshTokenAsync(cts.Token));
     }
 
     #endregion
@@ -315,6 +312,35 @@ public class GoogleDriveApiAuthTests
             .Returns(Task.FromResult(refreshedToken));
 
         // Create a real UserCredential instance with test data
+        return new UserCredential(flow, userId: "test-user", tokenResponse);
+    }
+
+    // A stale credential whose flow observes the cancellation token, so a cancelled
+    // refresh surfaces OperationCanceledException instead of silently succeeding.
+    private static UserCredential CreateStaleCredentialWithCancelAwareFlow()
+    {
+        var tokenResponse = new TokenResponse
+        {
+            AccessToken = "test-access-token",
+            RefreshToken = "test-refresh-token",
+            ExpiresInSeconds = 0,
+            IssuedUtc = DateTime.UtcNow.AddHours(-2)
+        };
+
+        var flow = Substitute.For<Google.Apis.Auth.OAuth2.Flows.IAuthorizationCodeFlow>();
+        flow.RefreshTokenAsync(Arg.Any<string>(), Arg.Any<string>(), Arg.Any<CancellationToken>())
+            .Returns(callInfo =>
+            {
+                callInfo.Arg<CancellationToken>().ThrowIfCancellationRequested();
+                return Task.FromResult(new TokenResponse
+                {
+                    AccessToken = "refreshed-access-token",
+                    RefreshToken = "test-refresh-token",
+                    ExpiresInSeconds = 3600,
+                    IssuedUtc = DateTime.UtcNow
+                });
+            });
+
         return new UserCredential(flow, userId: "test-user", tokenResponse);
     }
 
