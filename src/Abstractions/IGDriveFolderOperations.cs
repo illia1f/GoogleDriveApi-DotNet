@@ -3,7 +3,7 @@ using GoogleDriveApi_DotNet.Types;
 namespace GoogleDriveApi_DotNet.Abstractions;
 
 /// <summary>
-/// Folder operations for Google Drive: find, list, list-all, create, and delete.
+/// Folder operations for Google Drive: find, list, list-all, create, delete, rename, and move.
 /// Reads like the underlying <c>DriveService.Files.*</c> surface, scoped to folders.
 /// </summary>
 /// <remarks>
@@ -54,7 +54,7 @@ public interface IGDriveFolderOperations
     /// <exception cref="ObjectDisposedException">Thrown when the owning client has been disposed.</exception>
     /// <exception cref="Google.GoogleApiException">Thrown when the Google Drive API returns an error.</exception>
     /// <exception cref="OperationCanceledException">Thrown when the operation is cancelled via the cancellation token.</exception>
-    Task<IReadOnlyList<GDriveFile>> ListAllAsync(CancellationToken cancellationToken = default);
+    Task<IReadOnlyList<DriveItem>> ListAllAsync(CancellationToken cancellationToken = default);
 
     /// <summary>
     /// Creates a new folder in Google Drive.
@@ -70,7 +70,7 @@ public interface IGDriveFolderOperations
     Task<string> CreateAsync(string folderName, string? parentFolderId = null, CancellationToken cancellationToken = default);
 
     /// <summary>
-    /// Permanently deletes a folder after validating that the target is a folder.
+    /// Permanently deletes a folder.
     /// </summary>
     /// <param name="folderId">The ID of the folder to delete.</param>
     /// <param name="cancellationToken">The token to monitor for cancellation requests.</param>
@@ -80,4 +80,31 @@ public interface IGDriveFolderOperations
     /// <exception cref="Google.GoogleApiException">Thrown when the Google Drive API returns an error.</exception>
     /// <exception cref="OperationCanceledException">Thrown when the operation is cancelled via the cancellation token.</exception>
     Task DeleteAsync(string folderId, CancellationToken cancellationToken = default);
+
+    /// <summary>
+    /// Renames a folder.
+    /// </summary>
+    /// <param name="folderId">The ID of the folder to rename.</param>
+    /// <param name="newName">The new name to assign to the folder.</param>
+    /// <param name="cancellationToken">The token to monitor for cancellation requests.</param>
+    /// <exception cref="ArgumentException">Thrown when <paramref name="folderId"/> or <paramref name="newName"/> is <c>null</c> or empty.</exception>
+    /// <exception cref="Exceptions.InvalidMimeTypeException">Thrown when the specified ID refers to an item that is not a folder.</exception>
+    /// <exception cref="ObjectDisposedException">Thrown when the owning client has been disposed.</exception>
+    /// <exception cref="Google.GoogleApiException">Thrown when the Google Drive API returns an error.</exception>
+    /// <exception cref="OperationCanceledException">Thrown when the operation is cancelled via the cancellation token.</exception>
+    Task RenameAsync(string folderId, string newName, CancellationToken cancellationToken = default);
+
+    /// <summary>
+    /// Moves a folder from <paramref name="sourceFolderId"/> to <paramref name="destinationFolderId"/>.
+    /// </summary>
+    /// <param name="folderId">The ID of the folder to move.</param>
+    /// <param name="sourceFolderId">The ID of the parent folder from which the folder will be moved.</param>
+    /// <param name="destinationFolderId">The ID of the parent folder to which the folder will be moved.</param>
+    /// <param name="cancellationToken">The token to monitor for cancellation requests.</param>
+    /// <exception cref="ArgumentException">Thrown when any of <paramref name="folderId"/>, <paramref name="sourceFolderId"/>, or <paramref name="destinationFolderId"/> is <c>null</c> or empty.</exception>
+    /// <exception cref="Exceptions.InvalidMimeTypeException">Thrown when the specified ID refers to an item that is not a folder.</exception>
+    /// <exception cref="ObjectDisposedException">Thrown when the owning client has been disposed.</exception>
+    /// <exception cref="Google.GoogleApiException">Thrown when the Google Drive API returns an error.</exception>
+    /// <exception cref="OperationCanceledException">Thrown when the operation is cancelled via the cancellation token.</exception>
+    Task MoveAsync(string folderId, string sourceFolderId, string destinationFolderId, CancellationToken cancellationToken = default);
 }

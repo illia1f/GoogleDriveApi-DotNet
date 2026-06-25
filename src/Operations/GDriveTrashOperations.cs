@@ -3,15 +3,9 @@ using GoogleDriveApi_DotNet.Abstractions;
 namespace GoogleDriveApi_DotNet.Operations;
 
 /// <inheritdoc cref="IGDriveTrashOperations"/>
-internal sealed class GDriveTrashOperations : IGDriveTrashOperations
+internal sealed class GDriveTrashOperations(IGDriveOperationContext context) : IGDriveTrashOperations
 {
-    private readonly IGDriveOperationContext _context;
-
-    internal GDriveTrashOperations(IGDriveOperationContext context)
-    {
-        ArgumentNullException.ThrowIfNull(context);
-        _context = context;
-    }
+    private readonly IGDriveOperationContext _context = context ?? throw new ArgumentNullException(nameof(context));
 
     /// <inheritdoc/>
     public async Task TrashAsync(string fileId, CancellationToken cancellationToken = default)

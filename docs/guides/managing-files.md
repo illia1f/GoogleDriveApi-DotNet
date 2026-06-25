@@ -5,6 +5,9 @@ Rename, move, copy, and delete files. For uploading and downloading see
 
 > Snippets assume an authorized `gDriveApi` — see [Getting Started](../getting-started.md).
 > Every async method accepts an optional `CancellationToken`.
+>
+> Rename, move, copy, and delete validate that the id refers to a file (not a folder) and throw
+> `InvalidMimeTypeException` otherwise. See [Exceptions](../reference/exceptions.md).
 
 ## Rename a file
 

@@ -31,8 +31,8 @@ The library is in **active development** and approaching its first stable releas
 - [x] Get folder ID by name (`GetFolderIdByAsync`)
 - [x] Get folders by parent (`GetFoldersByAsync`)
 - [x] Get all folders (`GetAllFoldersAsync`)
-- [ ] Move folder to different parent
-- [ ] Rename folder
+- [x] Move folder to different parent (`Folders.MoveAsync`)
+- [x] Rename folder (`Folders.RenameAsync`)
 
 ### Trash Operations
 
@@ -50,7 +50,7 @@ The library is in **active development** and approaching its first stable releas
 ### Architecture, Packaging & DI (v1 redesign)
 
 - [x] Operation-group split (`Files` / `Folders` / `Transfers` / `Trash`) over a thin `GoogleDriveApi` facade
-- [ ] Unified `GDriveItem` domain model (replaces the raw Google type / `GDriveFile` struct / tuples)
+- [ ] Unified `DriveItem` domain model (replaces the raw Google type / `GDriveFile` struct / tuples)
 - [ ] `IAsyncEnumerable<GDriveItem>` streaming variants for listings
 - [ ] Multiple authentication providers: interactive (desktop), service account, stored refresh token
 - [ ] Lazy + idempotent + thread-safe authorization (safe for DI singletons)

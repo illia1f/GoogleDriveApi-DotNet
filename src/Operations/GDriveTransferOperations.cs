@@ -12,15 +12,9 @@ using static Google.Apis.Drive.v3.FilesResource;
 namespace GoogleDriveApi_DotNet.Operations;
 
 /// <inheritdoc cref="IGDriveTransferOperations"/>
-internal sealed class GDriveTransferOperations : IGDriveTransferOperations
+internal sealed class GDriveTransferOperations(IGDriveOperationContext context) : IGDriveTransferOperations
 {
-    private readonly IGDriveOperationContext _context;
-
-    internal GDriveTransferOperations(IGDriveOperationContext context)
-    {
-        ArgumentNullException.ThrowIfNull(context);
-        _context = context;
-    }
+    private readonly IGDriveOperationContext _context = context ?? throw new ArgumentNullException(nameof(context));
 
     /// <inheritdoc/>
     public async Task<string> UploadAsync(string filePath, string mimeType, string? parentFolderId = null, CancellationToken cancellationToken = default)

@@ -1,20 +1,14 @@
 using GoogleDriveApi_DotNet.Abstractions;
-using GoogleDriveApi_DotNet.Exceptions;
+using GoogleDriveApi_DotNet.Extensions;
 using GoogleDriveApi_DotNet.Helpers;
 using GoogleDriveApi_DotNet.Types;
 
 namespace GoogleDriveApi_DotNet.Operations;
 
 /// <inheritdoc cref="IGDriveFileOperations"/>
-internal sealed class GDriveFileOperations : IGDriveFileOperations
+internal sealed class GDriveFileOperations(IGDriveOperationContext context) : IGDriveFileOperations
 {
-    private readonly IGDriveOperationContext _context;
-
-    internal GDriveFileOperations(IGDriveOperationContext context)
-    {
-        ArgumentNullException.ThrowIfNull(context);
-        _context = context;
-    }
+    private readonly IGDriveOperationContext _context = context ?? throw new ArgumentNullException(nameof(context));
 
     /// <inheritdoc/>
     public async Task<IReadOnlyList<GoogleFile>> ListAsync(string? parentFolderId = null, int pageSize = 100, CancellationToken cancellationToken = default)
@@ -59,7 +53,7 @@ internal sealed class GDriveFileOperations : IGDriveFileOperations
         var service = await _context.GetServiceAsync(cancellationToken).ConfigureAwait(false);
 
         var request = service.Files.List();
-        request.Q = $"name = '{DriveQueryHelper.EscapeValue(fullFileName)}' and '{DriveQueryHelper.EscapeValue(parentFolderId)}' in parents and trashed = false";
+        request.Q = $"mimeType != '{GDriveMimeTypes.Folder}' and name = '{DriveQueryHelper.EscapeValue(fullFileName)}' and '{DriveQueryHelper.EscapeValue(parentFolderId)}' in parents and trashed = false";
         request.Fields = "files(id, name)";
         request.PageSize = 1;
 
@@ -76,14 +70,8 @@ internal sealed class GDriveFileOperations : IGDriveFileOperations
 
         var service = await _context.GetServiceAsync(cancellationToken).ConfigureAwait(false);
 
-        GoogleFile file = await service.Files.Get(fileId)
-            .ExecuteAsync(cancellationToken)
-            .ConfigureAwait(false);
-
-        if (file.MimeType == GDriveMimeTypes.Folder)
-        {
-            throw new InvalidMimeTypeException(fileId, file.MimeType);
-        }
+        MimeType mimeType = await service.GetMimeTypeAsync(fileId, cancellationToken).ConfigureAwait(false);
+        mimeType.RequireFile();
 
         await service.Files.Delete(fileId)
             .ExecuteAsync(cancellationToken)
@@ -97,6 +85,9 @@ internal sealed class GDriveFileOperations : IGDriveFileOperations
         ArgumentException.ThrowIfNullOrEmpty(newName);
 
         var service = await _context.GetServiceAsync(cancellationToken).ConfigureAwait(false);
+
+        MimeType mimeType = await service.GetMimeTypeAsync(fileId, cancellationToken).ConfigureAwait(false);
+        mimeType.RequireFile();
 
         var metadata = new GoogleFile { Name = newName };
 
@@ -115,6 +106,9 @@ internal sealed class GDriveFileOperations : IGDriveFileOperations
 
         var service = await _context.GetServiceAsync(cancellationToken).ConfigureAwait(false);
 
+        MimeType mimeType = await service.GetMimeTypeAsync(fileId, cancellationToken).ConfigureAwait(false);
+        mimeType.RequireFile();
+
         var metadata = new GoogleFile();
 
         var updateRequest = service.Files.Update(metadata, fileId);
@@ -132,6 +126,9 @@ internal sealed class GDriveFileOperations : IGDriveFileOperations
         ArgumentException.ThrowIfNullOrEmpty(destinationFolderId);
 
         var service = await _context.GetServiceAsync(cancellationToken).ConfigureAwait(false);
+
+        MimeType mimeType = await service.GetMimeTypeAsync(fileId, cancellationToken).ConfigureAwait(false);
+        mimeType.RequireFile();
 
         var metadata = new GoogleFile
         {

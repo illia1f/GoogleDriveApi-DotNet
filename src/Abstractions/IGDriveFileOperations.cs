@@ -37,7 +37,7 @@ public interface IGDriveFileOperations
     Task<string?> FindIdByNameAsync(string fullFileName, string? parentFolderId = null, CancellationToken cancellationToken = default);
 
     /// <summary>
-    /// Permanently deletes a file after validating that the target is not a folder.
+    /// Permanently deletes a file.
     /// </summary>
     /// <param name="fileId">The ID of the file to delete.</param>
     /// <param name="cancellationToken">The token to monitor for cancellation requests.</param>
@@ -49,26 +49,27 @@ public interface IGDriveFileOperations
     Task DeleteAsync(string fileId, CancellationToken cancellationToken = default);
 
     /// <summary>
-    /// Renames a file by performing a partial update of its metadata (only <c>Name</c> changes).
+    /// Renames a file.
     /// </summary>
     /// <param name="fileId">The ID of the file to rename.</param>
     /// <param name="newName">The new name to assign to the file.</param>
     /// <param name="cancellationToken">The token to monitor for cancellation requests.</param>
     /// <exception cref="ArgumentException">Thrown when <paramref name="fileId"/> or <paramref name="newName"/> is <c>null</c> or empty.</exception>
+    /// <exception cref="Exceptions.InvalidMimeTypeException">Thrown when the specified ID refers to a folder.</exception>
     /// <exception cref="ObjectDisposedException">Thrown when the owning client has been disposed.</exception>
     /// <exception cref="Google.GoogleApiException">Thrown when the Google Drive API returns an error.</exception>
     /// <exception cref="OperationCanceledException">Thrown when the operation is cancelled via the cancellation token.</exception>
     Task RenameAsync(string fileId, string newName, CancellationToken cancellationToken = default);
 
     /// <summary>
-    /// Moves a file to another folder by updating its parent references: removed from
-    /// <paramref name="sourceFolderId"/> and added to <paramref name="destinationFolderId"/>.
+    /// Moves a file from <paramref name="sourceFolderId"/> to <paramref name="destinationFolderId"/>.
     /// </summary>
     /// <param name="fileId">The ID of the file to move.</param>
     /// <param name="sourceFolderId">The ID of the folder from which the file will be moved.</param>
     /// <param name="destinationFolderId">The ID of the folder to which the file will be moved.</param>
     /// <param name="cancellationToken">The token to monitor for cancellation requests.</param>
     /// <exception cref="ArgumentException">Thrown when any of <paramref name="fileId"/>, <paramref name="sourceFolderId"/>, or <paramref name="destinationFolderId"/> is <c>null</c> or empty.</exception>
+    /// <exception cref="Exceptions.InvalidMimeTypeException">Thrown when the specified ID refers to a folder.</exception>
     /// <exception cref="ObjectDisposedException">Thrown when the owning client has been disposed.</exception>
     /// <exception cref="Google.GoogleApiException">Thrown when the Google Drive API returns an error.</exception>
     /// <exception cref="OperationCanceledException">Thrown when the operation is cancelled via the cancellation token.</exception>
@@ -83,6 +84,7 @@ public interface IGDriveFileOperations
     /// <param name="cancellationToken">The token to monitor for cancellation requests.</param>
     /// <returns>The ID of the newly created copied file.</returns>
     /// <exception cref="ArgumentException">Thrown when <paramref name="fileId"/> or <paramref name="destinationFolderId"/> is <c>null</c> or empty.</exception>
+    /// <exception cref="Exceptions.InvalidMimeTypeException">Thrown when the specified ID refers to a folder.</exception>
     /// <exception cref="ObjectDisposedException">Thrown when the owning client has been disposed.</exception>
     /// <exception cref="Google.GoogleApiException">Thrown when the Google Drive API returns an error.</exception>
     /// <exception cref="OperationCanceledException">Thrown when the operation is cancelled via the cancellation token.</exception>
