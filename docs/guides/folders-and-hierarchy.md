@@ -1,7 +1,7 @@
 # Folders and Hierarchy
 
-How to create, list, and delete folders — and what you need to know about Google Drive's
-folder model (it is not a strict tree).
+How to create, list, rename, move, and delete folders — and what you need to know about Google
+Drive's folder model (it is not a strict tree).
 
 > These snippets assume you already have an authorized `gDriveApi`. See
 > [Getting Started](../getting-started.md).
@@ -66,6 +66,28 @@ await gDriveApi.DeleteFolderAsync(folderId); // Add: cancellationToken
 
 `DeleteFolderAsync` validates that the id refers to a folder and throws
 `InvalidMimeTypeException` if it does not. See [Exceptions](../reference/exceptions.md).
+
+## Renaming a folder
+
+Renaming lives on the `Folders` operation group:
+
+```csharp
+await gDriveApi.Folders.RenameAsync(folderId, "RenamedFolder"); // Add: cancellationToken
+```
+
+## Moving a folder
+
+Move a folder to a different parent (parents are updated, same as files):
+
+```csharp
+await gDriveApi.Folders.MoveAsync(
+    folderId,
+    sourceFolderId: currentParentId,
+    destinationFolderId: newParentId); // Add: cancellationToken
+```
+
+Both `Folders.RenameAsync` and `Folders.MoveAsync` validate that the id refers to a folder and
+throw `InvalidMimeTypeException` if it does not. See [Exceptions](../reference/exceptions.md).
 
 ---
 

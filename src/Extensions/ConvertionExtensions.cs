@@ -4,13 +4,14 @@ namespace GoogleDriveApi_DotNet.Extensions;
 
 internal static class ConvertionExtensions
 {
-    public static GDriveFile ToGDriveFile(this GoogleFile file)
+    public static DriveItem ToDriveItem(this GoogleFile file)
     {
-        return new GDriveFile
+        return new DriveItem
         {
             Id = file.Id,
             Name = file.Name,
-            ParentIds = file.Parents?.ToList() ?? new List<string>(),
+            MimeType = MimeType.Create(file.MimeType),
+            ParentIds = file.Parents?.ToList() ?? [],
         };
     }
 }

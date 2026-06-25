@@ -92,5 +92,35 @@ namespace GoogleDriveApi_DotNet.Tests.Unit
             await Should.ThrowAsync<ArgumentOutOfRangeException>(() => api.Folders.ListAsync("parent-id", pageSize: 0));
             await authProvider.DidNotReceive().AuthorizeAsync(Arg.Any<CancellationToken>());
         }
+
+        [Theory]
+        [InlineData(null, "new-name")]
+        [InlineData("", "new-name")]
+        [InlineData("folder-id", null)]
+        [InlineData("folder-id", "")]
+        public async Task Folders_RenameAsync_WithMissingArgument_ThrowsBeforeAuthorizing(string? folderId, string? newName)
+        {
+            var authProvider = Substitute.For<IGoogleDriveAuthProvider>();
+            var api = GoogleDriveApi.Create(_options, authProvider);
+
+            await Should.ThrowAsync<ArgumentException>(() => api.Folders.RenameAsync(folderId!, newName!));
+            await authProvider.DidNotReceive().AuthorizeAsync(Arg.Any<CancellationToken>());
+        }
+
+        [Theory]
+        [InlineData(null, "source", "destination")]
+        [InlineData("", "source", "destination")]
+        [InlineData("folder-id", null, "destination")]
+        [InlineData("folder-id", "", "destination")]
+        [InlineData("folder-id", "source", null)]
+        [InlineData("folder-id", "source", "")]
+        public async Task Folders_MoveAsync_WithMissingArgument_ThrowsBeforeAuthorizing(string? folderId, string? sourceFolderId, string? destinationFolderId)
+        {
+            var authProvider = Substitute.For<IGoogleDriveAuthProvider>();
+            var api = GoogleDriveApi.Create(_options, authProvider);
+
+            await Should.ThrowAsync<ArgumentException>(() => api.Folders.MoveAsync(folderId!, sourceFolderId!, destinationFolderId!));
+            await authProvider.DidNotReceive().AuthorizeAsync(Arg.Any<CancellationToken>());
+        }
     }
 }

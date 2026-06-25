@@ -31,7 +31,7 @@ public class GoogleDriveApi : IDisposable, IGDriveOperationContext
     public IGDriveFileOperations Files { get; }
 
     /// <summary>
-    /// Gets the folder operations group (find, list, list-all, create, delete).
+    /// Gets the folder operations group (find, list, list-all, create, delete, rename, move).
     /// Reads like the underlying <c>DriveService.Files.*</c> surface, scoped to folders.
     /// </summary>
     public IGDriveFolderOperations Folders { get; }
@@ -321,7 +321,7 @@ public class GoogleDriveApi : IDisposable, IGDriveOperationContext
 
     /// <inheritdoc cref="IGDriveFolderOperations.ListAllAsync"/>
     [Obsolete("Use Folders.ListAllAsync instead. This forwarder will be removed in v1.")]
-    public async Task<List<GDriveFile>> GetAllFoldersAsync(CancellationToken cancellationToken = default)
+    public async Task<List<DriveItem>> GetAllFoldersAsync(CancellationToken cancellationToken = default)
         => (await Folders.ListAllAsync(cancellationToken).ConfigureAwait(false)).ToList();
 
     /// <inheritdoc cref="IGDriveFolderOperations.CreateAsync"/>

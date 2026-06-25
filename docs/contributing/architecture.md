@@ -89,24 +89,24 @@ matching `DeleteFolderAsync`'s safety stance): `Folders.MoveAsync`, `Folders.Ren
 ### Domain model
 
 Three shapes (the raw Google type, the `GDriveFile` struct, and `(id, name)` tuples) collapse into
-one owned, growable record:
+one owned, growable record, `DriveItem`:
 
 ```csharp
-public sealed record GDriveItem
+public sealed record DriveItem
 {
     public required string Id { get; init; }
     public required string Name { get; init; }
-    public string? MimeType { get; init; }
+    public required MimeType MimeType { get; init; }   // value object; owns IsFolder
     public long? Size { get; init; }
     public DateTimeOffset? ModifiedTime { get; init; }
     public IReadOnlyList<string> ParentIds { get; init; } = [];
-    public bool IsFolder => MimeType == GDriveMimeTypes.Folder;
+    public bool IsFolder => MimeType.IsFolder;
 }
 ```
 
-A `record class` with `init` (not the current `record struct`): structs and tuples can't grow
-fields without breaking binary compat, and `default(GDriveFile)` ships a null list (NRE trap).
-Public APIs return `IReadOnlyList<GDriveItem>` (never `List<T>`); the raw `DriveService` stays
+A `record class` with `init` (not a `record struct`): structs and tuples can't grow fields without
+breaking binary compat, and a `default` struct ships a null list (NRE trap). `ParentIds` is never
+null. Public APIs return `IReadOnlyList<DriveItem>` (never `List<T>`); the raw `DriveService` stays
 reachable via `client.RawService`.
 
 ### Authentication
