@@ -11,10 +11,10 @@ Drive's folder model (it is not a strict tree).
 ```csharp
 // Optional: using var cts = new CancellationTokenSource(TimeSpan.FromSeconds(30));
 
-string newFolderId = await gDriveApi.CreateFolderAsync(folderName: "NewFolderName"); // Add: cancellationToken: cts.Token
+string newFolderId = await gDriveApi.Folders.CreateAsync(folderName: "NewFolderName"); // Add: cancellationToken: cts.Token
 
 // Create a nested folder by passing a parent id
-string childFolderId = await gDriveApi.CreateFolderAsync(
+string childFolderId = await gDriveApi.Folders.CreateAsync(
     folderName: "NewFolderNameV2",
     parentFolderId: newFolderId); // Add: cancellationToken: cts.Token
 
@@ -29,14 +29,14 @@ Retrieve folders in a parent and walk one level of children:
 ```csharp
 // Optional: using var cts = new CancellationTokenSource(TimeSpan.FromSeconds(30));
 
-var folders = await gDriveApi.GetFoldersByAsync(parentFolderId: "root"); // Add: cancellationToken: cts.Token
+var folders = await gDriveApi.Folders.ListAsync(parentFolderId: "root"); // Add: cancellationToken: cts.Token
 
 for (int i = 0; i < folders.Count; i++)
 {
     var folder = folders[i];
     Console.WriteLine($"{i + 1}. [{folder.name}] with ID({folder.id})");
 
-    var subFolders = await gDriveApi.GetFoldersByAsync(folder.id); // Add: cancellationToken: cts.Token
+    var subFolders = await gDriveApi.Folders.ListAsync(folder.id); // Add: cancellationToken: cts.Token
     for (int j = 0; j < subFolders.Count; j++)
     {
         var subFolder = subFolders[j];
@@ -45,13 +45,13 @@ for (int i = 0; i < folders.Count; i++)
 }
 ```
 
-To retrieve the entire folder tree in one call, use `GetAllFoldersAsync` — see the
+To retrieve the entire folder tree in one call, use `Folders.ListAllAsync` — see the
 [RetrieveAllFolderHierarchy sample](https://github.com/Illia1F/GoogleDriveApi-DotNet/tree/main/samples/RetrieveAllFolderHierarchy).
 
 ## Finding a folder by name
 
 ```csharp
-string? folderId = await gDriveApi.GetFolderIdByAsync("My Folder", parentFolderId: "root");
+string? folderId = await gDriveApi.Folders.FindIdByNameAsync("My Folder", parentFolderId: "root");
 if (folderId is null)
 {
     Console.WriteLine("No matching folder found.");
@@ -61,10 +61,10 @@ if (folderId is null)
 ## Deleting a folder
 
 ```csharp
-await gDriveApi.DeleteFolderAsync(folderId); // Add: cancellationToken
+await gDriveApi.Folders.DeleteAsync(folderId); // Add: cancellationToken
 ```
 
-`DeleteFolderAsync` validates that the id refers to a folder and throws
+`Folders.DeleteAsync` validates that the id refers to a folder and throws
 `InvalidMimeTypeException` if it does not. See [Exceptions](../reference/exceptions.md).
 
 ## Renaming a folder

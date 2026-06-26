@@ -19,20 +19,20 @@ public sealed partial class ExplorerPanel
 
         var uploadButton = new ToolStripSplitButton($"{Icons.Upload} Upload")
         {
-            ToolTipText = "UploadFilePathAsync — upload local files to the current folder",
+            ToolTipText = "Transfers.UploadAsync — upload local files to the current folder",
             ForeColor = Theme.TextPrimary,
         };
         uploadButton.ButtonClick += OnUpload;
         uploadButton.DropDownItems.Add(new ToolStripMenuItem("Upload via stream…", null, OnUploadFromStream)
         {
-            ToolTipText = "UploadFileStreamAsync — upload from an open FileStream",
+            ToolTipText = "Transfers.UploadAsync (stream) — upload from an open FileStream",
         });
         toolbar.Items.Add(uploadButton);
-        AddToolButton(toolbar, $"{Icons.Folder} New Folder", "CreateFolderAsync — create a folder under the current one", OnNewFolder);
+        AddToolButton(toolbar, $"{Icons.Folder} New Folder", "Folders.CreateAsync — create a folder under the current one", OnNewFolder);
         toolbar.Items.Add(new ToolStripSeparator());
 
         toolbar.Items.Add(MakeGroupCaption("FILE"));
-        _fileCommands.Add(AddToolButton(toolbar, $"{Icons.Download} Download", "DownloadFileAsync — download the selected file (Google Docs are exported automatically)", OnDownload));
+        _fileCommands.Add(AddToolButton(toolbar, $"{Icons.Download} Download", "Transfers.DownloadAsync — download the selected file (Google Docs are exported automatically)", OnDownload));
 
         var organizeButton = new ToolStripDropDownButton("Organize")
         {
@@ -42,30 +42,30 @@ public sealed partial class ExplorerPanel
         organizeButton.DropDownItems.Add(new ToolStripMenuItem($"{Icons.Rename} Rename…", null, OnRename)
         {
             ShortcutKeyDisplayString = "F2",
-            ToolTipText = "RenameFileAsync",
+            ToolTipText = "Files.RenameAsync",
         });
-        organizeButton.DropDownItems.Add(new ToolStripMenuItem($"{Icons.Move} Move…", null, OnMove) { ToolTipText = "MoveFileToAsync" });
-        organizeButton.DropDownItems.Add(new ToolStripMenuItem($"{Icons.Copy} Copy…", null, OnCopy) { ToolTipText = "CopyFileToAsync" });
-        organizeButton.DropDownItems.Add(new ToolStripMenuItem($"{Icons.UpdateContent} Update content…", null, OnUpdateContent) { ToolTipText = "UpdateFileContentAsync" });
+        organizeButton.DropDownItems.Add(new ToolStripMenuItem($"{Icons.Move} Move…", null, OnMove) { ToolTipText = "Files.MoveAsync" });
+        organizeButton.DropDownItems.Add(new ToolStripMenuItem($"{Icons.Copy} Copy…", null, OnCopy) { ToolTipText = "Files.CopyAsync" });
+        organizeButton.DropDownItems.Add(new ToolStripMenuItem($"{Icons.UpdateContent} Update content…", null, OnUpdateContent) { ToolTipText = "Transfers.UpdateContentAsync" });
         organizeButton.DropDownItems.Add(new ToolStripSeparator());
         organizeButton.DropDownItems.Add(new ToolStripMenuItem($"{Icons.Delete} Delete permanently…", null, OnDeleteFile)
         {
             ShortcutKeyDisplayString = "Shift+Del",
-            ToolTipText = "DeleteFileAsync",
+            ToolTipText = "Files.DeleteAsync",
         });
         toolbar.Items.Add(organizeButton);
         _fileCommands.Add(organizeButton);
 
-        _fileCommands.Add(AddToolButton(toolbar, $"{Icons.Trash} Trash", "MoveFileToTrashAsync — move the selected file to trash (Del)", OnTrash));
+        _fileCommands.Add(AddToolButton(toolbar, $"{Icons.Trash} Trash", "Trash.TrashAsync — move the selected file to trash (Del)", OnTrash));
         toolbar.Items.Add(new ToolStripSeparator());
 
         toolbar.Items.Add(MakeGroupCaption("DRIVE"));
-        AddToolButton(toolbar, $"{Icons.TrashBin} Trash Bin", "GetTrashedFilesAsync — open the trash manager", OnViewTrash);
+        AddToolButton(toolbar, $"{Icons.TrashBin} Trash Bin", "Trash.ListAsync — open the trash manager", OnViewTrash);
         AddToolButton(toolbar, $"{Icons.Refresh} Refresh", "Reload the current folder (F5)", OnRefresh);
         toolbar.Items.Add(new ToolStripSeparator());
 
         toolbar.Items.Add(_searchBox);
-        AddToolButton(toolbar, $"{Icons.Find} Find", "GetFileIdByAsync / GetFolderIdByAsync — find by exact name in the current folder", OnFind);
+        AddToolButton(toolbar, $"{Icons.Find} Find", "Files.FindIdByNameAsync / Folders.FindIdByNameAsync — find by exact name in the current folder", OnFind);
 
         toolbar.Items.Add(_cancelButton);
         return toolbar;
@@ -207,9 +207,22 @@ public sealed partial class ExplorerPanel
         menu.Items.Add($"{Icons.Folder} New folder…", null, OnNewFolder);
         menu.Items.Add($"{Icons.Refresh} Refresh", null, OnRefreshFolder);
         menu.Items.Add(new ToolStripSeparator());
-        ToolStripItem deleteItem = menu.Items.Add($"{Icons.Delete} Delete folder…", null, OnDeleteFolder);
+        // Act on the selected folder; never apply to the root (it has no parent).
+        List<ToolStripItem> folderItems =
+        [
+            menu.Items.Add($"{Icons.Rename} Rename folder…", null, OnRenameFolder),
+            menu.Items.Add($"{Icons.Move} Move folder…", null, OnMoveFolder),
+            menu.Items.Add($"{Icons.Delete} Delete folder…", null, OnDeleteFolder),
+        ];
 
-        menu.Opening += (_, _) => deleteItem.Enabled = !_runner.IsBusy && _folderTree.SelectedNode?.Parent is not null;
+        menu.Opening += (_, _) =>
+        {
+            bool canAct = !_runner.IsBusy && _folderTree.SelectedNode?.Parent is not null;
+            foreach (ToolStripItem item in folderItems)
+            {
+                item.Enabled = canAct;
+            }
+        };
         return menu;
     }
 

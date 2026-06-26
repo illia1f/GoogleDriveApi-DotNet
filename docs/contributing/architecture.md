@@ -84,7 +84,7 @@ Each group is an interface → independently mockable and parallel-developable (
 merge-conflict god class). The pagination loop (copy-pasted 4×) collapses into one shared
 `ListAllPagesAsync(...)` helper plus an `IAsyncEnumerable<GDriveItem>` streaming variant. The
 two missing folder methods land here as **validated wrappers** (verify MIME == folder first,
-matching `DeleteFolderAsync`'s safety stance): `Folders.MoveAsync`, `Folders.RenameAsync`.
+matching `Folders.DeleteAsync`'s safety stance): `Folders.MoveAsync`, `Folders.RenameAsync`.
 
 ### Domain model
 
@@ -183,8 +183,8 @@ contract — no `MemoryStream` buffering of whole files:
 
 ```csharp
 // Download — three shapes, streamed straight to the destination
-Task DownloadFileAsync(string fileId, string saveToPath = "Downloads", ...);  // → disk
-Task DownloadFileAsync(string fileId, Stream destination, ...);               // → caller's stream
+Task DownloadAsync(string fileId, string saveToPath = "Downloads", ...);  // → disk
+Task DownloadAsync(string fileId, Stream destination, ...);               // → caller's stream
 Task<Stream> OpenReadAsync(string fileId, ...);                               // → stream caller disposes
 
 // Google Workspace export needs an explicit target type (no single binary form)
@@ -195,7 +195,7 @@ Task ExportFileAsync(string fileId, string exportMimeType, Stream destination, .
   / download destination); `OpenReadAsync` returns a stream the **caller** disposes.
 - **Workspace routing:** the disk variant derives filename+extension from the MIME type; stream
   variants can't, so Workspace files (Docs/Sheets/Slides) route through `ExportFileAsync`, and plain
-  `DownloadFileAsync(Stream)` throws `UnsupportedMimeTypeException` for them.
+  `DownloadAsync(Stream)` throws `UnsupportedMimeTypeException` for them.
 - Transfers gain optional `IProgress<long>` progress reporting (the private upload hook surfaced).
 
 ### Naming

@@ -19,7 +19,7 @@ exists.
    to walk the graph safely.
 
 Together these let you reconstruct a usable hierarchy from the flat list returned by
-`GetAllFoldersAsync` without infinite loops.
+`Folders.ListAllAsync` without infinite loops.
 
 > A concrete implementation is in the
 > [RetrieveAllFolderHierarchy sample](https://github.com/Illia1F/GoogleDriveApi-DotNet/tree/main/samples/RetrieveAllFolderHierarchy).

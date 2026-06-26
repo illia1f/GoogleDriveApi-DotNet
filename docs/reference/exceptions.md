@@ -42,13 +42,13 @@ directly by metadata operations. It carries `HttpStatusCode` and `Error.Errors[]
 
 - **Single metadata calls** (rename, move, copy, trash, restore, create/delete folder, empty
   trash, `Get*`/`Find*`) — `Google.GoogleApiException` directly; `ArgumentException` for bad input.
-- **`UploadFilePathAsync` / `UploadFileStreamAsync`** — `UploadFileException` (operational),
+- **`Transfers.UploadAsync` / `Transfers.UploadAsync`** — `UploadFileException` (operational),
   `FileNotFoundException` (path overload), `ArgumentException`.
-- **`UpdateFileContentAsync`** — `UpdateFileContentException`, `ArgumentException` /
+- **`Transfers.UpdateContentAsync`** — `UpdateFileContentException`, `ArgumentException` /
   `ArgumentNullException`.
-- **`DownloadFileAsync`** — `DownloadFileException`, `UnsupportedMimeTypeException`,
+- **`Transfers.DownloadAsync`** — `DownloadFileException`, `UnsupportedMimeTypeException`,
   `Google.GoogleApiException`, `ArgumentException`.
-- **`DeleteFileAsync` / `DeleteFolderAsync`** — `InvalidMimeTypeException` when the id is the wrong
+- **`Files.DeleteAsync` / `Folders.DeleteAsync`** — `InvalidMimeTypeException` when the id is the wrong
   type; otherwise `Google.GoogleApiException`.
 - **Before `AuthorizeAsync`, or after `Dispose`** — `AuthorizationException` /
   `ObjectDisposedException`.
@@ -75,7 +75,7 @@ Handle a specific operational failure, then fall back:
 ```csharp
 try
 {
-    await gDriveApi.UploadFilePathAsync(path, mimeType);
+    await gDriveApi.Transfers.UploadAsync(path, mimeType);
 }
 catch (UploadFileException ex)
 {
@@ -92,7 +92,7 @@ Branch on the Google status for metadata calls:
 ```csharp
 try
 {
-    await gDriveApi.MoveFileToTrashAsync(fileId);
+    await gDriveApi.Trash.TrashAsync(fileId);
 }
 catch (Google.GoogleApiException ex) when (ex.HttpStatusCode == HttpStatusCode.NotFound)
 {

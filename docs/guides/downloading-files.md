@@ -8,7 +8,7 @@ format before download.
 
 ## How download works
 
-`DownloadFileAsync(fileId, saveToPath)`:
+`Transfers.DownloadAsync(fileId, saveToPath)`:
 
 1. Fetches the file metadata by id.
 2. Determines whether the file is a Google Workspace (Google-specific) MIME type.
@@ -34,14 +34,14 @@ The library picks an export MIME type for these automatically.
 // using var cts = new CancellationTokenSource(TimeSpan.FromMinutes(5));
 
 string parentFolderId = "root";
-string? sourceFolderId = await gDriveApi.GetFolderIdByAsync("FileDownloader Test Folder", parentFolderId);
+string? sourceFolderId = await gDriveApi.Folders.FindIdByNameAsync("FileDownloader Test Folder", parentFolderId);
 if (sourceFolderId is null)
 {
     Console.WriteLine("Source folder not found.");
     return;
 }
 
-string? fileId = await gDriveApi.GetFileIdByAsync("Lesson_1.pdf", sourceFolderId);
+string? fileId = await gDriveApi.Files.FindIdByNameAsync("Lesson_1.pdf", sourceFolderId);
 if (fileId is null)
 {
     Console.WriteLine("File not found.");
@@ -50,7 +50,7 @@ if (fileId is null)
 
 try
 {
-    await gDriveApi.DownloadFileAsync(fileId); // saves into "Downloads" by default
+    await gDriveApi.Transfers.DownloadAsync(fileId); // saves into "Downloads" by default
 }
 catch (OperationCanceledException)
 {
@@ -58,7 +58,7 @@ catch (OperationCanceledException)
 }
 ```
 
-On failure `DownloadFileAsync` throws `DownloadFileException`; unsupported export types throw
+On failure `Transfers.DownloadAsync` throws `DownloadFileException`; unsupported export types throw
 `UnsupportedMimeTypeException`. See [Exceptions](../reference/exceptions.md).
 
 ---

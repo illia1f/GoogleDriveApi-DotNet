@@ -12,9 +12,9 @@ The [Google.Apis.Drive.v3](https://www.nuget.org/packages/Google.Apis.Drive.v3) 
 
 This library (`GoogleDriveApi-DotNet`) wraps the `Google.Apis.Drive.v3` package to provide a simplified, more intuitive API for common Google Drive operations. Instead of working directly with the lower-level resources and request builders, you can use high-level methods like:
 
-- `UploadFilePathAsync()` / `UploadFileStreamAsync()` instead of manually configuring `FilesResource.CreateMediaUpload`
-- `DownloadFileAsync()` instead of handling `FilesResource.Get` with media download
-- `CreateFolderAsync()` instead of manually setting MIME types and parent folders
+- `Transfers.UploadAsync()` (from a path or a stream) instead of manually configuring `FilesResource.CreateMediaUpload`
+- `Transfers.DownloadAsync()` instead of handling `FilesResource.Get` with media download
+- `Folders.CreateAsync()` instead of manually setting MIME types and parent folders
 
 The underlying package handles authentication, request serialization, and API communication, while this library focuses on providing a developer-friendly interface.
 

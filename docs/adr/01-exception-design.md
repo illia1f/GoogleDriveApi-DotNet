@@ -37,8 +37,8 @@ Half the API throws a great exception; the other half throws nothing at all.
 
 1. **Single-`ExecuteAsync` methods** (rename, move, copy, trash, restore, create/delete folder,
    empty trash, all `Get*` reads) throw `GoogleApiException` directly. No wrappers.
-2. **Content-transfer methods** (`DownloadFileAsync`, `UploadFilePathAsync`,
-   `UploadFileStreamAsync`, `UpdateFileContentAsync`) wrap operational failures into one custom
+2. **Content-transfer methods** (`Transfers.DownloadAsync`, `Transfers.UploadAsync`,
+   `Transfers.UpdateContentAsync`) wrap operational failures into one custom
    exception each (`DownloadFileException`, `UploadFileException`, `UpdateFileContentException`),
    original cause in `InnerException`.
 3. **Semantic guards** get their own types only where recovery differs:

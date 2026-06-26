@@ -13,7 +13,7 @@ const string parentFolderId = "root";
 
 // Change to your folder name in Google Drive
 const string sourceFolderName = "FileDownloader Test Folder";
-string? sourceFolderId = await gDriveApi.GetFolderIdByAsync(sourceFolderName, parentFolderId, cts.Token);
+string? sourceFolderId = await gDriveApi.Folders.FindIdByNameAsync(sourceFolderName, parentFolderId, cts.Token);
 if (sourceFolderId is null)
 {
     Console.WriteLine($"Cannot find a folder with a name \"{sourceFolderName}\".");
@@ -24,7 +24,7 @@ if (sourceFolderId is null)
 
 // Adjust this file name
 string fileToCopyName = "TextFile";
-string? fileId = await gDriveApi.GetFileIdByAsync(fileToCopyName, sourceFolderId, cts.Token);
+string? fileId = await gDriveApi.Files.FindIdByNameAsync(fileToCopyName, sourceFolderId, cts.Token);
 if (fileId is null)
 {
     Console.WriteLine($"Cannot find a file with a name \"{fileToCopyName}\".");
@@ -35,7 +35,7 @@ string copyFileId;
 
 try
 {
-    copyFileId = await gDriveApi.CopyFileToAsync(fileId, sourceFolderId, cancellationToken: cts.Token);
+    copyFileId = await gDriveApi.Files.CopyAsync(fileId, sourceFolderId, cancellationToken: cts.Token);
     Console.WriteLine($"Created a copy of file \"{fileToCopyName}\".");
 }
 catch (GoogleApiException ex)
@@ -49,21 +49,21 @@ catch (GoogleApiException ex)
 // Adjust this file name as well
 const string newFileName = "MyCopyTextFile";
 
-await gDriveApi.RenameFileAsync(copyFileId, newFileName, cancellationToken: cts.Token);
+await gDriveApi.Files.RenameAsync(copyFileId, newFileName, cancellationToken: cts.Token);
 
 Console.WriteLine($"Renamed file \"{fileToCopyName}\" to \"{newFileName}\".");
 
 /////////// Moving copy file ///////////
 
 const string destinationFolderName = "1";
-string? destinationFolderId = await gDriveApi.GetFolderIdByAsync(destinationFolderName, sourceFolderId, cts.Token);
+string? destinationFolderId = await gDriveApi.Folders.FindIdByNameAsync(destinationFolderName, sourceFolderId, cts.Token);
 if (destinationFolderId is null)
 {
     Console.WriteLine($"Cannot find a folder with a name \"{destinationFolderName}\".");
     return;
 }
 
-await gDriveApi.MoveFileToAsync(copyFileId, sourceFolderId, destinationFolderId, cts.Token);
+await gDriveApi.Files.MoveAsync(copyFileId, sourceFolderId, destinationFolderId, cts.Token);
 
 Console.WriteLine($"File \"{newFileName}\" moved to folder \"{destinationFolderName}\".");
 
@@ -87,7 +87,7 @@ if (stream.Length == 0)
     throw new InvalidOperationException("Content file is empty.");
 }
 
-await gDriveApi.UpdateFileContentAsync(
+await gDriveApi.Transfers.UpdateContentAsync(
     fileId: copyFileId,
     content: stream,
     contentType: contentType,

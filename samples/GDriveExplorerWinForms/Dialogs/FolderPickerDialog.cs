@@ -5,7 +5,7 @@ namespace GDriveExplorerWinForms.Dialogs;
 
 /// <summary>
 /// Destination picker for Move/Copy: a lazily-loaded folder tree backed by
-/// <c>GetFoldersByAsync</c>, mirroring the main explorer's tree behavior.
+/// <c>Folders.ListAsync</c>, mirroring the main explorer's tree behavior.
 /// </summary>
 public sealed class FolderPickerDialog : Form
 {

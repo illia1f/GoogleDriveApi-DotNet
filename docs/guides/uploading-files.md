@@ -29,14 +29,14 @@ string filePath = "Files/Escanor.jpg";
 try
 {
     // Upload using a file path (into the root folder).
-    string fileId = await gDriveApi.UploadFilePathAsync(filePath, KnownMimeTypes.Jpeg);
+    string fileId = await gDriveApi.Transfers.UploadAsync(filePath, KnownMimeTypes.Jpeg);
     Console.WriteLine($"Uploaded with ID({fileId})");
 
     // Upload using a Stream, directly into a target folder.
     using var stream = new FileStream(filePath, FileMode.Open);
     string fileName = Path.GetFileName(filePath);
 
-    string fileId2 = await gDriveApi.UploadFileStreamAsync(
+    string fileId2 = await gDriveApi.Transfers.UploadAsync(
         stream, fileName, KnownMimeTypes.Jpeg, parentFolderId: "your-folder-id");
     Console.WriteLine($"Uploaded with ID({fileId2})");
 }
@@ -50,7 +50,7 @@ catch (UploadFileException ex)
 }
 ```
 
-`UploadFilePathAsync` and `UploadFileStreamAsync` both default to the root folder when
+`Transfers.UploadAsync` and `Transfers.UploadAsync` both default to the root folder when
 `parentFolderId` is omitted. On failure they throw `UploadFileException` (cause in
 `InnerException`); see [Exceptions](../reference/exceptions.md).
 
@@ -60,7 +60,7 @@ To replace the bytes of an existing file (metadata preserved):
 
 ```csharp
 using var stream = File.OpenRead("Files/updated.pdf");
-await gDriveApi.UpdateFileContentAsync(fileId, stream, "application/pdf");
+await gDriveApi.Transfers.UpdateContentAsync(fileId, stream, "application/pdf");
 ```
 
 ---
