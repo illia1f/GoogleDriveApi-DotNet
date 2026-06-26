@@ -4,8 +4,8 @@ using GoogleFile = Google.Apis.Drive.v3.Data.File;
 namespace GDriveExplorerWinForms.Dialogs;
 
 /// <summary>
-/// Trash manager: lists trashed items (<c>GetTrashedFilesAsync</c>) with Restore
-/// (<c>RestoreFileFromTrashAsync</c>) and Empty Trash (<c>EmptyTrashAsync</c>) actions.
+/// Trash manager: lists trashed items (<c>Trash.ListAsync</c>) with Restore
+/// (<c>Trash.RestoreAsync</c>) and Empty Trash (<c>Trash.EmptyAsync</c>) actions.
 /// </summary>
 public sealed class TrashDialog : Form
 {
@@ -94,7 +94,7 @@ public sealed class TrashDialog : Form
     private Task ReloadAsync() =>
         RunBusyAsync(async () =>
         {
-            List<GoogleFile> items = await _service.GetTrashedFilesAsync(CancellationToken.None);
+            IReadOnlyList<GoogleFile> items = await _service.GetTrashedFilesAsync(CancellationToken.None);
             _list.Items.Clear();
             foreach (GoogleFile item in items.OrderBy(f => f.Name, StringComparer.OrdinalIgnoreCase))
             {

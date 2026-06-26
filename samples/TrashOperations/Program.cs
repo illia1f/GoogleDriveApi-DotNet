@@ -12,7 +12,7 @@ using GoogleDriveApi gDriveApi = await GoogleDriveApi.CreateBuilder()
 
 string parentFolderId = "root";
 string sourceFolderName = "FileDownloader Test Folder";
-string? sourceFolderId = await gDriveApi.GetFolderIdByAsync(sourceFolderName, parentFolderId, cts.Token);
+string? sourceFolderId = await gDriveApi.Folders.FindIdByNameAsync(sourceFolderName, parentFolderId, cts.Token);
 if (sourceFolderId is null)
 {
     Console.WriteLine($"Cannot find a folder with a name {sourceFolderName}.");
@@ -20,17 +20,17 @@ if (sourceFolderId is null)
 }
 
 string fileToDeleteName = "Fine";
-string? fileToDeleteId = await gDriveApi.GetFileIdByAsync(fileToDeleteName, sourceFolderId, cts.Token);
+string? fileToDeleteId = await gDriveApi.Files.FindIdByNameAsync(fileToDeleteName, sourceFolderId, cts.Token);
 if (fileToDeleteId is null)
 {
     Console.WriteLine("Cannot find file.");
     return;
 }
 
-await gDriveApi.MoveFileToTrashAsync(fileToDeleteId, cts.Token);
+await gDriveApi.Trash.TrashAsync(fileToDeleteId, cts.Token);
 
-var trashedFiles = await gDriveApi.GetTrashedFilesAsync(cancellationToken: cts.Token);
+var trashedFiles = await gDriveApi.Trash.ListAsync(cancellationToken: cts.Token);
 
 Console.WriteLine($"Files in trash: {trashedFiles.Count}");
 
-await gDriveApi.RestoreFileFromTrashAsync(fileToDeleteId, cts.Token);
+await gDriveApi.Trash.RestoreAsync(fileToDeleteId, cts.Token);

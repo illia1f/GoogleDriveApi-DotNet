@@ -35,9 +35,9 @@ using GoogleDriveApi gDriveApi = await GoogleDriveApi.CreateBuilder()
     .SetApplicationName("My Drive App")
     .BuildAsync();
 
-string folderId = await gDriveApi.CreateFolderAsync("My Folder");
-string fileId   = await gDriveApi.UploadFilePathAsync("photo.jpg", KnownMimeTypes.Jpeg, folderId);
-await gDriveApi.DownloadFileAsync(fileId, "Downloads");
+string folderId = await gDriveApi.Folders.CreateAsync("My Folder");
+string fileId   = await gDriveApi.Transfers.UploadAsync("photo.jpg", KnownMimeTypes.Jpeg, folderId);
+await gDriveApi.Transfers.DownloadAsync(fileId, "Downloads");
 ```
 
 You need a Google Cloud project and a `credentials.json` first — see

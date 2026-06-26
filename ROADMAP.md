@@ -12,34 +12,34 @@ The library is in **active development** and approaching its first stable releas
 
 ### File Operations
 
-- [x] Upload file from path (`UploadFilePathAsync`)
-- [x] Upload file from stream (`UploadFileStreamAsync`)
-- [x] Download binary files (`DownloadFileAsync`)
+- [x] Upload file from path (`Transfers.UploadAsync`)
+- [x] Upload file from stream (`Transfers.UploadAsync`)
+- [x] Download binary files (`Transfers.DownloadAsync`)
 - [x] Download/export Google Workspace files (Docs, Sheets, Slides)
-- [x] Get file ID by name (`GetFileIdByAsync`)
-- [x] Get files by folder (`GetFilesByAsync`)
-- [x] Delete file (`DeleteFileAsync`)
-- [x] Move file to different folder (`MoveFileToAsync`)
-- [x] Rename file (`RenameFileAsync`)
-- [x] Copy file (`CopyFileToAsync`)
-- [x] Update existing file content (`UpdateFileContentAsync`)
+- [x] Get file ID by name (`Files.FindIdByNameAsync`)
+- [x] Get files by folder (`Files.ListAsync`)
+- [x] Delete file (`Files.DeleteAsync`)
+- [x] Move file to different folder (`Files.MoveAsync`)
+- [x] Rename file (`Files.RenameAsync`)
+- [x] Copy file (`Files.CopyAsync`)
+- [x] Update existing file content (`Transfers.UpdateContentAsync`)
 
 ### Folder Operations
 
-- [x] Create folder (`CreateFolderAsync`)
-- [x] Delete folder permanently (`DeleteFolderAsync`)
-- [x] Get folder ID by name (`GetFolderIdByAsync`)
-- [x] Get folders by parent (`GetFoldersByAsync`)
-- [x] Get all folders (`GetAllFoldersAsync`)
+- [x] Create folder (`Folders.CreateAsync`)
+- [x] Delete folder permanently (`Folders.DeleteAsync`)
+- [x] Get folder ID by name (`Folders.FindIdByNameAsync`)
+- [x] Get folders by parent (`Folders.ListAsync`)
+- [x] Get all folders (`Folders.ListAllAsync`)
 - [x] Move folder to different parent (`Folders.MoveAsync`)
 - [x] Rename folder (`Folders.RenameAsync`)
 
 ### Trash Operations
 
-- [x] Move file/folder to trash (`MoveFileToTrashAsync`)
-- [x] Restore file/folder from trash (`RestoreFileFromTrashAsync`)
-- [x] Empty trash (`EmptyTrashAsync`)
-- [x] List trashed items (`GetTrashedFilesAsync`)
+- [x] Move file/folder to trash (`Trash.TrashAsync`)
+- [x] Restore file/folder from trash (`Trash.RestoreAsync`)
+- [x] Empty trash (`Trash.EmptyAsync`)
+- [x] List trashed items (`Trash.ListAsync`)
 
 ### Helpers & Utilities
 
@@ -54,7 +54,7 @@ The library is in **active development** and approaching its first stable releas
 - [ ] `IAsyncEnumerable<GDriveItem>` streaming variants for listings
 - [ ] Multiple authentication providers: interactive (desktop), service account, stored refresh token
 - [ ] Lazy + idempotent + thread-safe authorization (safe for DI singletons)
-- [ ] Stream-destination downloads (`DownloadFileAsync(fileId, Stream)`, `OpenReadAsync`) + `ExportFileAsync` for Workspace files
+- [ ] Stream-destination downloads (`Transfers.DownloadAsync(fileId, Stream)`, `OpenReadAsync`) + `ExportFileAsync` for Workspace files
 - [ ] `IProgress<long>` progress reporting on transfers _(pulled forward from v1.1.0)_
 - [ ] `GoogleDriveApi.Extensions.DependencyInjection` package (`AddGoogleDrive`, options pattern, lifetime knob)
 - [ ] NuGet packaging metadata + `GenerateDocumentationFile` + SourceLink (target: `net10.0`)

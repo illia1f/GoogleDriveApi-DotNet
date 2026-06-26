@@ -47,7 +47,7 @@ public sealed class DriveFolderTreeView : TreeView
     /// </summary>
     public async Task LoadChildrenAsync(TreeNode node, CancellationToken ct)
     {
-        List<(string id, string name)> folders = await _service.GetFoldersAsync((string)node.Tag!, ct);
+        IReadOnlyList<(string id, string name)> folders = await _service.GetFoldersAsync((string)node.Tag!, ct);
         node.Nodes.Clear();
         foreach ((string id, string name) in folders)
         {

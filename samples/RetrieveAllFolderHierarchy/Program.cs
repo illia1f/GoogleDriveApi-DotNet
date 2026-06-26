@@ -13,7 +13,7 @@ using GoogleDriveApi gDriveApi = await GoogleDriveApi.CreateBuilder()
     .SetApplicationName("QuickFilesLoad")
     .BuildAsync(immediateAuthorization: true, cancellationToken: cts.Token);
 
-List<DriveItem> folders = await gDriveApi.GetAllFoldersAsync(cts.Token);
+IReadOnlyList<DriveItem> folders = await gDriveApi.Folders.ListAllAsync(cts.Token);
 
 // Create a dictionary to map folder IDs to their corresponding DriveItem objects
 Dictionary<string, DriveItem> folderDic = folders.ToDictionary(f => f.Id);
@@ -24,7 +24,7 @@ Dictionary<string, List<string>> childDic = BuildChildDictionary(folders);
 // Print the folder hierarchy starting from the root folders
 PrintFolderHierarchy(folderDic, childDic);
 
-static Dictionary<string, List<string>> BuildChildDictionary(List<DriveItem> folders)
+static Dictionary<string, List<string>> BuildChildDictionary(IReadOnlyList<DriveItem> folders)
 {
     var childDict = new Dictionary<string, List<string>>();
 

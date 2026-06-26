@@ -10,7 +10,7 @@ Soft-delete files (move to trash), restore them, list trashed items, and empty t
 ```csharp
 try
 {
-    await gDriveApi.MoveFileToTrashAsync(fileId);
+    await gDriveApi.Trash.TrashAsync(fileId);
     Console.WriteLine("Moved to trash.");
 }
 catch (GoogleApiException ex)
@@ -24,7 +24,7 @@ catch (GoogleApiException ex)
 ```csharp
 try
 {
-    await gDriveApi.RestoreFileFromTrashAsync(fileId);
+    await gDriveApi.Trash.RestoreAsync(fileId);
     Console.WriteLine("Restored.");
 }
 catch (GoogleApiException ex)
@@ -36,7 +36,7 @@ catch (GoogleApiException ex)
 ## List trashed items
 
 ```csharp
-var trashed = await gDriveApi.GetTrashedFilesAsync(); // paginates all trashed items
+var trashed = await gDriveApi.Trash.ListAsync(); // paginates all trashed items
 Console.WriteLine($"{trashed.Count} item(s) in trash.");
 ```
 
@@ -45,7 +45,7 @@ Console.WriteLine($"{trashed.Count} item(s) in trash.");
 > **Permanent.** Emptying the trash deletes everything in it irreversibly.
 
 ```csharp
-await gDriveApi.EmptyTrashAsync();
+await gDriveApi.Trash.EmptyAsync();
 ```
 
 ---

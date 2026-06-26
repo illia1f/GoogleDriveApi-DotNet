@@ -30,21 +30,21 @@ if (!File.Exists(filePath))
 try
 {
     // Uploads a file to Google Drive using a file path (into the root folder).
-    string fileId = await gDriveApi.UploadFilePathAsync(filePath, KnownMimeTypes.Jpeg, cancellationToken: cts.Token);
+    string fileId = await gDriveApi.Transfers.UploadAsync(filePath, KnownMimeTypes.Jpeg, cancellationToken: cts.Token);
 
     Console.WriteLine($"File has been successfuly uploded with ID({fileId})");
 
     // Uploads directly into a target folder by passing parentFolderId —
     // no need to upload to root and move the file afterwards.
     const string folderName = "FileUploaderSample";
-    string folderId = await gDriveApi.GetFolderIdByAsync(folderName, cancellationToken: cts.Token)
-                      ?? await gDriveApi.CreateFolderAsync(folderName, cancellationToken: cts.Token);
+    string folderId = await gDriveApi.Folders.FindIdByNameAsync(folderName, cancellationToken: cts.Token)
+                      ?? await gDriveApi.Folders.CreateAsync(folderName, cancellationToken: cts.Token);
 
     using var stream = new FileStream(filePath, FileMode.Open);
     string fileName = Path.GetFileName(filePath);
 
     // Uploads a file to Google Drive using a Stream.
-    string streamFileId = await gDriveApi.UploadFileStreamAsync(stream, fileName, KnownMimeTypes.Jpeg, folderId, cts.Token);
+    string streamFileId = await gDriveApi.Transfers.UploadAsync(stream, fileName, KnownMimeTypes.Jpeg, folderId, cts.Token);
 
     Console.WriteLine($"File has been successfuly uploded into folder \"{folderName}\" with ID({streamFileId})");
 }

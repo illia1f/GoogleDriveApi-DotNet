@@ -8,18 +8,14 @@ namespace GDriveExplorerWinForms.Services;
 /// <summary>
 /// Thin wrapper around <see cref="GoogleDriveApi"/>. All UI code goes through this service so
 /// every library call can be logged (method name, arguments, outcome, elapsed time) — the log
-/// panel is how the sample teaches which library API each UI action maps to.
+/// panel is how the sample teaches which library API each UI action maps to. The logged labels
+/// match the operation-group surface (<c>Files</c>, <c>Folders</c>, <c>Transfers</c>, <c>Trash</c>).
 /// </summary>
-public sealed class DriveExplorerService : IDisposable
+public sealed class DriveExplorerService(GoogleDriveApi api) : IDisposable
 {
-    private readonly GoogleDriveApi _api;
+    private readonly GoogleDriveApi _api = api;
 
     public OperationLogger Logger { get; } = new();
-
-    public DriveExplorerService(GoogleDriveApi api)
-    {
-        _api = api;
-    }
 
     public string RootFolderId => _api.RootFolderId;
     public bool IsAuthorized => _api.IsAuthorized;
@@ -30,38 +26,48 @@ public sealed class DriveExplorerService : IDisposable
 
     // ---- Folders -------------------------------------------------------
 
-    public Task<List<(string id, string name)>> GetFoldersAsync(string parentFolderId, CancellationToken ct) =>
-        Logger.TrackAsync(FormatCall("GetFoldersByAsync", parentFolderId),
-            () => _api.GetFoldersByAsync(parentFolderId, cancellationToken: ct),
+    public Task<IReadOnlyList<(string id, string name)>> GetFoldersAsync(string parentFolderId, CancellationToken ct) =>
+        Logger.TrackAsync(FormatCall("Folders.ListAsync", parentFolderId),
+            () => _api.Folders.ListAsync(parentFolderId, cancellationToken: ct),
             folders => $"{folders.Count} folder(s)");
 
     public Task<string> CreateFolderAsync(string name, string parentFolderId, CancellationToken ct) =>
-        Logger.TrackAsync(FormatCall("CreateFolderAsync", name, parentFolderId),
-            () => _api.CreateFolderAsync(name, parentFolderId, ct),
+        Logger.TrackAsync(FormatCall("Folders.CreateAsync", name, parentFolderId),
+            () => _api.Folders.CreateAsync(name, parentFolderId, ct),
             id => $"created id {id}");
 
     public Task DeleteFolderAsync(string folderId, CancellationToken ct) =>
-        Logger.TrackAsync(FormatCall("DeleteFolderAsync", folderId),
-            () => _api.DeleteFolderAsync(folderId, ct),
+        Logger.TrackAsync(FormatCall("Folders.DeleteAsync", folderId),
+            () => _api.Folders.DeleteAsync(folderId, ct),
             "deleted permanently");
 
+    public Task RenameFolderAsync(string folderId, string newName, CancellationToken ct) =>
+        Logger.TrackAsync(FormatCall("Folders.RenameAsync", folderId, newName),
+            () => _api.Folders.RenameAsync(folderId, newName, ct),
+            "renamed");
+
+    public Task MoveFolderAsync(string folderId, string sourceFolderId, string destinationFolderId, CancellationToken ct) =>
+        Logger.TrackAsync(FormatCall("Folders.MoveAsync", folderId, sourceFolderId, destinationFolderId),
+            () => _api.Folders.MoveAsync(folderId, sourceFolderId, destinationFolderId, ct),
+            "moved");
+
     public Task<string?> FindFolderIdAsync(string name, string parentFolderId, CancellationToken ct) =>
-        Logger.TrackAsync(FormatCall("GetFolderIdByAsync", name, parentFolderId),
-            () => _api.GetFolderIdByAsync(name, parentFolderId, ct),
+        Logger.TrackAsync(FormatCall("Folders.FindIdByNameAsync", name, parentFolderId),
+            () => _api.Folders.FindIdByNameAsync(name, parentFolderId, ct),
             id => id is null ? "no match" : $"found id {id}");
 
     // ---- Files ---------------------------------------------------------
 
-    public Task<List<GoogleFile>> GetFilesAsync(string parentFolderId, CancellationToken ct) =>
-        Logger.TrackAsync(FormatCall("GetFilesByAsync", parentFolderId),
-            () => _api.GetFilesByAsync(parentFolderId, cancellationToken: ct),
+    public Task<IReadOnlyList<GoogleFile>> GetFilesAsync(string parentFolderId, CancellationToken ct) =>
+        Logger.TrackAsync(FormatCall("Files.ListAsync", parentFolderId),
+            () => _api.Files.ListAsync(parentFolderId, cancellationToken: ct),
             files => $"{files.Count} file(s)");
 
     public Task<string> UploadFileAsync(string filePath, string parentFolderId, CancellationToken ct)
     {
         string mimeType = MimeUtility.GetMimeMapping(filePath);
-        return Logger.TrackAsync(FormatCall("UploadFilePathAsync", Path.GetFileName(filePath), mimeType, parentFolderId),
-            () => _api.UploadFilePathAsync(filePath, mimeType, parentFolderId, ct),
+        return Logger.TrackAsync(FormatCall("Transfers.UploadAsync", Path.GetFileName(filePath), mimeType, parentFolderId),
+            () => _api.Transfers.UploadAsync(filePath, mimeType, parentFolderId, ct),
             id => $"uploaded id {id}");
     }
 
@@ -70,70 +76,70 @@ public sealed class DriveExplorerService : IDisposable
         string fileName = Path.GetFileName(filePath);
         string mimeType = MimeUtility.GetMimeMapping(filePath);
         await using FileStream stream = File.OpenRead(filePath);
-        return await Logger.TrackAsync(FormatCall("UploadFileStreamAsync", new Verbatim("stream"), fileName, mimeType, parentFolderId),
-            () => _api.UploadFileStreamAsync(stream, fileName, mimeType, parentFolderId, ct),
+        return await Logger.TrackAsync(FormatCall("Transfers.UploadAsync", new Verbatim("stream"), fileName, mimeType, parentFolderId),
+            () => _api.Transfers.UploadAsync(stream, fileName, mimeType, parentFolderId, ct),
             id => $"uploaded id {id}");
     }
 
     public Task DownloadFileAsync(string fileId, string saveToPath, CancellationToken ct) =>
-        Logger.TrackAsync(FormatCall("DownloadFileAsync", fileId, saveToPath),
-            () => _api.DownloadFileAsync(fileId, saveToPath, ct),
+        Logger.TrackAsync(FormatCall("Transfers.DownloadAsync", fileId, saveToPath),
+            () => _api.Transfers.DownloadAsync(fileId, saveToPath, ct),
             "download complete");
 
     public async Task UpdateFileContentAsync(string fileId, string contentFilePath, CancellationToken ct)
     {
         string mimeType = MimeUtility.GetMimeMapping(contentFilePath);
         await using FileStream stream = File.OpenRead(contentFilePath);
-        await Logger.TrackAsync(FormatCall("UpdateFileContentAsync", fileId, new Verbatim("stream"), mimeType),
-            () => _api.UpdateFileContentAsync(fileId, stream, mimeType, ct),
+        await Logger.TrackAsync(FormatCall("Transfers.UpdateContentAsync", fileId, new Verbatim("stream"), mimeType),
+            () => _api.Transfers.UpdateContentAsync(fileId, stream, mimeType, ct),
             "content replaced");
     }
 
     public Task RenameFileAsync(string fileId, string newName, CancellationToken ct) =>
-        Logger.TrackAsync(FormatCall("RenameFileAsync", fileId, newName),
-            () => _api.RenameFileAsync(fileId, newName, ct),
+        Logger.TrackAsync(FormatCall("Files.RenameAsync", fileId, newName),
+            () => _api.Files.RenameAsync(fileId, newName, ct),
             "renamed");
 
     public Task MoveFileAsync(string fileId, string sourceFolderId, string destinationFolderId, CancellationToken ct) =>
-        Logger.TrackAsync(FormatCall("MoveFileToAsync", fileId, sourceFolderId, destinationFolderId),
-            () => _api.MoveFileToAsync(fileId, sourceFolderId, destinationFolderId, ct),
+        Logger.TrackAsync(FormatCall("Files.MoveAsync", fileId, sourceFolderId, destinationFolderId),
+            () => _api.Files.MoveAsync(fileId, sourceFolderId, destinationFolderId, ct),
             "moved");
 
     public Task<string> CopyFileAsync(string fileId, string destinationFolderId, string? newName, CancellationToken ct) =>
-        Logger.TrackAsync(FormatCall("CopyFileToAsync", fileId, destinationFolderId, newName),
-            () => _api.CopyFileToAsync(fileId, destinationFolderId, newName, ct),
+        Logger.TrackAsync(FormatCall("Files.CopyAsync", fileId, destinationFolderId, newName),
+            () => _api.Files.CopyAsync(fileId, destinationFolderId, newName, ct),
             id => $"copy id {id}");
 
     public Task<string?> FindFileIdAsync(string name, string parentFolderId, CancellationToken ct) =>
-        Logger.TrackAsync(FormatCall("GetFileIdByAsync", name, parentFolderId),
-            () => _api.GetFileIdByAsync(name, parentFolderId, ct),
+        Logger.TrackAsync(FormatCall("Files.FindIdByNameAsync", name, parentFolderId),
+            () => _api.Files.FindIdByNameAsync(name, parentFolderId, ct),
             id => id is null ? "no match" : $"found id {id}");
 
     public Task DeleteFileAsync(string fileId, CancellationToken ct) =>
-        Logger.TrackAsync(FormatCall("DeleteFileAsync", fileId),
-            () => _api.DeleteFileAsync(fileId, ct),
+        Logger.TrackAsync(FormatCall("Files.DeleteAsync", fileId),
+            () => _api.Files.DeleteAsync(fileId, ct),
             "deleted permanently");
 
     // ---- Trash ---------------------------------------------------------
 
     public Task TrashFileAsync(string fileId, CancellationToken ct) =>
-        Logger.TrackAsync(FormatCall("MoveFileToTrashAsync", fileId),
-            () => _api.MoveFileToTrashAsync(fileId, ct),
+        Logger.TrackAsync(FormatCall("Trash.TrashAsync", fileId),
+            () => _api.Trash.TrashAsync(fileId, ct),
             "moved to trash");
 
     public Task RestoreFileAsync(string fileId, CancellationToken ct) =>
-        Logger.TrackAsync(FormatCall("RestoreFileFromTrashAsync", fileId),
-            () => _api.RestoreFileFromTrashAsync(fileId, ct),
+        Logger.TrackAsync(FormatCall("Trash.RestoreAsync", fileId),
+            () => _api.Trash.RestoreAsync(fileId, ct),
             "restored");
 
-    public Task<List<GoogleFile>> GetTrashedFilesAsync(CancellationToken ct) =>
-        Logger.TrackAsync(FormatCall("GetTrashedFilesAsync"),
-            () => _api.GetTrashedFilesAsync(cancellationToken: ct),
+    public Task<IReadOnlyList<GoogleFile>> GetTrashedFilesAsync(CancellationToken ct) =>
+        Logger.TrackAsync(FormatCall("Trash.ListAsync"),
+            () => _api.Trash.ListAsync(cancellationToken: ct),
             items => $"{items.Count} item(s) in trash");
 
     public Task EmptyTrashAsync(CancellationToken ct) =>
-        Logger.TrackAsync(FormatCall("EmptyTrashAsync"),
-            () => _api.EmptyTrashAsync(ct),
+        Logger.TrackAsync(FormatCall("Trash.EmptyAsync"),
+            () => _api.Trash.EmptyAsync(ct),
             "trash emptied");
 
     // ---- Token ---------------------------------------------------------

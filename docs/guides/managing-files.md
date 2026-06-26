@@ -14,7 +14,7 @@ Rename, move, copy, and delete files. For uploading and downloading see
 ```csharp
 try
 {
-    await gDriveApi.RenameFileAsync(fileId, "NewFileName.pdf");
+    await gDriveApi.Files.RenameAsync(fileId, "NewFileName.pdf");
     Console.WriteLine("Renamed.");
 }
 catch (ArgumentException ex)
@@ -30,7 +30,7 @@ Move a file from one folder to another (parents are updated):
 ```csharp
 try
 {
-    await gDriveApi.MoveFileToAsync(fileId, sourceFolderId, destinationFolderId);
+    await gDriveApi.Files.MoveAsync(fileId, sourceFolderId, destinationFolderId);
     Console.WriteLine("Moved.");
 }
 catch (ArgumentException ex)
@@ -46,7 +46,7 @@ Copy to another folder, optionally renaming the copy:
 ```csharp
 try
 {
-    string copiedFileId = await gDriveApi.CopyFileToAsync(
+    string copiedFileId = await gDriveApi.Files.CopyAsync(
         fileId, destinationFolderId, newName: "CopiedFile.pdf"); // newName null keeps original
     Console.WriteLine($"Copied with new ID: {copiedFileId}");
 }
@@ -63,7 +63,7 @@ Permanently delete a file. The id must refer to a file, not a folder:
 ```csharp
 try
 {
-    await gDriveApi.DeleteFileAsync(fileId);
+    await gDriveApi.Files.DeleteAsync(fileId);
     Console.WriteLine("Deleted.");
 }
 catch (InvalidMimeTypeException ex)
@@ -72,7 +72,7 @@ catch (InvalidMimeTypeException ex)
 }
 ```
 
-> To delete a folder, use `DeleteFolderAsync` — see [Folders and hierarchy](folders-and-hierarchy.md).
+> To delete a folder, use `Folders.DeleteAsync` — see [Folders and hierarchy](folders-and-hierarchy.md).
 > For exception details, see [Exceptions](../reference/exceptions.md).
 
 ---

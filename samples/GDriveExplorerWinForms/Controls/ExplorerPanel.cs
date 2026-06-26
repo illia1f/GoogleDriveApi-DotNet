@@ -101,7 +101,7 @@ public sealed partial class ExplorerPanel : UserControl
     private Task ReloadFilesAsync() =>
         RunOperationAsync(async ct =>
         {
-            List<GoogleFile> files = await _service.GetFilesAsync(CurrentFolderId, ct);
+            IReadOnlyList<GoogleFile> files = await _service.GetFilesAsync(CurrentFolderId, ct);
             _fileList.ShowFiles(files);
             _filePaneHeader.Text = $"{Icons.File}  FILES — {CurrentFolderName}";
         });
@@ -295,6 +295,85 @@ public sealed partial class ExplorerPanel : UserControl
             _folderTree.SelectedNode = parent;
             node.Remove();
         }
+    }
+
+    private async void OnRenameFolder(object? sender, EventArgs e)
+    {
+        TreeNode? node = _folderTree.SelectedNode;
+        if (node is null || node.Parent is null)
+        {
+            return; // never rename the root
+        }
+
+        string? newName = PromptDialog.Show(this, "Rename folder", "New name:", node.Name);
+        if (newName is null || newName == node.Name)
+        {
+            return;
+        }
+
+        string folderId = (string)node.Tag!;
+        await RunOperationAsync(ct => _service.RenameFolderAsync(folderId, newName, ct));
+
+        // Reflect the new name in the tree without a reload (Text carries the folder icon prefix).
+        node.Text = $"{Icons.Folder}  {newName}";
+        node.Name = newName;
+    }
+
+    private async void OnMoveFolder(object? sender, EventArgs e)
+    {
+        TreeNode? node = _folderTree.SelectedNode;
+        if (node is null || node.Parent is null)
+        {
+            return; // never move the root
+        }
+
+        (string id, string name)? destination = FolderPickerDialog.Show(this, _service, $"Move folder \"{node.Name}\" to…");
+        if (destination is null)
+        {
+            return;
+        }
+
+        string folderId = (string)node.Tag!;
+        string sourceFolderId = (string)node.Parent.Tag!;
+        string destinationFolderId = destination.Value.id;
+
+        // Reject moves into the folder itself or one of its own subfolders — both create a cycle.
+        // IsLoadedDescendant only catches already-loaded descendants; the API rejects the rest.
+        if (destinationFolderId == folderId || IsLoadedDescendant(node, destinationFolderId))
+        {
+            _service.Logger.Log($"Move skipped: \"{node.Name}\" cannot move into itself or one of its own subfolders.", isError: true);
+            return;
+        }
+
+        // Already in the target folder — nothing to do.
+        if (destinationFolderId == sourceFolderId)
+        {
+            _service.Logger.Log($"Move skipped: \"{node.Name}\" is already in \"{destination.Value.name}\".", isError: false);
+            return;
+        }
+
+        await RunOperationAsync(ct => _service.MoveFolderAsync(folderId, sourceFolderId, destinationFolderId, ct));
+
+        // The folder left this parent; drop it from the tree and select the old parent. The
+        // destination subtree picks it up on its next (re)load.
+        TreeNode parent = node.Parent;
+        _folderTree.SelectedNode = parent;
+        node.Remove();
+    }
+
+    /// <summary>
+    /// True if any already-loaded node beneath root carries the given folder id.
+    /// </summary>
+    private static bool IsLoadedDescendant(TreeNode root, string folderId)
+    {
+        foreach (TreeNode child in root.Nodes)
+        {
+            if (child.Tag as string == folderId || IsLoadedDescendant(child, folderId))
+            {
+                return true;
+            }
+        }
+        return false;
     }
 
     /// <summary>

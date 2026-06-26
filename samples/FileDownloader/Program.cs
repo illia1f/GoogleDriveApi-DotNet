@@ -10,7 +10,7 @@ using GoogleDriveApi gDriveApi = await GoogleDriveApi.CreateBuilder()
 
 string parentFolderId = "root";
 string sourceFolderName = "FileDownloader Test Folder";
-string? sourceFolderId = await gDriveApi.GetFolderIdByAsync(sourceFolderName, parentFolderId, cts.Token);
+string? sourceFolderId = await gDriveApi.Folders.FindIdByNameAsync(sourceFolderName, parentFolderId, cts.Token);
 if (sourceFolderId is null)
 {
     Console.WriteLine($"Cannot find a folder with a name {sourceFolderName}.");
@@ -19,11 +19,11 @@ if (sourceFolderId is null)
 
 string fullFileNameToDownload = "Escanor.jpg";
 
-string? fileId = await gDriveApi.GetFileIdByAsync(fullFileNameToDownload, sourceFolderId, cts.Token);
+string? fileId = await gDriveApi.Files.FindIdByNameAsync(fullFileNameToDownload, sourceFolderId, cts.Token);
 if (fileId is null)
 {
     Console.WriteLine($"Cannot find a file with a name {fullFileNameToDownload}.");
     return;
 }
 
-await gDriveApi.DownloadFileAsync(fileId, cancellationToken: cts.Token);
+await gDriveApi.Transfers.DownloadAsync(fileId, cancellationToken: cts.Token);
