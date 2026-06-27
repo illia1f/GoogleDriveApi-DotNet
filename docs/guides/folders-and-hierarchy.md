@@ -24,7 +24,8 @@ Console.WriteLine("Child Folder ID: " + childFolderId);
 
 ## Listing folders
 
-Retrieve folders in a parent and walk one level of children:
+Retrieve folders in a parent and walk one level of children. `Folders.ListAsync` returns
+[`DriveItem`](managing-files.md#the-driveitem-model) (`Id`, `Name`, `MimeType`):
 
 ```csharp
 // Optional: using var cts = new CancellationTokenSource(TimeSpan.FromSeconds(30));
@@ -34,19 +35,30 @@ var folders = await gDriveApi.Folders.ListAsync(parentFolderId: "root"); // Add:
 for (int i = 0; i < folders.Count; i++)
 {
     var folder = folders[i];
-    Console.WriteLine($"{i + 1}. [{folder.name}] with ID({folder.id})");
+    Console.WriteLine($"{i + 1}. [{folder.Name}] with ID({folder.Id})");
 
-    var subFolders = await gDriveApi.Folders.ListAsync(folder.id); // Add: cancellationToken: cts.Token
+    var subFolders = await gDriveApi.Folders.ListAsync(folder.Id); // Add: cancellationToken: cts.Token
     for (int j = 0; j < subFolders.Count; j++)
     {
         var subFolder = subFolders[j];
-        Console.WriteLine($"---|{j + 1}. [{subFolder.name}] with ID({subFolder.id})");
+        Console.WriteLine($"---|{j + 1}. [{subFolder.Name}] with ID({subFolder.Id})");
     }
 }
 ```
 
-To retrieve the entire folder tree in one call, use `Folders.ListAllAsync` — see the
-[RetrieveAllFolderHierarchy sample](https://github.com/Illia1F/GoogleDriveApi-DotNet/tree/main/samples/RetrieveAllFolderHierarchy).
+Need more than id, name, and kind (size, modified time, and so on)? Pass a [`DriveFields`](managing-files.md#selecting-extra-fields-drivefields)
+selector to get the raw `Google.Apis.Drive.v3.Data.File` carrying exactly those fields.
+
+To retrieve the entire folder tree in one call, use `Folders.ListAllAsync`. Building a tree needs
+each folder's parents, a variable field that is not on `DriveItem`, so use the field-selected
+overload with `DriveFields.Default.WithParents()`, which returns the raw `File` carrying `parents`:
+
+```csharp
+var folders = await gDriveApi.Folders.ListAllAsync(DriveFields.Default.WithParents()); // → IReadOnlyList<File>
+// each folder.Parents is now populated
+```
+
+See the [RetrieveAllFolderHierarchy sample](https://github.com/Illia1F/GoogleDriveApi-DotNet/tree/main/samples/RetrieveAllFolderHierarchy).
 
 ## Finding a folder by name
 

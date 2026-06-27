@@ -1,3 +1,5 @@
+using GoogleDriveApi_DotNet.Types;
+
 namespace GoogleDriveApi_DotNet.Abstractions;
 
 /// <summary>
@@ -11,17 +13,57 @@ namespace GoogleDriveApi_DotNet.Abstractions;
 public interface IGDriveFileOperations
 {
     /// <summary>
-    /// Retrieves the files (non-folders) within the specified parent folder, across all pages.
+    /// Retrieves the files (non-folders) within the specified parent folder, across all pages, as the
+    /// library's <see cref="DriveItem"/> model (<c>id</c>, <c>name</c>, <c>mimeType</c>).
     /// </summary>
     /// <param name="parentFolderId">Parent folder to search within. If <c>null</c>, the configured root folder is used.</param>
     /// <param name="pageSize">Maximum number of files per page. Must be greater than zero.</param>
     /// <param name="cancellationToken">The token to monitor for cancellation requests.</param>
     /// <returns>The non-trashed, non-folder items in the folder.</returns>
+    /// <remarks>
+    /// To fetch additional metadata (size, modified time, parents, …) without over-fetching, use the
+    /// <see cref="ListAsync(string?, DriveFields, int, CancellationToken)"/> overload.
+    /// </remarks>
     /// <exception cref="ArgumentOutOfRangeException">Thrown when <paramref name="pageSize"/> is less than or equal to zero.</exception>
     /// <exception cref="ObjectDisposedException">Thrown when the owning client has been disposed.</exception>
     /// <exception cref="Google.GoogleApiException">Thrown when the Google Drive API returns an error.</exception>
     /// <exception cref="OperationCanceledException">Thrown when the operation is cancelled via the cancellation token.</exception>
-    Task<IReadOnlyList<GoogleFile>> ListAsync(string? parentFolderId = null, int pageSize = 100, CancellationToken cancellationToken = default);
+    Task<IReadOnlyList<DriveItem>> ListAsync(string? parentFolderId = null, int pageSize = 100, CancellationToken cancellationToken = default);
+
+    /// <summary>
+    /// Retrieves the files (non-folders) within the specified parent folder, across all pages, as raw
+    /// <see cref="GoogleFile"/> items carrying exactly the fields named by <paramref name="fields"/>.
+    /// </summary>
+    /// <param name="parentFolderId">Parent folder to search within. If <c>null</c>, the configured root folder is used.</param>
+    /// <param name="fields">The fields to fetch. Start from <see cref="DriveFields.Default"/> and chain <c>With*</c> calls.</param>
+    /// <param name="pageSize">Maximum number of files per page. Must be greater than zero.</param>
+    /// <param name="cancellationToken">The token to monitor for cancellation requests.</param>
+    /// <returns>The non-trashed, non-folder items in the folder, populated with the requested fields.</returns>
+    /// <exception cref="ArgumentNullException">Thrown when <paramref name="fields"/> is <c>null</c>.</exception>
+    /// <exception cref="ArgumentOutOfRangeException">Thrown when <paramref name="pageSize"/> is less than or equal to zero.</exception>
+    /// <exception cref="ObjectDisposedException">Thrown when the owning client has been disposed.</exception>
+    /// <exception cref="Google.GoogleApiException">Thrown when the Google Drive API returns an error.</exception>
+    /// <exception cref="OperationCanceledException">Thrown when the operation is cancelled via the cancellation token.</exception>
+    Task<IReadOnlyList<GoogleFile>> ListAsync(string? parentFolderId, DriveFields fields, int pageSize = 100, CancellationToken cancellationToken = default);
+
+    /// <summary>
+    /// Retrieves a single item by its ID as a raw <see cref="GoogleFile"/> carrying exactly the fields
+    /// named by <paramref name="fields"/>. The escape hatch for reading metadata the
+    /// <see cref="DriveItem"/> model does not surface.
+    /// </summary>
+    /// <param name="fileId">The ID of the item to retrieve.</param>
+    /// <param name="fields">The fields to fetch. Start from <see cref="DriveFields.Default"/> and chain <c>With*</c> calls.</param>
+    /// <param name="cancellationToken">The token to monitor for cancellation requests.</param>
+    /// <returns>
+    /// The item populated with the requested fields, or <c>null</c> when no item with that ID exists
+    /// (the underlying <c>Files.Get</c> returned <c>404</c>).
+    /// </returns>
+    /// <exception cref="ArgumentException">Thrown when <paramref name="fileId"/> is <c>null</c> or empty.</exception>
+    /// <exception cref="ArgumentNullException">Thrown when <paramref name="fields"/> is <c>null</c>.</exception>
+    /// <exception cref="ObjectDisposedException">Thrown when the owning client has been disposed.</exception>
+    /// <exception cref="Google.GoogleApiException">Thrown when the Google Drive API returns an error other than <c>404</c>.</exception>
+    /// <exception cref="OperationCanceledException">Thrown when the operation is cancelled via the cancellation token.</exception>
+    Task<GoogleFile?> FindByIdAsync(string fileId, DriveFields fields, CancellationToken cancellationToken = default);
 
     /// <summary>
     /// Retrieves the ID of a file by its name within the specified parent folder.

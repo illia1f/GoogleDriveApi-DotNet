@@ -160,16 +160,15 @@ internal sealed class GDriveTransferOperations(IGDriveOperationContext context) 
         var request = service.Files.Get(fileId);
         GoogleFile file = await request.ExecuteAsync(cancellationToken).ConfigureAwait(false);
         string fileName = PathHelper.SanitizeFileName(Path.GetFileNameWithoutExtension(file.Name));
-        string fileMimeType = file.MimeType;
 
-        bool isGoogleSpecificMimeType = GDriveMimeTypes.IsValid(fileMimeType);
-        if (isGoogleSpecificMimeType)
-        {
-            fileMimeType = GDriveMimeTypes.GetExportMimeTypeBy(fileMimeType)
-                ?? throw new UnsupportedMimeTypeException(fileId, file.MimeType);
-        }
+        MimeType mimeType = MimeType.Create(file.MimeType);
+        bool isGoogleSpecificMimeType = mimeType.IsGoogleWorkspace;
 
-        string extension = MimeTypeHelper.GetExtensionBy(fileMimeType)
+        MimeType effectiveMimeType = isGoogleSpecificMimeType
+            ? mimeType.GetExportMimeType() ?? throw new UnsupportedMimeTypeException(fileId, file.MimeType)
+            : mimeType;
+
+        string extension = MimeTypeHelper.GetExtensionBy(effectiveMimeType.Value)
             ?? throw new UnsupportedMimeTypeException(fileId, file.MimeType);
 
         try
@@ -180,7 +179,7 @@ internal sealed class GDriveTransferOperations(IGDriveOperationContext context) 
 
             if (isGoogleSpecificMimeType)
             {
-                await ExportGoogleFileAsync(service, fileId, fileMimeType, fullPath, cancellationToken).ConfigureAwait(false);
+                await ExportGoogleFileAsync(service, fileId, effectiveMimeType.Value, fullPath, cancellationToken).ConfigureAwait(false);
             }
             else
             {

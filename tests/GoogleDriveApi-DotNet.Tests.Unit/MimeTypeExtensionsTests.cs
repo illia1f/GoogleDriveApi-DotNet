@@ -8,7 +8,7 @@ namespace GoogleDriveApi_DotNet.Tests.Unit
     public class MimeTypeExtensionsTests
     {
         private static readonly MimeType FileMime = MimeType.Create("application/pdf");
-        private static readonly MimeType FolderMime = MimeType.Create(GDriveMimeTypes.Folder);
+        private static readonly MimeType FolderMime = MimeType.Create(MimeType.Folder);
 
         [Fact]
         public void RequireFile_OnFile_DoesNotThrow()

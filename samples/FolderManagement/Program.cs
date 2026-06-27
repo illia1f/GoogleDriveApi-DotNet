@@ -61,15 +61,15 @@ Console.WriteLine(new string('-', 50));
     {
         var folder = folders[i];
 
-        Console.WriteLine($"{i + 1}. [{folder.name}] with ID({folder.id})");
+        Console.WriteLine($"{i + 1}. [{folder.Name}] with ID({folder.Id})");
 
         // Retrieves a list of subfolders within the current folder
-        var subFolders = await gDriveApi.Folders.ListAsync(folder.id, cancellationToken: cts.Token);
+        var subFolders = await gDriveApi.Folders.ListAsync(folder.Id, cancellationToken: cts.Token);
         for (int j = 0; j < subFolders.Count; j++)
         {
             var subFolder = subFolders[j];
 
-            Console.WriteLine($"---|{j + 1}. [{subFolder.name}] with ID({subFolder.id})");
+            Console.WriteLine($"---|{j + 1}. [{subFolder.Name}] with ID({subFolder.Id})");
         }
     }
 }
