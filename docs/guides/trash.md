@@ -35,9 +35,24 @@ catch (GoogleApiException ex)
 
 ## List trashed items
 
+`Trash.ListAsync` returns [`DriveItem`](managing-files.md#the-driveitem-model) (`Id`, `Name`,
+`MimeType`), paginated across all pages:
+
 ```csharp
-var trashed = await gDriveApi.Trash.ListAsync(); // paginates all trashed items
+var trashed = await gDriveApi.Trash.ListAsync();
 Console.WriteLine($"{trashed.Count} item(s) in trash.");
+foreach (var item in trashed)
+{
+    Console.WriteLine($"{item.Name} — {item.Id}");
+}
+```
+
+For extra metadata (size, modified time, and so on) pass a
+[`DriveFields`](managing-files.md#selecting-extra-fields-drivefields) selector to get the raw
+`Google.Apis.Drive.v3.Data.File`:
+
+```csharp
+var trashed = await gDriveApi.Trash.ListAsync(DriveFields.Default.WithSize().WithModifiedTime());
 ```
 
 ## Empty the trash

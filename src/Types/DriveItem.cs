@@ -23,11 +23,6 @@ public sealed record DriveItem
     public required MimeType MimeType { get; init; }
 
     /// <summary>
-    /// The IDs of the item's parent folders. Empty when the item has no parents. Defaults to <c>[]</c>.
-    /// </summary>
-    public IReadOnlyList<string> ParentIds { get; init; } = [];
-
-    /// <summary>
     /// Gets a value indicating whether this item is a folder.
     /// </summary>
     public bool IsFolder => MimeType.IsFolder;

@@ -1,4 +1,5 @@
 using GoogleDriveApi_DotNet;
+using GoogleDriveApi_DotNet.Types;
 using MimeMapping;
 using GoogleFile = Google.Apis.Drive.v3.Data.File;
 using static GDriveExplorerWinForms.Services.OperationLogger;
@@ -26,7 +27,7 @@ public sealed class DriveExplorerService(GoogleDriveApi api) : IDisposable
 
     // ---- Folders -------------------------------------------------------
 
-    public Task<IReadOnlyList<(string id, string name)>> GetFoldersAsync(string parentFolderId, CancellationToken ct) =>
+    public Task<IReadOnlyList<DriveItem>> GetFoldersAsync(string parentFolderId, CancellationToken ct) =>
         Logger.TrackAsync(FormatCall("Folders.ListAsync", parentFolderId),
             () => _api.Folders.ListAsync(parentFolderId, cancellationToken: ct),
             folders => $"{folders.Count} folder(s)");
@@ -59,8 +60,9 @@ public sealed class DriveExplorerService(GoogleDriveApi api) : IDisposable
     // ---- Files ---------------------------------------------------------
 
     public Task<IReadOnlyList<GoogleFile>> GetFilesAsync(string parentFolderId, CancellationToken ct) =>
-        Logger.TrackAsync(FormatCall("Files.ListAsync", parentFolderId),
-            () => _api.Files.ListAsync(parentFolderId, cancellationToken: ct),
+        Logger.TrackAsync(FormatCall("Files.ListAsync", parentFolderId, new Verbatim("Default.WithSize().WithModifiedTime()")),
+            // The list view shows Size and Modified columns, so request exactly those extra fields.
+            () => _api.Files.ListAsync(parentFolderId, DriveFields.Default.WithSize().WithModifiedTime(), cancellationToken: ct),
             files => $"{files.Count} file(s)");
 
     public Task<string> UploadFileAsync(string filePath, string parentFolderId, CancellationToken ct)
@@ -132,7 +134,7 @@ public sealed class DriveExplorerService(GoogleDriveApi api) : IDisposable
             () => _api.Trash.RestoreAsync(fileId, ct),
             "restored");
 
-    public Task<IReadOnlyList<GoogleFile>> GetTrashedFilesAsync(CancellationToken ct) =>
+    public Task<IReadOnlyList<DriveItem>> GetTrashedFilesAsync(CancellationToken ct) =>
         Logger.TrackAsync(FormatCall("Trash.ListAsync"),
             () => _api.Trash.ListAsync(cancellationToken: ct),
             items => $"{items.Count} item(s) in trash");

@@ -1,6 +1,7 @@
 using GoogleDriveApi_DotNet;
 using GoogleDriveApi_DotNet.Types;
 using System.Text;
+using GoogleFile = Google.Apis.Drive.v3.Data.File;
 
 Console.OutputEncoding = Encoding.UTF8; // Set the console encoding to UTF-8 for proper display of folder names
 
@@ -13,10 +14,11 @@ using GoogleDriveApi gDriveApi = await GoogleDriveApi.CreateBuilder()
     .SetApplicationName("QuickFilesLoad")
     .BuildAsync(immediateAuthorization: true, cancellationToken: cts.Token);
 
-IReadOnlyList<DriveItem> folders = await gDriveApi.Folders.ListAllAsync(cts.Token);
+// Parents isn't on the DriveItem model, so use the field-selected overload to request it.
+IReadOnlyList<GoogleFile> folders = await gDriveApi.Folders.ListAllAsync(DriveFields.Default.WithParents(), cts.Token);
 
-// Create a dictionary to map folder IDs to their corresponding DriveItem objects
-Dictionary<string, DriveItem> folderDic = folders.ToDictionary(f => f.Id);
+// Create a dictionary to map folder IDs to their corresponding folder objects
+Dictionary<string, GoogleFile> folderDic = folders.ToDictionary(f => f.Id);
 
 // Build a dictionary to map parent folder IDs to lists of their child folder IDs
 Dictionary<string, List<string>> childDic = BuildChildDictionary(folders);
@@ -24,13 +26,13 @@ Dictionary<string, List<string>> childDic = BuildChildDictionary(folders);
 // Print the folder hierarchy starting from the root folders
 PrintFolderHierarchy(folderDic, childDic);
 
-static Dictionary<string, List<string>> BuildChildDictionary(IReadOnlyList<DriveItem> folders)
+static Dictionary<string, List<string>> BuildChildDictionary(IReadOnlyList<GoogleFile> folders)
 {
     var childDict = new Dictionary<string, List<string>>();
 
     foreach (var folder in folders)
     {
-        foreach (var parentId in folder.ParentIds)
+        foreach (var parentId in folder.Parents ?? [])
         {
             if (!childDict.ContainsKey(parentId))
             {
@@ -43,9 +45,9 @@ static Dictionary<string, List<string>> BuildChildDictionary(IReadOnlyList<Drive
     return childDict;
 }
 
-static void PrintFolderHierarchy(Dictionary<string, DriveItem> folderDict, Dictionary<string, List<string>> childDict)
+static void PrintFolderHierarchy(Dictionary<string, GoogleFile> folderDict, Dictionary<string, List<string>> childDict)
 {
-    var rootFolders = folderDict.Values.Where(f => f.ParentIds.Count == 0).ToList();
+    var rootFolders = folderDict.Values.Where(f => (f.Parents?.Count ?? 0) == 0).ToList();
     var visited = new HashSet<string>();
 
     foreach (var rootFolder in rootFolders)
@@ -54,7 +56,7 @@ static void PrintFolderHierarchy(Dictionary<string, DriveItem> folderDict, Dicti
     }
 }
 
-static void PrintFolderHierarchyRecursive(DriveItem folder, Dictionary<string, DriveItem> folderDict, Dictionary<string, List<string>> childDict, string indent, HashSet<string> visited)
+static void PrintFolderHierarchyRecursive(GoogleFile folder, Dictionary<string, GoogleFile> folderDict, Dictionary<string, List<string>> childDict, string indent, HashSet<string> visited)
 {
     if (visited.Contains(folder.Id))
     {

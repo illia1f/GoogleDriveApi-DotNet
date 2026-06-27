@@ -17,76 +17,71 @@ internal sealed class GDriveFolderOperations(IGDriveOperationContext context) : 
 
         parentFolderId ??= _context.RootFolderId;
 
-        var service = await _context.GetServiceAsync(cancellationToken).ConfigureAwait(false);
+        var service = await _context
+            .GetServiceAsync(cancellationToken)
+            .ConfigureAwait(false);
 
         var listRequest = service.Files.List();
-        listRequest.Q = $"mimeType='{GDriveMimeTypes.Folder}' and name='{DriveQueryHelper.EscapeValue(folderName)}' and '{DriveQueryHelper.EscapeValue(parentFolderId)}' in parents and trashed=false";
+        listRequest.Q = $"mimeType='{MimeType.Folder}' and name='{DriveQueryHelper.EscapeValue(folderName)}' and '{DriveQueryHelper.EscapeValue(parentFolderId)}' in parents and trashed=false";
         listRequest.Fields = "files(id, name)";
         listRequest.PageSize = 1;
 
-        var result = await listRequest.ExecuteAsync(cancellationToken).ConfigureAwait(false);
+        var result = await listRequest
+            .ExecuteAsync(cancellationToken)
+            .ConfigureAwait(false);
+
         GoogleFile? file = result.Files?.FirstOrDefault();
 
         return file?.Id;
     }
 
     /// <inheritdoc/>
-    public async Task<IReadOnlyList<(string id, string name)>> ListAsync(string parentFolderId, int pageSize = 50, CancellationToken cancellationToken = default)
+    public async Task<IReadOnlyList<DriveItem>> ListAsync(string parentFolderId, int pageSize = 50, CancellationToken cancellationToken = default)
+    {
+        IReadOnlyList<GoogleFile> folders = await ListAsync(parentFolderId, DriveFields.Default, pageSize, cancellationToken).ConfigureAwait(false);
+        return folders.Select(f => f.ToDriveItem()).ToList();
+    }
+
+    /// <inheritdoc/>
+    public async Task<IReadOnlyList<GoogleFile>> ListAsync(string parentFolderId, DriveFields fields, int pageSize = 50, CancellationToken cancellationToken = default)
     {
         ArgumentException.ThrowIfNullOrEmpty(parentFolderId);
+        ArgumentNullException.ThrowIfNull(fields);
         ArgumentOutOfRangeException.ThrowIfNegativeOrZero(pageSize);
 
-        var service = await _context.GetServiceAsync(cancellationToken).ConfigureAwait(false);
+        var service = await _context
+            .GetServiceAsync(cancellationToken)
+            .ConfigureAwait(false);
 
-        var allFolders = new List<GoogleFile>();
-        string? pageToken = null;
-        string qSelector = $"mimeType='{GDriveMimeTypes.Folder}' and '{DriveQueryHelper.EscapeValue(parentFolderId)}' in parents and trashed=false";
-        const string fields = "nextPageToken, files(id, name)";
-        do
-        {
-            var listRequest = service.Files.List();
-            listRequest.Q = qSelector;
-            listRequest.Fields = fields;
-            listRequest.PageSize = pageSize;
-            listRequest.PageToken = pageToken;
+        string query = $"mimeType='{MimeType.Folder}' and '{DriveQueryHelper.EscapeValue(parentFolderId)}' in parents and trashed=false";
 
-            var result = await listRequest.ExecuteAsync(cancellationToken).ConfigureAwait(false);
-            if (result.Files is not null)
-            {
-                allFolders.AddRange(result.Files);
-            }
-
-            pageToken = result.NextPageToken;
-        } while (pageToken is not null);
-
-        return allFolders
-            .Select(f => (f.Id, f.Name))
-            .ToList();
+        return await service
+            .ListAsync(query, fields.ToListMask(), pageSize, cancellationToken)
+            .ConfigureAwait(false);
     }
 
     /// <inheritdoc/>
     public async Task<IReadOnlyList<DriveItem>> ListAllAsync(CancellationToken cancellationToken = default)
     {
-        var service = await _context.GetServiceAsync(cancellationToken).ConfigureAwait(false);
-
-        var request = service.Files.List();
-        request.Q = $"mimeType = '{GDriveMimeTypes.Folder}'";
-        request.Fields = "nextPageToken, files(id, name, mimeType, parents)";
-        request.PageSize = 1000; // Set page size to maximum (1000)
-
-        var folders = new List<GoogleFile>();
-        do
-        {
-            var result = await request.ExecuteAsync(cancellationToken).ConfigureAwait(false);
-            if (result.Files is not null)
-            {
-                folders.AddRange(result.Files);
-            }
-
-            request.PageToken = result.NextPageToken;
-        } while (!string.IsNullOrEmpty(request.PageToken));
-
+        IReadOnlyList<GoogleFile> folders = await ListAllAsync(DriveFields.Default, cancellationToken).ConfigureAwait(false);
         return folders.Select(f => f.ToDriveItem()).ToList();
+    }
+
+    /// <inheritdoc/>
+    public async Task<IReadOnlyList<GoogleFile>> ListAllAsync(DriveFields fields, CancellationToken cancellationToken = default)
+    {
+        ArgumentNullException.ThrowIfNull(fields);
+
+        var service = await _context
+            .GetServiceAsync(cancellationToken)
+            .ConfigureAwait(false);
+        
+        string query = $"mimeType = '{MimeType.Folder}'";
+
+        // Maximum supported page size (1000), so the full set is fetched in as few requests as possible.
+        return await service
+            .ListAsync(query, fields.ToListMask(), pageSize: 1000, cancellationToken)
+            .ConfigureAwait(false);
     }
 
     /// <inheritdoc/>
@@ -96,17 +91,21 @@ internal sealed class GDriveFolderOperations(IGDriveOperationContext context) : 
 
         parentFolderId ??= _context.RootFolderId;
 
-        var service = await _context.GetServiceAsync(cancellationToken).ConfigureAwait(false);
+        var service = await _context
+            .GetServiceAsync(cancellationToken)
+            .ConfigureAwait(false);
 
         var driveFolder = new GoogleFile()
         {
             Name = folderName,
-            MimeType = GDriveMimeTypes.Folder,
+            MimeType = MimeType.Folder,
             Parents = [parentFolderId]
         };
 
         var request = service.Files.Create(driveFolder);
-        GoogleFile file = await request.ExecuteAsync(cancellationToken).ConfigureAwait(false);
+        GoogleFile file = await request
+            .ExecuteAsync(cancellationToken)
+            .ConfigureAwait(false);
 
         return file.Id;
     }
@@ -116,12 +115,19 @@ internal sealed class GDriveFolderOperations(IGDriveOperationContext context) : 
     {
         ArgumentException.ThrowIfNullOrEmpty(folderId);
 
-        var service = await _context.GetServiceAsync(cancellationToken).ConfigureAwait(false);
+        var service = await _context
+            .GetServiceAsync(cancellationToken)
+            .ConfigureAwait(false);
 
-        MimeType mimeType = await service.GetMimeTypeAsync(folderId, cancellationToken).ConfigureAwait(false);
+        MimeType mimeType = await service
+            .GetMimeTypeAsync(folderId, cancellationToken)
+            .ConfigureAwait(false);
         mimeType.RequireFolder();
 
-        await service.Files.Delete(folderId).ExecuteAsync(cancellationToken).ConfigureAwait(false);
+        await service.Files
+            .Delete(folderId)
+            .ExecuteAsync(cancellationToken)
+            .ConfigureAwait(false);
     }
 
     /// <inheritdoc/>
@@ -130,9 +136,13 @@ internal sealed class GDriveFolderOperations(IGDriveOperationContext context) : 
         ArgumentException.ThrowIfNullOrEmpty(folderId);
         ArgumentException.ThrowIfNullOrEmpty(newName);
 
-        var service = await _context.GetServiceAsync(cancellationToken).ConfigureAwait(false);
+        var service = await _context
+            .GetServiceAsync(cancellationToken)
+            .ConfigureAwait(false);
 
-        MimeType mimeType = await service.GetMimeTypeAsync(folderId, cancellationToken).ConfigureAwait(false);
+        MimeType mimeType = await service
+            .GetMimeTypeAsync(folderId, cancellationToken)
+            .ConfigureAwait(false);
         mimeType.RequireFolder();
 
         var metadata = new GoogleFile { Name = newName };
@@ -140,7 +150,9 @@ internal sealed class GDriveFolderOperations(IGDriveOperationContext context) : 
         var updateRequest = service.Files.Update(metadata, folderId);
         updateRequest.Fields = "id,name";
 
-        await updateRequest.ExecuteAsync(cancellationToken).ConfigureAwait(false);
+        await updateRequest
+            .ExecuteAsync(cancellationToken)
+            .ConfigureAwait(false);
     }
 
     /// <inheritdoc/>
@@ -150,9 +162,13 @@ internal sealed class GDriveFolderOperations(IGDriveOperationContext context) : 
         ArgumentException.ThrowIfNullOrEmpty(sourceFolderId);
         ArgumentException.ThrowIfNullOrEmpty(destinationFolderId);
 
-        var service = await _context.GetServiceAsync(cancellationToken).ConfigureAwait(false);
+        var service = await _context
+            .GetServiceAsync(cancellationToken)
+            .ConfigureAwait(false);
 
-        MimeType mimeType = await service.GetMimeTypeAsync(folderId, cancellationToken).ConfigureAwait(false);
+        MimeType mimeType = await service
+            .GetMimeTypeAsync(folderId, cancellationToken)
+            .ConfigureAwait(false);
         mimeType.RequireFolder();
 
         var metadata = new GoogleFile();
@@ -162,6 +178,8 @@ internal sealed class GDriveFolderOperations(IGDriveOperationContext context) : 
         updateRequest.RemoveParents = sourceFolderId;
         updateRequest.Fields = "id, parents";
 
-        await updateRequest.ExecuteAsync(cancellationToken).ConfigureAwait(false);
+        await updateRequest
+            .ExecuteAsync(cancellationToken)
+            .ConfigureAwait(false);
     }
 }

@@ -9,9 +9,6 @@ internal static class DriveServiceExtensions
     /// Fetches only the MIME type of a single Drive item. Used to validate an item's kind without
     /// over-fetching the rest of its metadata.
     /// </summary>
-    /// <param name="service">The authorized Drive service.</param>
-    /// <param name="itemId">The ID of the item to inspect.</param>
-    /// <param name="cancellationToken">The token to monitor for cancellation requests.</param>
     public static async Task<MimeType> GetMimeTypeAsync(this DriveService service, string itemId, CancellationToken cancellationToken)
     {
         var request = service.Files.Get(itemId);
@@ -22,5 +19,39 @@ internal static class DriveServiceExtensions
             .ConfigureAwait(false);
 
         return MimeType.Create(file.MimeType);
+    }
+
+    /// <summary>
+    /// Runs a <c>Files.List</c> query to completion, following <c>nextPageToken</c> across every page,
+    /// and returns the accumulated raw <see cref="GoogleFile"/> items. The single pagination loop shared
+    /// by the file, folder, and trash listings.
+    /// </summary>
+    public static async Task<IReadOnlyList<GoogleFile>> ListAsync(
+        this DriveService service,
+        string query,
+        string fields,
+        int pageSize,
+        CancellationToken cancellationToken)
+    {
+        var files = new List<GoogleFile>();
+        string? pageToken = null;
+        do
+        {
+            var request = service.Files.List();
+            request.Q = query;
+            request.Fields = fields;
+            request.PageSize = pageSize;
+            request.PageToken = pageToken;
+
+            var result = await request.ExecuteAsync(cancellationToken).ConfigureAwait(false);
+            if (result.Files is not null)
+            {
+                files.AddRange(result.Files);
+            }
+
+            pageToken = result.NextPageToken;
+        } while (!string.IsNullOrEmpty(pageToken));
+
+        return files;
     }
 }

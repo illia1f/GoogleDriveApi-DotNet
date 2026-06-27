@@ -1,20 +1,20 @@
 # GoogleDriveApi Architecture
 
-This page describes the architecture the library is being restructured toward for **v1** — a
+This page describes the architecture the library is being restructured toward for **v1**: a
 clean-slate redesign of the public surface, landed before the first NuGet publish locks it under
 semver. It also records the current (pre-v1) shape for context. Status and sequencing are tracked
 in the [Roadmap](../../ROADMAP.md).
 
 The goal: one codebase that serves desktop apps, headless web APIs, and (via an extension point)
-per-user web apps, with first-class Dependency Injection — while keeping non-DI usage
+per-user web apps, with first-class Dependency Injection, while keeping non-DI usage
 (console/WinForms) dependency-light.
 
 ---
 
 ## Today (pre-v1)
 
-A single `GoogleDriveApi` class (~1150 lines) holds every operation — files, folders, trash,
-upload/download. It is simple to follow but has grown into a god class: the copy-pasted pagination
+A single `GoogleDriveApi` class (~1150 lines) holds every operation: files, folders, trash,
+upload/download. It is simple to follow but has grown into a god class: a copy-pasted pagination
 loop, mixed concerns, and a two-phase `Create` + `AuthorizeAsync` lifecycle that throws on
 resolve-before-auth and on double-auth (awkward for DI).
 
@@ -34,7 +34,7 @@ Two patterns carry forward into v1:
   }
   ```
 
-- **Wrap-by-mechanism exception design** — see [ADR-01](../adr/01-exception-design.md). The
+- **Wrap-by-mechanism exception design** (see [ADR-01](../adr/01-exception-design.md)). The
   redesign carries this taxonomy intact.
 
 ---
@@ -44,7 +44,7 @@ Two patterns carry forward into v1:
 ### Two packages
 
 Core stays DI-free; DI support is a separate opt-in package. Console/WinForms consumers take core
-only — zero `Microsoft.Extensions.*`.
+only, with zero `Microsoft.Extensions.*`.
 
 ```
 ┌─────────────────────────────────────────────────────────────┐
@@ -88,8 +88,8 @@ matching `Folders.DeleteAsync`'s safety stance): `Folders.MoveAsync`, `Folders.R
 
 ### Domain model
 
-Three shapes (the raw Google type, the `GDriveFile` struct, and `(id, name)` tuples) collapse into
-one owned, growable record, `DriveItem`:
+Three old read shapes (the raw Google type, the `GDriveFile` struct, and `(id, name)` tuples)
+collapse into one owned record, `DriveItem`. It is the default return of every list and find:
 
 ```csharp
 public sealed record DriveItem
@@ -97,17 +97,40 @@ public sealed record DriveItem
     public required string Id { get; init; }
     public required string Name { get; init; }
     public required MimeType MimeType { get; init; }   // value object; owns IsFolder
-    public long? Size { get; init; }
-    public DateTimeOffset? ModifiedTime { get; init; }
-    public IReadOnlyList<string> ParentIds { get; init; } = [];
     public bool IsFolder => MimeType.IsFolder;
 }
 ```
 
-A `record class` with `init` (not a `record struct`): structs and tuples can't grow fields without
-breaking binary compat, and a `default` struct ships a null list (NRE trap). `ParentIds` is never
-null. Public APIs return `IReadOnlyList<DriveItem>` (never `List<T>`); the raw `DriveService` stays
-reachable via `client.RawService`.
+`DriveItem` carries only the core fields every item always has: `id`, `name`, `mimeType`. These are
+cheap and always fetched, so a `DriveItem` is always fully populated.
+
+`Size`, `ModifiedTime`, and `ParentIds` are not on the model (a reversal of the earlier "growable
+record" sketch). A field that callers can skip for performance cannot also be guaranteed on the
+model: once it is optional, an empty value is ambiguous (not present, or just not requested?).
+Optional fields live behind `DriveFields` instead.
+
+Variable fields (`parents`, `size`, `modifiedTime`, `owners`, links, and so on) are reached through a
+`DriveFields` selector. It drives field-selected overloads that return the raw
+`Google.Apis.Drive.v3.Data.File`:
+
+```csharp
+// default → DriveItem (id, name, mimeType)
+Task<IReadOnlyList<DriveItem>> ListAsync(string? parentFolderId = null, int pageSize = 100, CancellationToken ct = default);
+// field-selected → raw File carrying exactly the requested fields
+Task<IReadOnlyList<GoogleFile>> ListAsync(string? parentFolderId, DriveFields fields, int pageSize = 100, CancellationToken ct = default);
+```
+
+`DriveFields` is immutable and composable (`DriveFields.Default.WithSize().WithModifiedTime()`, plus
+`WithRaw(...)` for fields without a dedicated method); it renders the Drive `Fields` mask. The raw
+`File` is exposed only at the operation boundary (the `File`-returning overloads and
+`Files.FindByIdAsync`), never on the domain model. So `DriveItem` stays immutable and free of Google
+types, while full fidelity stays one call away (ADR-01's "openly a wrapper"). The raw `DriveService`
+also stays reachable via `client.RawService`.
+
+All overloads share one pagination loop in `DriveServiceExtensions.ListAsync`; the `DriveItem` reads
+are a `.Select(ToDriveItem)` over it. Public APIs return `IReadOnlyList<T>`, never `List<T>`.
+
+See the design: [Unified DriveItem + DriveFields](../superpowers/specs/2026-06-27-unified-driveitem-and-fields.md).
 
 ### Authentication
 
@@ -121,18 +144,18 @@ public interface IGDriveAuthProvider
 }
 ```
 
-Three built-in providers (all on `Google.Apis.Auth`, already transitive — no new dependencies):
+Three built-in providers (all on `Google.Apis.Auth`, already transitive, so no new dependencies):
 
 | Provider                     | Host         | Notes                                                               |
 | ---------------------------- | ------------ | ------------------------------------------------------------------- |
 | `InteractiveAuthProvider`    | Desktop      | `GoogleWebAuthorizationBroker` + `FileDataStore` (today's behavior) |
 | `ServiceAccountAuthProvider` | Web API      | service-account JSON key, headless                                  |
 | `RefreshTokenAuthProvider`   | Web API      | stored refresh token + client secret                                |
-| _(user-implemented, scoped)_ | Web per-user | the extension point — not shipped                                   |
+| _(user-implemented, scoped)_ | Web per-user | the extension point, not shipped                                    |
 
 Auth settings split out of client options (today `GoogleDriveApiOptions` carries
-`CredentialsPath`/`TokenFolderPath`/`UserId` even when a custom provider is supplied — misleading
-dead state):
+`CredentialsPath`/`TokenFolderPath`/`UserId` even when a custom provider is supplied, which is
+misleading dead state):
 
 ```
 GDriveOptions             → ApplicationName, RootFolderId, + .Auth selector
@@ -174,12 +197,12 @@ services.AddScoped<IGDriveAuthProvider, MyPerUserAuthProvider>();
 
 `AddGoogleDrive` binds via the options pattern and registers the client **and each operation-group
 interface**, so consumers inject just the slice they need. The `ServiceLifetime` parameter is the
-per-user seam — no dedicated `AddGoogleDrivePerUser` sugar in v1.
+per-user seam; there is no dedicated `AddGoogleDrivePerUser` sugar in v1.
 
 ### Streams as first-class
 
 `IGDriveTransferOperations` exposes an explicit stream surface with a documented ownership
-contract — no `MemoryStream` buffering of whole files:
+contract, and no `MemoryStream` buffering of whole files:
 
 ```csharp
 // Download — three shapes, streamed straight to the destination
@@ -208,12 +231,12 @@ The whole public surface unifies on the `GDrive*` prefix (e.g. `GDriveClient`, `
 
 ## Constraints preserved (not redesigned)
 
-- **ADR-01 exception design (Accepted)** — "wrap by mechanism." The operation-group split carries
+- **ADR-01 exception design (Accepted):** "wrap by mechanism." The operation-group split carries
   the taxonomy intact: transfer ops keep their custom exceptions (`UploadFileException`,
   `DownloadFileException`, `UpdateFileContentException`), single-`ExecuteAsync` ops keep throwing
   `Google.GoogleApiException` raw, semantic guards keep `InvalidMimeTypeException` /
   `UnsupportedMimeTypeException`, and all custom types stay under the base exception. Only the rename
   (`GoogleDriveApiException` → `GDriveApiException`) changes. See
   [ADR-01](../adr/01-exception-design.md).
-- **Token refresh stays automatic** — handled by `Google.Apis`; see
+- **Token refresh stays automatic,** handled by `Google.Apis`; see
   [token-refresh-internals.md](token-refresh-internals.md).

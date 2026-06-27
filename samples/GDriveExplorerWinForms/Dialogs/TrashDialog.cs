@@ -1,5 +1,5 @@
 using GDriveExplorerWinForms.Services;
-using GoogleFile = Google.Apis.Drive.v3.Data.File;
+using GoogleDriveApi_DotNet.Types;
 
 namespace GDriveExplorerWinForms.Dialogs;
 
@@ -94,12 +94,12 @@ public sealed class TrashDialog : Form
     private Task ReloadAsync() =>
         RunBusyAsync(async () =>
         {
-            IReadOnlyList<GoogleFile> items = await _service.GetTrashedFilesAsync(CancellationToken.None);
+            IReadOnlyList<DriveItem> items = await _service.GetTrashedFilesAsync(CancellationToken.None);
             _list.Items.Clear();
-            foreach (GoogleFile item in items.OrderBy(f => f.Name, StringComparer.OrdinalIgnoreCase))
+            foreach (DriveItem item in items.OrderBy(f => f.Name, StringComparer.OrdinalIgnoreCase))
             {
                 var listItem = new ListViewItem(item.Name) { Tag = item };
-                listItem.SubItems.Add(item.MimeType);
+                listItem.SubItems.Add(item.MimeType.Value);
                 listItem.SubItems.Add(item.Id);
                 _list.Items.Add(listItem);
             }
@@ -112,7 +112,7 @@ public sealed class TrashDialog : Form
             return;
         }
 
-        var file = (GoogleFile)_list.SelectedItems[0].Tag!;
+        var file = (DriveItem)_list.SelectedItems[0].Tag!;
         await RunBusyAsync(() => _service.RestoreFileAsync(file.Id, CancellationToken.None));
         await ReloadAsync();
     }

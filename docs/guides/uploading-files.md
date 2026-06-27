@@ -9,7 +9,7 @@ Upload files to Google Drive from a local path or from a `Stream`.
 > **MIME types:** `KnownMimeTypes` is from the external
 > [MimeMapping](https://www.nuget.org/packages/MimeMapping) package. You can also pass standard
 > MIME strings directly (`"image/jpeg"`, `"application/pdf"`, `"text/plain"`). For Drive-specific
-> types (folders, Google Docs), use this library's `GDriveMimeTypes` — see
+> types (folders, Google Docs), use this library's `MimeType` constants and helpers — see
 > [MIME types reference](../reference/mime-types.md).
 
 ## Upload from a path or a stream

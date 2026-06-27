@@ -1,4 +1,6 @@
 using GoogleDriveApi_DotNet.Abstractions;
+using GoogleDriveApi_DotNet.Extensions;
+using GoogleDriveApi_DotNet.Types;
 
 namespace GoogleDriveApi_DotNet.Operations;
 
@@ -22,9 +24,7 @@ internal sealed class GDriveTrashOperations(IGDriveOperationContext context) : I
         var updateRequest = service.Files.Update(metadata, fileId);
         updateRequest.Fields = "id, trashed";
 
-        await updateRequest
-            .ExecuteAsync(cancellationToken)
-            .ConfigureAwait(false);
+        await updateRequest.ExecuteAsync(cancellationToken).ConfigureAwait(false);
     }
 
     /// <inheritdoc/>
@@ -42,9 +42,7 @@ internal sealed class GDriveTrashOperations(IGDriveOperationContext context) : I
         var updateRequest = service.Files.Update(metadata, fileId);
         updateRequest.Fields = "id, trashed";
 
-        await updateRequest
-            .ExecuteAsync(cancellationToken)
-            .ConfigureAwait(false);
+        await updateRequest.ExecuteAsync(cancellationToken).ConfigureAwait(false);
     }
 
     /// <inheritdoc/>
@@ -52,38 +50,26 @@ internal sealed class GDriveTrashOperations(IGDriveOperationContext context) : I
     {
         var service = await _context.GetServiceAsync(cancellationToken).ConfigureAwait(false);
 
-        await service.Files.EmptyTrash()
-            .ExecuteAsync(cancellationToken)
-            .ConfigureAwait(false);
+        await service.Files
+            .EmptyTrash()
+            .ExecuteAsync(cancellationToken).ConfigureAwait(false);
     }
 
     /// <inheritdoc/>
-    public async Task<IReadOnlyList<GoogleFile>> ListAsync(int pageSize = 50, CancellationToken cancellationToken = default)
+    public async Task<IReadOnlyList<DriveItem>> ListAsync(int pageSize = 50, CancellationToken cancellationToken = default)
     {
+        IReadOnlyList<GoogleFile> trashed = await ListAsync(DriveFields.Default, pageSize, cancellationToken).ConfigureAwait(false);
+        return trashed.Select(f => f.ToDriveItem()).ToList();
+    }
+
+    /// <inheritdoc/>
+    public async Task<IReadOnlyList<GoogleFile>> ListAsync(DriveFields fields, int pageSize = 50, CancellationToken cancellationToken = default)
+    {
+        ArgumentNullException.ThrowIfNull(fields);
         ArgumentOutOfRangeException.ThrowIfNegativeOrZero(pageSize);
 
         var service = await _context.GetServiceAsync(cancellationToken).ConfigureAwait(false);
 
-        var trashed = new List<GoogleFile>();
-        string? pageToken = null;
-        do
-        {
-            var request = service.Files.List();
-            request.Q = "trashed = true";
-            request.Fields = "nextPageToken, files(id, name, mimeType, parents)";
-            request.PageSize = pageSize;
-            request.PageToken = pageToken;
-
-            var result = await request.ExecuteAsync(cancellationToken).ConfigureAwait(false);
-
-            if (result.Files is not null)
-            {
-                trashed.AddRange(result.Files);
-            }
-
-            pageToken = result.NextPageToken;
-        } while (!string.IsNullOrEmpty(pageToken));
-
-        return trashed;
+        return await service.ListAsync("trashed = true", fields.ToListMask(), pageSize, cancellationToken).ConfigureAwait(false);
     }
 }

@@ -1,4 +1,5 @@
 using GDriveExplorerWinForms.Services;
+using GoogleDriveApi_DotNet.Types;
 
 namespace GDriveExplorerWinForms.Controls;
 
@@ -47,11 +48,11 @@ public sealed class DriveFolderTreeView : TreeView
     /// </summary>
     public async Task LoadChildrenAsync(TreeNode node, CancellationToken ct)
     {
-        IReadOnlyList<(string id, string name)> folders = await _service.GetFoldersAsync((string)node.Tag!, ct);
+        IReadOnlyList<DriveItem> folders = await _service.GetFoldersAsync((string)node.Tag!, ct);
         node.Nodes.Clear();
-        foreach ((string id, string name) in folders)
+        foreach (DriveItem folder in folders)
         {
-            node.Nodes.Add(CreateFolderNode(id, name));
+            node.Nodes.Add(CreateFolderNode(folder.Id, folder.Name));
         }
     }
 

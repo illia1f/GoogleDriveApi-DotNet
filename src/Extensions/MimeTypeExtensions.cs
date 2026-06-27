@@ -31,7 +31,7 @@ internal static class MimeTypeExtensions
     {
         if (!mimeType.IsFolder)
         {
-            throw InvalidMimeTypeException.For(mimeType.Value, expectedMimeType: GDriveMimeTypes.Folder);
+            throw InvalidMimeTypeException.For(mimeType.Value, expectedMimeType: MimeType.Folder);
         }
     }
 }
