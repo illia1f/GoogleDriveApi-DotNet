@@ -51,7 +51,7 @@ The library is in **active development** and approaching its first stable releas
 
 - [x] Operation-group split (`Files` / `Folders` / `Transfers` / `Trash`) over a thin `GoogleDriveApi` facade
 - [x] Unified `DriveItem` domain model (replaces the raw Google type / tuples) + `DriveFields` selector for field-selected raw reads
-- [ ] `IAsyncEnumerable<GDriveItem>` streaming variants for listings
+- [ ] `IAsyncEnumerable<DriveItem>` streaming variants for listings
 - [ ] Multiple authentication providers: interactive (desktop), service account, stored refresh token
 - [ ] Lazy + idempotent + thread-safe authorization (safe for DI singletons)
 - [ ] Stream-destination downloads (`Transfers.DownloadAsync(fileId, Stream)`, `OpenReadAsync`) + `ExportFileAsync` for Workspace files
