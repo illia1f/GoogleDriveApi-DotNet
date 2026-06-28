@@ -8,7 +8,7 @@ namespace GoogleDriveApi_DotNet.Abstractions;
 /// Obtained from <see cref="GoogleDriveApi.Transfers"/>. If the owning client is not yet authorized,
 /// the first member call authorizes it on demand.
 /// </remarks>
-public interface IGDriveTransferOperations
+public interface IDriveTransfers
 {
     /// <summary>
     /// Uploads a file from the specified file system path to Google Drive using a resumable upload.

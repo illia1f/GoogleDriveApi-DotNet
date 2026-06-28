@@ -10,7 +10,7 @@ namespace GoogleDriveApi_DotNet.Abstractions;
 /// Obtained from <see cref="GoogleDriveApi.Files"/>. If the owning client is not yet authorized,
 /// the first member call authorizes it on demand.
 /// </remarks>
-public interface IGDriveFileOperations
+public interface IDriveFiles
 {
     /// <summary>
     /// Retrieves the files (non-folders) within the specified parent folder, across all pages, as the

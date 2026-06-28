@@ -10,7 +10,7 @@ namespace GoogleDriveApi_DotNet.Abstractions;
 /// Obtained from <see cref="GoogleDriveApi.Folders"/>. If the owning client is not yet authorized,
 /// the first member call authorizes it on demand.
 /// </remarks>
-public interface IGDriveFolderOperations
+public interface IDriveFolders
 {
     /// <summary>
     /// Retrieves the ID of a folder by its name within the specified parent folder.
