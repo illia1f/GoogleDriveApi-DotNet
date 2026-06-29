@@ -5,10 +5,10 @@ using GoogleDriveApi_DotNet.Types;
 
 namespace GoogleDriveApi_DotNet.Operations;
 
-/// <inheritdoc cref="IGDriveFolderOperations"/>
-internal sealed class GDriveFolderOperations(IGDriveOperationContext context) : IGDriveFolderOperations
+/// <inheritdoc cref="IDriveFolders"/>
+internal sealed class DriveFolders(IDriveOperationContext context) : IDriveFolders
 {
-    private readonly IGDriveOperationContext _context = context ?? throw new ArgumentNullException(nameof(context));
+    private readonly IDriveOperationContext _context = context ?? throw new ArgumentNullException(nameof(context));
 
     /// <inheritdoc/>
     public async Task<string?> FindIdByNameAsync(string folderName, string? parentFolderId = null, CancellationToken cancellationToken = default)

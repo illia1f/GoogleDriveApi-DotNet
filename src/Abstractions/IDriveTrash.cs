@@ -9,7 +9,7 @@ namespace GoogleDriveApi_DotNet.Abstractions;
 /// Obtained from <see cref="GoogleDriveApi.Trash"/>. If the owning client is not yet authorized,
 /// the first member call authorizes it on demand.
 /// </remarks>
-public interface IGDriveTrashOperations
+public interface IDriveTrash
 {
     /// <summary>
     /// Moves a file to the Google Drive trash by marking it as trashed.

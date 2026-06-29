@@ -49,10 +49,10 @@ only, with zero `Microsoft.Extensions.*`.
 ```
 ┌─────────────────────────────────────────────────────────────┐
 │  GoogleDriveApi  (core)                                       │
-│  • GDriveClient (facade) + operation groups                  │
-│  • GDriveItem domain model, exceptions                       │
-│  • IGDriveAuthProvider + 3 built-in providers                │
-│  • Builder + IGDriveClientFactory                            │
+│  • GoogleDriveApi (facade) + operation groups                │
+│  • DriveItem domain model, exceptions                        │
+│  • IGoogleDriveAuthProvider + 3 built-in providers           │
+│  • Builder + IGoogleDriveApiFactory                          │
 │  deps: Google.Apis.Drive.v3, MimeMapping        (DI-free)    │
 └───────────────────────────┬─────────────────────────────────┘
                             │ referenced by
@@ -73,16 +73,16 @@ The god class becomes a thin facade over four independently-mockable operation g
 the underlying `DriveService.Files.*`:
 
 ```
-GDriveClient   (facade: auth, Dispose, RawService escape hatch)
-  ├─ .Files     : IGDriveFileOperations      (get/rename/move/copy/delete/find/list)
-  ├─ .Folders   : IGDriveFolderOperations    (create/delete/rename/move/find/list)
-  ├─ .Transfers : IGDriveTransferOperations  (upload/download/export/update-content)
-  └─ .Trash     : IGDriveTrashOperations      (trash/restore/empty/list)
+GoogleDriveApi   (facade: auth, Dispose, RawService escape hatch)
+  ├─ .Files     : IDriveFiles      (get/rename/move/copy/delete/find/list)
+  ├─ .Folders   : IDriveFolders    (create/delete/rename/move/find/list)
+  ├─ .Transfers : IDriveTransfers  (upload/download/export/update-content)
+  └─ .Trash     : IDriveTrash      (trash/restore/empty/list)
 ```
 
 Each group is an interface → independently mockable and parallel-developable (kills the
 merge-conflict god class). The pagination loop (copy-pasted 4×) collapses into one shared
-`ListAllPagesAsync(...)` helper plus an `IAsyncEnumerable<GDriveItem>` streaming variant. The
+`ListAllPagesAsync(...)` helper plus an `IAsyncEnumerable<DriveItem>` streaming variant. The
 two missing folder methods land here as **validated wrappers** (verify MIME == folder first,
 matching `Folders.DeleteAsync`'s safety stance): `Folders.MoveAsync`, `Folders.RenameAsync`.
 
@@ -137,7 +137,7 @@ See the design: [Unified DriveItem + DriveFields](../superpowers/specs/2026-06-2
 The abstraction stops exposing `UserCredential` and unifies all flows behind one provider:
 
 ```csharp
-public interface IGDriveAuthProvider
+public interface IGoogleDriveAuthProvider
 {
     // GoogleCredential is the common base for user, service-account, and access-token credentials.
     Task<IConfigurableHttpClientInitializer> GetCredentialAsync(CancellationToken ct = default);
@@ -158,7 +158,7 @@ Auth settings split out of client options (today `GoogleDriveApiOptions` carries
 misleading dead state):
 
 ```
-GDriveOptions             → ApplicationName, RootFolderId, + .Auth selector
+GoogleDriveApiOptions     → ApplicationName, RootFolderId, + .Auth selector
   InteractiveAuthOptions  → CredentialsPath, TokenFolderPath, UserId
   ServiceAccountOptions   → KeyPath / KeyJson
   RefreshTokenOptions     → ClientId, ClientSecret, RefreshToken
@@ -179,7 +179,7 @@ Scoped client    → credential cached per HTTP request    (per-user, user-wired
 
 Auth becomes **lazy + idempotent + thread-safe** (`SemaphoreSlim`): the first API call authorizes
 once; an explicit `AuthorizeAsync` stays for eager auth but "already authorized" is a no-op, not an
-exception. This is what makes a DI singleton usable. `IGDriveClientFactory.Create(...)` is the
+exception. This is what makes a DI singleton usable. `IGoogleDriveApiFactory.Create(...)` is the
 escape hatch for non-DI background workers iterating over many users.
 
 ```csharp
@@ -192,7 +192,7 @@ services.AddGoogleDrive(o =>
 
 // Per-user: opt into scoped + supply a scoped provider (user-written)
 services.AddGoogleDrive(o => o.ApplicationName = "Web", ServiceLifetime.Scoped);
-services.AddScoped<IGDriveAuthProvider, MyPerUserAuthProvider>();
+services.AddScoped<IGoogleDriveAuthProvider, MyPerUserAuthProvider>();
 ```
 
 `AddGoogleDrive` binds via the options pattern and registers the client **and each operation-group
@@ -201,7 +201,7 @@ per-user seam; there is no dedicated `AddGoogleDrivePerUser` sugar in v1.
 
 ### Streams as first-class
 
-`IGDriveTransferOperations` exposes an explicit stream surface with a documented ownership
+`IDriveTransfers` exposes an explicit stream surface with a documented ownership
 contract, and no `MemoryStream` buffering of whole files:
 
 ```csharp
@@ -223,9 +223,16 @@ Task ExportFileAsync(string fileId, string exportMimeType, Stream destination, .
 
 ### Naming
 
-The whole public surface unifies on the `GDrive*` prefix (e.g. `GDriveClient`, `GDriveItem`,
-`GDriveApiException`), and the namespace drops the underscore: `GoogleDriveApi_DotNet` →
-`GoogleDriveApi`.
+One rule, two families:
+
+- **Edge / entry points** spell out `GoogleDrive*`: `GoogleDriveApi` (the facade),
+  `GoogleDriveApiBuilder`, `GoogleDriveApiOptions`, `GoogleDriveApiException`, and
+  `IGoogleDriveAuthProvider`.
+- **Inside** uses the short `Drive*`: the domain model (`DriveItem`, `DriveFields`) and the
+  operation groups (`IDriveFiles`, `IDriveFolders`, `IDriveTransfers`, `IDriveTrash`).
+
+The old `GDrive*` abbreviation is gone: it was neither the spelled-out edge nor the short domain
+prefix, and it echoed the namespace. The namespace itself stays `GoogleDriveApi_DotNet`.
 
 ---
 
@@ -235,8 +242,7 @@ The whole public surface unifies on the `GDrive*` prefix (e.g. `GDriveClient`, `
   the taxonomy intact: transfer ops keep their custom exceptions (`UploadFileException`,
   `DownloadFileException`, `UpdateFileContentException`), single-`ExecuteAsync` ops keep throwing
   `Google.GoogleApiException` raw, semantic guards keep `InvalidMimeTypeException` /
-  `UnsupportedMimeTypeException`, and all custom types stay under the base exception. Only the rename
-  (`GoogleDriveApiException` → `GDriveApiException`) changes. See
+  `UnsupportedMimeTypeException`, and all custom types stay under the base `GoogleDriveApiException`. See
   [ADR-01](../adr/01-exception-design.md).
 - **Token refresh stays automatic,** handled by `Google.Apis`; see
   [token-refresh-internals.md](token-refresh-internals.md).

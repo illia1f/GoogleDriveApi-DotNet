@@ -6,7 +6,7 @@ using Shouldly;
 
 namespace GoogleDriveApi_DotNet.Tests.Unit
 {
-    public class GDriveTransferOperationsTests
+    public class DriveTransfersTests
     {
         private readonly GoogleDriveApiOptions _options = new()
         {
@@ -23,7 +23,7 @@ namespace GoogleDriveApi_DotNet.Tests.Unit
             var api = GoogleDriveApi.Create(_options, Substitute.For<IGoogleDriveAuthProvider>());
 
             api.Transfers.ShouldNotBeNull();
-            api.Transfers.ShouldBeAssignableTo<IGDriveTransferOperations>();
+            api.Transfers.ShouldBeAssignableTo<IDriveTransfers>();
         }
 
         [Fact]

@@ -3,11 +3,11 @@ using Google.Apis.Drive.v3;
 namespace GoogleDriveApi_DotNet.Abstractions;
 
 /// <summary>
-/// The minimal surface an operation group (e.g. <see cref="IGDriveFileOperations"/>) needs from its
+/// The minimal surface an operation group (e.g. <see cref="IDriveFiles"/>) needs from its
 /// owning client: how to obtain the authorized service and the default root folder. Decouples each
 /// group from the concrete <see cref="GoogleDriveApi"/> client so groups depend on this seam, not the client.
 /// </summary>
-internal interface IGDriveOperationContext
+internal interface IDriveOperationContext
 {
     /// <summary>
     /// Returns the authorized <see cref="DriveService"/>, authorizing on first use.

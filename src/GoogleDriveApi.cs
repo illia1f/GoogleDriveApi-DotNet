@@ -15,7 +15,7 @@ namespace GoogleDriveApi_DotNet;
 /// Most instance members require successful authorization through <see cref="AuthorizeAsync"/>
 /// before they are used. Each member documents the exceptions it can throw.
 /// </remarks>
-public class GoogleDriveApi : IDisposable, IGDriveOperationContext
+public class GoogleDriveApi : IDisposable, IDriveOperationContext
 {
     private readonly GoogleDriveApiOptions _options;
     private readonly IGoogleDriveAuthProvider _authProvider;
@@ -28,23 +28,23 @@ public class GoogleDriveApi : IDisposable, IGDriveOperationContext
     /// Gets the file operations group (list, find, delete, rename, move, copy).
     /// Reads like the underlying <c>DriveService.Files.*</c> surface.
     /// </summary>
-    public IGDriveFileOperations Files { get; }
+    public IDriveFiles Files { get; }
 
     /// <summary>
     /// Gets the folder operations group (find, list, list-all, create, delete, rename, move).
     /// Reads like the underlying <c>DriveService.Files.*</c> surface, scoped to folders.
     /// </summary>
-    public IGDriveFolderOperations Folders { get; }
+    public IDriveFolders Folders { get; }
 
     /// <summary>
     /// Gets the transfer operations group (upload, update content, download with Workspace export).
     /// </summary>
-    public IGDriveTransferOperations Transfers { get; }
+    public IDriveTransfers Transfers { get; }
 
     /// <summary>
     /// Gets the trash operations group (move to trash, restore, empty, list trashed items).
     /// </summary>
-    public IGDriveTrashOperations Trash { get; }
+    public IDriveTrash Trash { get; }
 
     /// <summary>
     /// Gets the configured root folder ID from options. Default value is "root".
@@ -60,10 +60,10 @@ public class GoogleDriveApi : IDisposable, IGDriveOperationContext
     {
         _options = options;
         _authProvider = authProvider;
-        Files = new GDriveFileOperations(this);
-        Folders = new GDriveFolderOperations(this);
-        Transfers = new GDriveTransferOperations(this);
-        Trash = new GDriveTrashOperations(this);
+        Files = new DriveFiles(this);
+        Folders = new DriveFolders(this);
+        Transfers = new DriveTransfers(this);
+        Trash = new DriveTrash(this);
     }
 
     /// <summary>
@@ -237,7 +237,7 @@ public class GoogleDriveApi : IDisposable, IGDriveOperationContext
     }
 
     /// <inheritdoc/>
-    ValueTask<DriveService> IGDriveOperationContext.GetServiceAsync(CancellationToken cancellationToken)
+    ValueTask<DriveService> IDriveOperationContext.GetServiceAsync(CancellationToken cancellationToken)
         => EnsureServiceAsync(cancellationToken);
 
     /// <summary>

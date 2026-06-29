@@ -6,7 +6,7 @@ using Shouldly;
 
 namespace GoogleDriveApi_DotNet.Tests.Unit
 {
-    public class GDriveFolderOperationsTests
+    public class DriveFoldersTests
     {
         private readonly GoogleDriveApiOptions _options = new()
         {
@@ -23,7 +23,7 @@ namespace GoogleDriveApi_DotNet.Tests.Unit
             var api = GoogleDriveApi.Create(_options, Substitute.For<IGoogleDriveAuthProvider>());
 
             api.Folders.ShouldNotBeNull();
-            api.Folders.ShouldBeAssignableTo<IGDriveFolderOperations>();
+            api.Folders.ShouldBeAssignableTo<IDriveFolders>();
         }
 
         [Fact]
