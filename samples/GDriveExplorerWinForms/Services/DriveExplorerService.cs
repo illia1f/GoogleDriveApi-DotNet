@@ -52,10 +52,10 @@ public sealed class DriveExplorerService(GoogleDriveApi api) : IDisposable
             () => _api.Folders.MoveAsync(folderId, sourceFolderId, destinationFolderId, ct),
             "moved");
 
-    public Task<string?> FindFolderIdAsync(string name, string parentFolderId, CancellationToken ct) =>
-        Logger.TrackAsync(FormatCall("Folders.FindIdByNameAsync", name, parentFolderId),
-            () => _api.Folders.FindIdByNameAsync(name, parentFolderId, ct),
-            id => id is null ? "no match" : $"found id {id}");
+    public Task<DriveItem?> FindFolderAsync(string name, string parentFolderId, CancellationToken ct) =>
+        Logger.TrackAsync(FormatCall("Folders.FindFirstByNameAsync", name, parentFolderId),
+            () => _api.Folders.FindFirstByNameAsync(name, parentFolderId, ct),
+            folder => folder is null ? "no match" : $"found id {folder.Id}");
 
     // ---- Files ---------------------------------------------------------
 
@@ -112,10 +112,10 @@ public sealed class DriveExplorerService(GoogleDriveApi api) : IDisposable
             () => _api.Files.CopyAsync(fileId, destinationFolderId, newName, ct),
             id => $"copy id {id}");
 
-    public Task<string?> FindFileIdAsync(string name, string parentFolderId, CancellationToken ct) =>
-        Logger.TrackAsync(FormatCall("Files.FindIdByNameAsync", name, parentFolderId),
-            () => _api.Files.FindIdByNameAsync(name, parentFolderId, ct),
-            id => id is null ? "no match" : $"found id {id}");
+    public Task<DriveItem?> FindFileAsync(string name, string parentFolderId, CancellationToken ct) =>
+        Logger.TrackAsync(FormatCall("Files.FindFirstByNameAsync", name, parentFolderId),
+            () => _api.Files.FindFirstByNameAsync(name, parentFolderId, ct),
+            file => file is null ? "no match" : $"found id {file.Id}");
 
     public Task DeleteFileAsync(string fileId, CancellationToken ct) =>
         Logger.TrackAsync(FormatCall("Files.DeleteAsync", fileId),

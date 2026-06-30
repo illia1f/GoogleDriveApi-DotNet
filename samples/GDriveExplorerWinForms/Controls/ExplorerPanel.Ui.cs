@@ -65,7 +65,7 @@ public sealed partial class ExplorerPanel
         toolbar.Items.Add(new ToolStripSeparator());
 
         toolbar.Items.Add(_searchBox);
-        AddToolButton(toolbar, $"{Icons.Find} Find", "Files.FindIdByNameAsync / Folders.FindIdByNameAsync — find by exact name in the current folder", OnFind);
+        AddToolButton(toolbar, $"{Icons.Find} Find", "Files.FindFirstByNameAsync / Folders.FindFirstByNameAsync — find by exact name in the current folder", OnFind);
 
         toolbar.Items.Add(_cancelButton);
         return toolbar;

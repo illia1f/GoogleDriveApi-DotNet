@@ -51,16 +51,6 @@ namespace GoogleDriveApi_DotNet.Tests.Unit
             await authProvider.DidNotReceive().AuthorizeAsync(Arg.Any<CancellationToken>());
         }
 
-        [Fact]
-        public async Task Files_FindIdByNameAsync_WithEmptyName_ThrowsBeforeAuthorizing()
-        {
-            var authProvider = Substitute.For<IGoogleDriveAuthProvider>();
-            var api = GoogleDriveApi.Create(_options, authProvider);
-
-            await Should.ThrowAsync<ArgumentException>(() => api.Files.FindIdByNameAsync(string.Empty));
-            await authProvider.DidNotReceive().AuthorizeAsync(Arg.Any<CancellationToken>());
-        }
-
         [Theory]
         [InlineData(null, "new-name")]
         [InlineData("", "new-name")]
@@ -102,6 +92,46 @@ namespace GoogleDriveApi_DotNet.Tests.Unit
             var api = GoogleDriveApi.Create(_options, authProvider);
 
             await Should.ThrowAsync<ArgumentException>(() => api.Files.CopyAsync(fileId!, destinationFolderId!));
+            await authProvider.DidNotReceive().AuthorizeAsync(Arg.Any<CancellationToken>());
+        }
+
+        [Fact]
+        public async Task Files_FindByIdAsync_WithEmptyId_ThrowsBeforeAuthorizing()
+        {
+            var authProvider = Substitute.For<IGoogleDriveAuthProvider>();
+            var api = GoogleDriveApi.Create(_options, authProvider);
+
+            await Should.ThrowAsync<ArgumentException>(() => api.Files.FindByIdAsync(string.Empty));
+            await authProvider.DidNotReceive().AuthorizeAsync(Arg.Any<CancellationToken>());
+        }
+
+        [Fact]
+        public async Task Files_FindByIdAsync_WithNullFields_ThrowsBeforeAuthorizing()
+        {
+            var authProvider = Substitute.For<IGoogleDriveAuthProvider>();
+            var api = GoogleDriveApi.Create(_options, authProvider);
+
+            await Should.ThrowAsync<ArgumentNullException>(() => api.Files.FindByIdAsync("file-id", (DriveFields)null!));
+            await authProvider.DidNotReceive().AuthorizeAsync(Arg.Any<CancellationToken>());
+        }
+
+        [Fact]
+        public async Task Files_FindFirstByNameAsync_WithEmptyName_ThrowsBeforeAuthorizing()
+        {
+            var authProvider = Substitute.For<IGoogleDriveAuthProvider>();
+            var api = GoogleDriveApi.Create(_options, authProvider);
+
+            await Should.ThrowAsync<ArgumentException>(() => api.Files.FindFirstByNameAsync(string.Empty));
+            await authProvider.DidNotReceive().AuthorizeAsync(Arg.Any<CancellationToken>());
+        }
+
+        [Fact]
+        public async Task Files_FindFirstByNameAsync_WithNullFields_ThrowsBeforeAuthorizing()
+        {
+            var authProvider = Substitute.For<IGoogleDriveAuthProvider>();
+            var api = GoogleDriveApi.Create(_options, authProvider);
+
+            await Should.ThrowAsync<ArgumentNullException>(() => api.Files.FindFirstByNameAsync("name", (DriveFields)null!));
             await authProvider.DidNotReceive().AuthorizeAsync(Arg.Any<CancellationToken>());
         }
     }

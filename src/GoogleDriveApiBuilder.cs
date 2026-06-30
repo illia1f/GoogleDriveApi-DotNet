@@ -51,7 +51,6 @@ internal class GoogleDriveApiBuilder : IGoogleDriveApiBuilder
 
     public async Task<GoogleDriveApi> BuildAsync(bool immediateAuthorization = true, CancellationToken cancellationToken = default)
     {
-        // If no custom auth provider is set, create the default one
         var authProvider = _authProvider ?? new GoogleDriveAuthProvider(
             _credentialsPath,
             _tokenFolderPath,

@@ -34,15 +34,15 @@ The library picks an export MIME type for these automatically.
 // using var cts = new CancellationTokenSource(TimeSpan.FromMinutes(5));
 
 string parentFolderId = "root";
-string? sourceFolderId = await gDriveApi.Folders.FindIdByNameAsync("FileDownloader Test Folder", parentFolderId);
-if (sourceFolderId is null)
+DriveItem? sourceFolder = await gDriveApi.Folders.FindFirstByNameAsync("FileDownloader Test Folder", parentFolderId);
+if (sourceFolder is null)
 {
     Console.WriteLine("Source folder not found.");
     return;
 }
 
-string? fileId = await gDriveApi.Files.FindIdByNameAsync("Lesson_1.pdf", sourceFolderId);
-if (fileId is null)
+DriveItem? file = await gDriveApi.Files.FindFirstByNameAsync("Lesson_1.pdf", sourceFolder.Id);
+if (file is null)
 {
     Console.WriteLine("File not found.");
     return;
@@ -50,7 +50,7 @@ if (fileId is null)
 
 try
 {
-    await gDriveApi.Transfers.DownloadAsync(fileId); // saves into "Downloads" by default
+    await gDriveApi.Transfers.DownloadAsync(file.Id); // saves into "Downloads" by default
 }
 catch (OperationCanceledException)
 {

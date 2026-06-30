@@ -3,11 +3,10 @@ using GoogleDriveApi_DotNet.Types;
 using System.Text;
 using GoogleFile = Google.Apis.Drive.v3.Data.File;
 
-Console.OutputEncoding = Encoding.UTF8; // Set the console encoding to UTF-8 for proper display of folder names
+Console.OutputEncoding = Encoding.UTF8;
 
 using var cts = new CancellationTokenSource(TimeSpan.FromMinutes(2));
 
-// Initialize the Google Drive API with the specified credentials and token folder paths and authorize right away
 using GoogleDriveApi gDriveApi = await GoogleDriveApi.CreateBuilder()
     .SetCredentialsPath("credentials.json")
     .SetTokenFolderPath("_metadata")
@@ -17,13 +16,11 @@ using GoogleDriveApi gDriveApi = await GoogleDriveApi.CreateBuilder()
 // Parents isn't on the DriveItem model, so use the field-selected overload to request it.
 IReadOnlyList<GoogleFile> folders = await gDriveApi.Folders.ListAllAsync(DriveFields.Default.WithParents(), cts.Token);
 
-// Create a dictionary to map folder IDs to their corresponding folder objects
 Dictionary<string, GoogleFile> folderDic = folders.ToDictionary(f => f.Id);
 
 // Build a dictionary to map parent folder IDs to lists of their child folder IDs
 Dictionary<string, List<string>> childDic = BuildChildDictionary(folders);
 
-// Print the folder hierarchy starting from the root folders
 PrintFolderHierarchy(folderDic, childDic);
 
 static Dictionary<string, List<string>> BuildChildDictionary(IReadOnlyList<GoogleFile> folders)

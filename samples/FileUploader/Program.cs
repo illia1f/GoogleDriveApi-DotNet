@@ -1,5 +1,6 @@
 using GoogleDriveApi_DotNet;
 using GoogleDriveApi_DotNet.Exceptions;
+using GoogleDriveApi_DotNet.Types;
 using MimeMapping;
 
 // Example: Using CancellationToken with timeout for authorization
@@ -37,8 +38,8 @@ try
     // Uploads directly into a target folder by passing parentFolderId —
     // no need to upload to root and move the file afterwards.
     const string folderName = "FileUploaderSample";
-    string folderId = await gDriveApi.Folders.FindIdByNameAsync(folderName, cancellationToken: cts.Token)
-                      ?? await gDriveApi.Folders.CreateAsync(folderName, cancellationToken: cts.Token);
+    DriveItem? folder = await gDriveApi.Folders.FindFirstByNameAsync(folderName, cancellationToken: cts.Token);
+    string folderId = folder?.Id ?? await gDriveApi.Folders.CreateAsync(folderName, cancellationToken: cts.Token);
 
     using var stream = new FileStream(filePath, FileMode.Open);
     string fileName = Path.GetFileName(filePath);

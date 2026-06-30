@@ -13,21 +13,45 @@ namespace GoogleDriveApi_DotNet.Abstractions;
 public interface IDriveFolders
 {
     /// <summary>
-    /// Retrieves the ID of a folder by its name within the specified parent folder.
+    /// Retrieves the first folder matching <paramref name="folderName"/> within the specified parent
+    /// folder as the library's <see cref="DriveItem"/> model (<c>id</c>, <c>name</c>, <c>mimeType</c>).
     /// </summary>
     /// <param name="folderName">The name of the folder to search for.</param>
     /// <param name="parentFolderId">Parent folder to search within. If <c>null</c>, the configured root folder is used.</param>
     /// <param name="cancellationToken">The token to monitor for cancellation requests.</param>
-    /// <returns>The folder ID if a matching folder is found; otherwise, <c>null</c>.</returns>
+    /// <returns>The first matching folder as a <see cref="DriveItem"/>, or <c>null</c> when none matches.</returns>
     /// <remarks>
-    /// The search is limited to non-trashed items and returns at most one result. If multiple folders
-    /// with the same name exist in the same parent folder, the returned folder is unspecified.
+    /// The search is limited to non-trashed folders. Folder names are not unique within a parent; when
+    /// several match this returns one of them, in the Drive API's unspecified result order. To fetch
+    /// extra metadata in the same call, use the
+    /// <see cref="FindFirstByNameAsync(string, DriveFields, string?, CancellationToken)"/> overload.
     /// </remarks>
     /// <exception cref="ArgumentException">Thrown when <paramref name="folderName"/> is <c>null</c> or empty.</exception>
     /// <exception cref="ObjectDisposedException">Thrown when the owning client has been disposed.</exception>
     /// <exception cref="Google.GoogleApiException">Thrown when the Google Drive API returns an error.</exception>
     /// <exception cref="OperationCanceledException">Thrown when the operation is cancelled via the cancellation token.</exception>
-    Task<string?> FindIdByNameAsync(string folderName, string? parentFolderId = null, CancellationToken cancellationToken = default);
+    Task<DriveItem?> FindFirstByNameAsync(string folderName, string? parentFolderId = null, CancellationToken cancellationToken = default);
+
+    /// <summary>
+    /// Retrieves the first folder matching <paramref name="folderName"/> within the specified parent
+    /// folder as a raw <see cref="GoogleFile"/> carrying exactly the fields named by
+    /// <paramref name="fields"/>.
+    /// </summary>
+    /// <param name="folderName">The name of the folder to search for.</param>
+    /// <param name="fields">The fields to fetch. Start from <see cref="DriveFields.Default"/> and chain <c>With*</c> calls.</param>
+    /// <param name="parentFolderId">Parent folder to search within. If <c>null</c>, the configured root folder is used.</param>
+    /// <param name="cancellationToken">The token to monitor for cancellation requests.</param>
+    /// <returns>The first matching folder populated with the requested fields, or <c>null</c> when none matches.</returns>
+    /// <remarks>
+    /// Folder names are not unique within a parent; when several match this returns one of them, in the
+    /// Drive API's unspecified result order.
+    /// </remarks>
+    /// <exception cref="ArgumentException">Thrown when <paramref name="folderName"/> is <c>null</c> or empty.</exception>
+    /// <exception cref="ArgumentNullException">Thrown when <paramref name="fields"/> is <c>null</c>.</exception>
+    /// <exception cref="ObjectDisposedException">Thrown when the owning client has been disposed.</exception>
+    /// <exception cref="Google.GoogleApiException">Thrown when the Google Drive API returns an error.</exception>
+    /// <exception cref="OperationCanceledException">Thrown when the operation is cancelled via the cancellation token.</exception>
+    Task<GoogleFile?> FindFirstByNameAsync(string folderName, DriveFields fields, string? parentFolderId = null, CancellationToken cancellationToken = default);
 
     /// <summary>
     /// Retrieves the folders within the specified parent folder, across all pages, as the library's
@@ -96,6 +120,44 @@ public interface IDriveFolders
     /// <exception cref="Google.GoogleApiException">Thrown when the Google Drive API returns an error.</exception>
     /// <exception cref="OperationCanceledException">Thrown when the operation is cancelled via the cancellation token.</exception>
     Task<IReadOnlyList<GoogleFile>> ListAllAsync(DriveFields fields, CancellationToken cancellationToken = default);
+
+    /// <summary>
+    /// Retrieves a single folder by its ID as the library's <see cref="DriveItem"/> model
+    /// (<c>id</c>, <c>name</c>, <c>mimeType</c>).
+    /// </summary>
+    /// <param name="folderId">The ID of the folder to retrieve.</param>
+    /// <param name="cancellationToken">The token to monitor for cancellation requests.</param>
+    /// <returns>
+    /// The folder as a <see cref="DriveItem"/>, or <c>null</c> when no item with that ID exists or the
+    /// ID refers to something that is not a folder (this group is scoped to folders).
+    /// </returns>
+    /// <remarks>
+    /// To fetch additional metadata (parents, modified time, …) without over-fetching, use the
+    /// <see cref="FindByIdAsync(string, DriveFields, CancellationToken)"/> overload.
+    /// </remarks>
+    /// <exception cref="ArgumentException">Thrown when <paramref name="folderId"/> is <c>null</c> or empty.</exception>
+    /// <exception cref="ObjectDisposedException">Thrown when the owning client has been disposed.</exception>
+    /// <exception cref="Google.GoogleApiException">Thrown when the Google Drive API returns an error other than <c>404</c>.</exception>
+    /// <exception cref="OperationCanceledException">Thrown when the operation is cancelled via the cancellation token.</exception>
+    Task<DriveItem?> FindByIdAsync(string folderId, CancellationToken cancellationToken = default);
+
+    /// <summary>
+    /// Retrieves a single folder by its ID as a raw <see cref="GoogleFile"/> carrying exactly the fields
+    /// named by <paramref name="fields"/>.
+    /// </summary>
+    /// <param name="folderId">The ID of the folder to retrieve.</param>
+    /// <param name="fields">The fields to fetch. Start from <see cref="DriveFields.Default"/> and chain <c>With*</c> calls.</param>
+    /// <param name="cancellationToken">The token to monitor for cancellation requests.</param>
+    /// <returns>
+    /// The folder populated with the requested fields, or <c>null</c> when no item with that ID exists
+    /// or the ID refers to something that is not a folder (this group is scoped to folders).
+    /// </returns>
+    /// <exception cref="ArgumentException">Thrown when <paramref name="folderId"/> is <c>null</c> or empty.</exception>
+    /// <exception cref="ArgumentNullException">Thrown when <paramref name="fields"/> is <c>null</c>.</exception>
+    /// <exception cref="ObjectDisposedException">Thrown when the owning client has been disposed.</exception>
+    /// <exception cref="Google.GoogleApiException">Thrown when the Google Drive API returns an error other than <c>404</c>.</exception>
+    /// <exception cref="OperationCanceledException">Thrown when the operation is cancelled via the cancellation token.</exception>
+    Task<GoogleFile?> FindByIdAsync(string folderId, DriveFields fields, CancellationToken cancellationToken = default);
 
     /// <summary>
     /// Creates a new folder in Google Drive.
