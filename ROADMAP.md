@@ -16,7 +16,7 @@ The library is in **active development** and approaching its first stable releas
 - [x] Upload file from stream (`Transfers.UploadAsync`)
 - [x] Download binary files (`Transfers.DownloadAsync`)
 - [x] Download/export Google Workspace files (Docs, Sheets, Slides)
-- [x] Get file ID by name (`Files.FindIdByNameAsync`)
+- [x] Get file by name (`Files.FindFirstByNameAsync`)
 - [x] Get files by folder (`Files.ListAsync`)
 - [x] Delete file (`Files.DeleteAsync`)
 - [x] Move file to different folder (`Files.MoveAsync`)
@@ -28,7 +28,7 @@ The library is in **active development** and approaching its first stable releas
 
 - [x] Create folder (`Folders.CreateAsync`)
 - [x] Delete folder permanently (`Folders.DeleteAsync`)
-- [x] Get folder ID by name (`Folders.FindIdByNameAsync`)
+- [x] Get folder by name (`Folders.FindFirstByNameAsync`)
 - [x] Get folders by parent (`Folders.ListAsync`)
 - [x] Get all folders (`Folders.ListAllAsync`)
 - [x] Move folder to different parent (`Folders.MoveAsync`)

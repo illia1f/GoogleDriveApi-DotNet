@@ -1,4 +1,5 @@
 using GoogleDriveApi_DotNet;
+using GoogleDriveApi_DotNet.Types;
 
 using var cts = new CancellationTokenSource(TimeSpan.FromMinutes(5));
 
@@ -10,8 +11,8 @@ using GoogleDriveApi gDriveApi = await GoogleDriveApi.CreateBuilder()
 
 string parentFolderId = "root";
 string sourceFolderName = "FileDownloader Test Folder";
-string? sourceFolderId = await gDriveApi.Folders.FindIdByNameAsync(sourceFolderName, parentFolderId, cts.Token);
-if (sourceFolderId is null)
+DriveItem? sourceFolder = await gDriveApi.Folders.FindFirstByNameAsync(sourceFolderName, parentFolderId, cts.Token);
+if (sourceFolder is null)
 {
     Console.WriteLine($"Cannot find a folder with a name {sourceFolderName}.");
     return;
@@ -19,11 +20,11 @@ if (sourceFolderId is null)
 
 string fullFileNameToDownload = "Escanor.jpg";
 
-string? fileId = await gDriveApi.Files.FindIdByNameAsync(fullFileNameToDownload, sourceFolderId, cts.Token);
-if (fileId is null)
+DriveItem? file = await gDriveApi.Files.FindFirstByNameAsync(fullFileNameToDownload, sourceFolder.Id, cts.Token);
+if (file is null)
 {
     Console.WriteLine($"Cannot find a file with a name {fullFileNameToDownload}.");
     return;
 }
 
-await gDriveApi.Transfers.DownloadAsync(fileId, cancellationToken: cts.Token);
+await gDriveApi.Transfers.DownloadAsync(file.Id, cancellationToken: cts.Token);

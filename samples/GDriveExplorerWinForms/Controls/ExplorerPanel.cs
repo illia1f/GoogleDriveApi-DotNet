@@ -1,5 +1,6 @@
 using GDriveExplorerWinForms.Dialogs;
 using GDriveExplorerWinForms.Services;
+using GoogleDriveApi_DotNet.Types;
 using GoogleFile = Google.Apis.Drive.v3.Data.File;
 
 namespace GDriveExplorerWinForms.Controls;
@@ -408,17 +409,17 @@ public sealed partial class ExplorerPanel : UserControl
         string folderId = CurrentFolderId;
         await RunOperationAsync(async ct =>
         {
-            string? fileId = await _service.FindFileIdAsync(name, folderId, ct);
-            if (fileId is not null)
+            DriveItem? file = await _service.FindFileAsync(name, folderId, ct);
+            if (file is not null)
             {
-                _fileList.SelectFile(fileId);
+                _fileList.SelectFile(file.Id);
                 return;
             }
 
-            string? subFolderId = await _service.FindFolderIdAsync(name, folderId, ct);
-            if (subFolderId is not null)
+            DriveItem? subFolder = await _service.FindFolderAsync(name, folderId, ct);
+            if (subFolder is not null)
             {
-                await SelectFolderInTreeAsync(subFolderId, ct);
+                await SelectFolderInTreeAsync(subFolder.Id, ct);
             }
         });
     }

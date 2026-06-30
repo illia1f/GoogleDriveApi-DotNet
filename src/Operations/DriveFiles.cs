@@ -32,6 +32,13 @@ internal sealed class DriveFiles(IDriveOperationContext context) : IDriveFiles
     }
 
     /// <inheritdoc/>
+    public async Task<DriveItem?> FindByIdAsync(string fileId, CancellationToken cancellationToken = default)
+    {
+        GoogleFile? file = await FindByIdAsync(fileId, DriveFields.Default, cancellationToken).ConfigureAwait(false);
+        return file?.ToDriveItem();
+    }
+
+    /// <inheritdoc/>
     public async Task<GoogleFile?> FindByIdAsync(string fileId, DriveFields fields, CancellationToken cancellationToken = default)
     {
         ArgumentException.ThrowIfNullOrEmpty(fileId);
@@ -42,15 +49,29 @@ internal sealed class DriveFiles(IDriveOperationContext context) : IDriveFiles
         var request = service.Files.Get(fileId);
         request.Fields = fields.ToGetMask();
 
-        return await request
+        GoogleFile? file = await request
             .WithDefaultOnNotFound()
             .ExecuteAsync(cancellationToken).ConfigureAwait(false);
+
+        // Scoped to files: a folder id reads as not found.
+        if (file is not null && MimeType.Create(file.MimeType).IsFolder)
+            return null;
+
+        return file;
     }
 
     /// <inheritdoc/>
-    public async Task<string?> FindIdByNameAsync(string fullFileName, string? parentFolderId = null, CancellationToken cancellationToken = default)
+    public async Task<DriveItem?> FindFirstByNameAsync(string fullFileName, string? parentFolderId = null, CancellationToken cancellationToken = default)
+    {
+        GoogleFile? file = await FindFirstByNameAsync(fullFileName, DriveFields.Default, parentFolderId, cancellationToken).ConfigureAwait(false);
+        return file?.ToDriveItem();
+    }
+
+    /// <inheritdoc/>
+    public async Task<GoogleFile?> FindFirstByNameAsync(string fullFileName, DriveFields fields, string? parentFolderId = null, CancellationToken cancellationToken = default)
     {
         ArgumentException.ThrowIfNullOrEmpty(fullFileName);
+        ArgumentNullException.ThrowIfNull(fields);
 
         parentFolderId ??= _context.RootFolderId;
 
@@ -58,13 +79,11 @@ internal sealed class DriveFiles(IDriveOperationContext context) : IDriveFiles
 
         var request = service.Files.List();
         request.Q = $"mimeType != '{MimeType.Folder}' and name = '{DriveQueryHelper.EscapeValue(fullFileName)}' and '{DriveQueryHelper.EscapeValue(parentFolderId)}' in parents and trashed = false";
-        request.Fields = "files(id, name)";
+        request.Fields = fields.ToListMask();
         request.PageSize = 1;
 
         var result = await request.ExecuteAsync(cancellationToken).ConfigureAwait(false);
-        var file = result.Files?.FirstOrDefault();
-
-        return file?.Id;
+        return result.Files?.FirstOrDefault();
     }
 
     /// <inheritdoc/>

@@ -1,5 +1,6 @@
 ﻿using Google;
 using GoogleDriveApi_DotNet;
+using GoogleDriveApi_DotNet.Types;
 
 using var cts = new CancellationTokenSource(TimeSpan.FromMinutes(5));
 
@@ -13,8 +14,8 @@ const string parentFolderId = "root";
 
 // Change to your folder name in Google Drive
 const string sourceFolderName = "FileDownloader Test Folder";
-string? sourceFolderId = await gDriveApi.Folders.FindIdByNameAsync(sourceFolderName, parentFolderId, cts.Token);
-if (sourceFolderId is null)
+DriveItem? sourceFolder = await gDriveApi.Folders.FindFirstByNameAsync(sourceFolderName, parentFolderId, cts.Token);
+if (sourceFolder is null)
 {
     Console.WriteLine($"Cannot find a folder with a name \"{sourceFolderName}\".");
     return;
@@ -24,8 +25,8 @@ if (sourceFolderId is null)
 
 // Adjust this file name
 string fileToCopyName = "TextFile";
-string? fileId = await gDriveApi.Files.FindIdByNameAsync(fileToCopyName, sourceFolderId, cts.Token);
-if (fileId is null)
+DriveItem? file = await gDriveApi.Files.FindFirstByNameAsync(fileToCopyName, sourceFolder.Id, cts.Token);
+if (file is null)
 {
     Console.WriteLine($"Cannot find a file with a name \"{fileToCopyName}\".");
     return;
@@ -35,7 +36,7 @@ string copyFileId;
 
 try
 {
-    copyFileId = await gDriveApi.Files.CopyAsync(fileId, sourceFolderId, cancellationToken: cts.Token);
+    copyFileId = await gDriveApi.Files.CopyAsync(file.Id, sourceFolder.Id, cancellationToken: cts.Token);
     Console.WriteLine($"Created a copy of file \"{fileToCopyName}\".");
 }
 catch (GoogleApiException ex)
@@ -56,14 +57,14 @@ Console.WriteLine($"Renamed file \"{fileToCopyName}\" to \"{newFileName}\".");
 /////////// Moving copy file ///////////
 
 const string destinationFolderName = "1";
-string? destinationFolderId = await gDriveApi.Folders.FindIdByNameAsync(destinationFolderName, sourceFolderId, cts.Token);
-if (destinationFolderId is null)
+DriveItem? destinationFolder = await gDriveApi.Folders.FindFirstByNameAsync(destinationFolderName, sourceFolder.Id, cts.Token);
+if (destinationFolder is null)
 {
     Console.WriteLine($"Cannot find a folder with a name \"{destinationFolderName}\".");
     return;
 }
 
-await gDriveApi.Files.MoveAsync(copyFileId, sourceFolderId, destinationFolderId, cts.Token);
+await gDriveApi.Files.MoveAsync(copyFileId, sourceFolder.Id, destinationFolder.Id, cts.Token);
 
 Console.WriteLine($"File \"{newFileName}\" moved to folder \"{destinationFolderName}\".");
 

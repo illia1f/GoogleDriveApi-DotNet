@@ -11,9 +11,17 @@ internal sealed class DriveFolders(IDriveOperationContext context) : IDriveFolde
     private readonly IDriveOperationContext _context = context ?? throw new ArgumentNullException(nameof(context));
 
     /// <inheritdoc/>
-    public async Task<string?> FindIdByNameAsync(string folderName, string? parentFolderId = null, CancellationToken cancellationToken = default)
+    public async Task<DriveItem?> FindFirstByNameAsync(string folderName, string? parentFolderId = null, CancellationToken cancellationToken = default)
+    {
+        GoogleFile? folder = await FindFirstByNameAsync(folderName, DriveFields.Default, parentFolderId, cancellationToken).ConfigureAwait(false);
+        return folder?.ToDriveItem();
+    }
+
+    /// <inheritdoc/>
+    public async Task<GoogleFile?> FindFirstByNameAsync(string folderName, DriveFields fields, string? parentFolderId = null, CancellationToken cancellationToken = default)
     {
         ArgumentException.ThrowIfNullOrEmpty(folderName);
+        ArgumentNullException.ThrowIfNull(fields);
 
         parentFolderId ??= _context.RootFolderId;
 
@@ -21,18 +29,16 @@ internal sealed class DriveFolders(IDriveOperationContext context) : IDriveFolde
             .GetServiceAsync(cancellationToken)
             .ConfigureAwait(false);
 
-        var listRequest = service.Files.List();
-        listRequest.Q = $"mimeType='{MimeType.Folder}' and name='{DriveQueryHelper.EscapeValue(folderName)}' and '{DriveQueryHelper.EscapeValue(parentFolderId)}' in parents and trashed=false";
-        listRequest.Fields = "files(id, name)";
-        listRequest.PageSize = 1;
+        var request = service.Files.List();
+        request.Q = $"mimeType='{MimeType.Folder}' and name='{DriveQueryHelper.EscapeValue(folderName)}' and '{DriveQueryHelper.EscapeValue(parentFolderId)}' in parents and trashed=false";
+        request.Fields = fields.ToListMask();
+        request.PageSize = 1;
 
-        var result = await listRequest
+        var result = await request
             .ExecuteAsync(cancellationToken)
             .ConfigureAwait(false);
 
-        GoogleFile? file = result.Files?.FirstOrDefault();
-
-        return file?.Id;
+        return result.Files?.FirstOrDefault();
     }
 
     /// <inheritdoc/>
@@ -82,6 +88,37 @@ internal sealed class DriveFolders(IDriveOperationContext context) : IDriveFolde
         return await service
             .ListAsync(query, fields.ToListMask(), pageSize: 1000, cancellationToken)
             .ConfigureAwait(false);
+    }
+
+    /// <inheritdoc/>
+    public async Task<DriveItem?> FindByIdAsync(string folderId, CancellationToken cancellationToken = default)
+    {
+        GoogleFile? folder = await FindByIdAsync(folderId, DriveFields.Default, cancellationToken).ConfigureAwait(false);
+        return folder?.ToDriveItem();
+    }
+
+    /// <inheritdoc/>
+    public async Task<GoogleFile?> FindByIdAsync(string folderId, DriveFields fields, CancellationToken cancellationToken = default)
+    {
+        ArgumentException.ThrowIfNullOrEmpty(folderId);
+        ArgumentNullException.ThrowIfNull(fields);
+
+        var service = await _context
+            .GetServiceAsync(cancellationToken)
+            .ConfigureAwait(false);
+
+        var request = service.Files.Get(folderId);
+        request.Fields = fields.ToGetMask();
+
+        GoogleFile? folder = await request
+            .WithDefaultOnNotFound()
+            .ExecuteAsync(cancellationToken).ConfigureAwait(false);
+
+        // Scoped to folders: a non-folder id reads as not found.
+        if (folder is not null && !MimeType.Create(folder.MimeType).IsFolder)
+            return null;
+
+        return folder;
     }
 
     /// <inheritdoc/>

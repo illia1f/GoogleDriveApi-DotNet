@@ -1,4 +1,5 @@
 using GoogleDriveApi_DotNet;
+using GoogleDriveApi_DotNet.Types;
 
 using var cts = new CancellationTokenSource(TimeSpan.FromSeconds(30));
 
@@ -35,15 +36,14 @@ Console.WriteLine(new string('-', 50));
  * Gets the folder ID of a specific folder named "Test Folder". 
  */
 {
-    // Retrieves the folder ID of "Test Folder" in the root directory
-    string? folderId = await gDriveApi.Folders.FindIdByNameAsync("Test Folder", cancellationToken: cts.Token);
-    if (folderId is null)
+    DriveItem? folder = await gDriveApi.Folders.FindFirstByNameAsync("Test Folder", cancellationToken: cts.Token);
+    if (folder is null)
     {
         Console.WriteLine($"Cannot find a folder.");
     }
     else
     {
-        Console.WriteLine($"Folder with ID({folderId}).");
+        Console.WriteLine($"Folder with ID({folder.Id}).");
     }
 }
 
@@ -54,7 +54,6 @@ Console.WriteLine(new string('-', 50));
  * and their subfolders.
  */
 {
-    // Retrieves a list of folders in the root directory
     var folders = await gDriveApi.Folders.ListAsync(parentFolderId: "root", cancellationToken: cts.Token);
 
     for (int i = 0; i < folders.Count; i++)
@@ -63,7 +62,6 @@ Console.WriteLine(new string('-', 50));
 
         Console.WriteLine($"{i + 1}. [{folder.Name}] with ID({folder.Id})");
 
-        // Retrieves a list of subfolders within the current folder
         var subFolders = await gDriveApi.Folders.ListAsync(folder.Id, cancellationToken: cts.Token);
         for (int j = 0; j < subFolders.Count; j++)
         {
@@ -82,14 +80,14 @@ Console.WriteLine(new string('-', 50));
 {
     try
     {
-        string? folderId = await gDriveApi.Folders.FindIdByNameAsync("Test Folder", cancellationToken: cts.Token);
-        if (folderId is null)
+        DriveItem? folder = await gDriveApi.Folders.FindFirstByNameAsync("Test Folder", cancellationToken: cts.Token);
+        if (folder is null)
         {
             Console.WriteLine("Cannot find the Test Folder.");
         }
         else
         {
-            await gDriveApi.Folders.DeleteAsync(folderId, cts.Token);
+            await gDriveApi.Folders.DeleteAsync(folder.Id, cts.Token);
             Console.WriteLine("Test Folder has been deleted =)");
         }
     }

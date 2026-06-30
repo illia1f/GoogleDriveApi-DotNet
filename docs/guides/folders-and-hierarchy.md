@@ -63,8 +63,8 @@ See the [RetrieveAllFolderHierarchy sample](https://github.com/Illia1F/GoogleDri
 ## Finding a folder by name
 
 ```csharp
-string? folderId = await gDriveApi.Folders.FindIdByNameAsync("My Folder", parentFolderId: "root");
-if (folderId is null)
+DriveItem? folder = await gDriveApi.Folders.FindFirstByNameAsync("My Folder", parentFolderId: "root");
+if (folder is null)
 {
     Console.WriteLine("No matching folder found.");
 }

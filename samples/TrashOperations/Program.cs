@@ -1,4 +1,5 @@
 ﻿using GoogleDriveApi_DotNet;
+using GoogleDriveApi_DotNet.Types;
 
 // To see the difference use debugger
 
@@ -12,25 +13,25 @@ using GoogleDriveApi gDriveApi = await GoogleDriveApi.CreateBuilder()
 
 string parentFolderId = "root";
 string sourceFolderName = "FileDownloader Test Folder";
-string? sourceFolderId = await gDriveApi.Folders.FindIdByNameAsync(sourceFolderName, parentFolderId, cts.Token);
-if (sourceFolderId is null)
+DriveItem? sourceFolder = await gDriveApi.Folders.FindFirstByNameAsync(sourceFolderName, parentFolderId, cts.Token);
+if (sourceFolder is null)
 {
     Console.WriteLine($"Cannot find a folder with a name {sourceFolderName}.");
     return;
 }
 
 string fileToDeleteName = "Fine";
-string? fileToDeleteId = await gDriveApi.Files.FindIdByNameAsync(fileToDeleteName, sourceFolderId, cts.Token);
-if (fileToDeleteId is null)
+DriveItem? fileToDelete = await gDriveApi.Files.FindFirstByNameAsync(fileToDeleteName, sourceFolder.Id, cts.Token);
+if (fileToDelete is null)
 {
     Console.WriteLine("Cannot find file.");
     return;
 }
 
-await gDriveApi.Trash.TrashAsync(fileToDeleteId, cts.Token);
+await gDriveApi.Trash.TrashAsync(fileToDelete.Id, cts.Token);
 
 var trashedFiles = await gDriveApi.Trash.ListAsync(cancellationToken: cts.Token);
 
 Console.WriteLine($"Files in trash: {trashedFiles.Count}");
 
-await gDriveApi.Trash.RestoreAsync(fileToDeleteId, cts.Token);
+await gDriveApi.Trash.RestoreAsync(fileToDelete.Id, cts.Token);
